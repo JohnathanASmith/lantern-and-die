@@ -15,14 +15,18 @@ The page ships inside this skill:
 - `assets/capabilities.json`: the artifact capabilities and database rules it needs
 - `assets/VERSION`: the bundled version
 
-The newest version is also published on GitHub:
+The newest version is also published in the public GitHub repo `https://github.com/JohnathanASmith/lantern-and-die` (changelog in `CHANGELOG.md` at its root).
 
-- `https://raw.githubusercontent.com/JohnathanASmith/lantern-and-die/main/plugins/lantern-and-die/skills/table/assets/VERSION`
-- `https://raw.githubusercontent.com/JohnathanASmith/lantern-and-die/main/plugins/lantern-and-die/skills/table/assets/lantern-and-die.html`
-- `https://raw.githubusercontent.com/JohnathanASmith/lantern-and-die/main/plugins/lantern-and-die/skills/table/assets/capabilities.json`
-- `https://raw.githubusercontent.com/JohnathanASmith/lantern-and-die/main/CHANGELOG.md`
+Get the newest page like this:
 
-Get the newest page like this: copy the three bundled files into a fresh folder in the working directory. Then try downloading the GitHub `VERSION`; if it is newer than the bundled one, download the GitHub HTML and capabilities over the copies (`curl -fsSL -o <file> <url>`). If GitHub can't be reached, use the bundled files and say so in one line. Check the HTML's meta version matches the version you're publishing. Never rebuild the page by hand.
+1. Copy the three bundled files into a fresh folder in the working directory.
+2. Fetch the repo with git, which works where plain web downloads are blocked:
+   ```bash
+   git clone -q --depth 1 https://github.com/JohnathanASmith/lantern-and-die lad-latest
+   ```
+   If that fails, try `curl -fsSL -o <file> https://raw.githubusercontent.com/JohnathanASmith/lantern-and-die/main/plugins/lantern-and-die/skills/table/assets/<file>` for `VERSION`, `lantern-and-die.html` and `capabilities.json`.
+3. If GitHub's `plugins/lantern-and-die/skills/table/assets/VERSION` is newer than the bundled `VERSION`, use GitHub's `lantern-and-die.html` and `capabilities.json` instead of the bundled ones. If GitHub can't be reached, use the bundled files and say so in one line.
+4. Check the HTML's `lantern-and-die-version` meta matches the version you're publishing. Never rebuild or edit the page by hand.
 
 ## Every time: check the user's tables
 
