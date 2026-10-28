@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1
+
+- Ending a campaign now clears everything from it: talk, checks, turns, NPC memories, scenes and party chat, and private Ask the DM answers no longer show. Heroes keep their level and gear and unlock for editing.
+- Tables ended on an older version are cleaned up the next time the host opens the page.
+- Ending a campaign keeps the host's DM settings.
+- The review step no longer says a hero is "already in the campaign" when no campaign is running.
+- Generate for spells (class spells, Magic Initiate and Versatile Magic Initiate) now fills the field even when Claude answers in a different shape, and says so if it comes back empty.
+- Surprise me fills spells for every class that casts at level 1, including Paladins, Rangers and Versatile Magic Initiate.
+
 ## 1.1.0
 
 The table gets art.

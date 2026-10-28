@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.1.0">
+<meta name="lantern-and-die-version" content="1.1.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -322,7 +322,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.1.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.1.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -702,7 +702,7 @@ function renderStep(){const d=S.draft,k=S.step,p=$("stepPanel");const cl=CLASSES
       ta("appearance","appearance",2,"Burn-scarred forearms, a lantern hooked to the belt",400),ta("personality","personality & flaw",2,"",400),ta("backstory","backstory",4,"",1500)]}
   else if(k==="import"){body=importView()}
   else{const all=allNeeds(d);
-    body=[h("h2",{text:"Review your hero"}),all.length?h("div",{class:"needs"},h("b",{text:"Still to do:"}),...all.map(x=>h("div",{text:"• "+x}))):h("div",{class:"needs ok",text:S.chars[S.uid]?.ready?`${d.name||"Your hero"} is already in the campaign. Changes save automatically and show up at the table right away.`:"Everything is filled in. Tap I'm ready to join the table."}),sheetView(previewDoc(),{live:false})]}
+    body=[h("h2",{text:"Review your hero"}),all.length?h("div",{class:"needs"},h("b",{text:"Still to do:"}),...all.map(x=>h("div",{text:"• "+x}))):h("div",{class:"needs ok",text:heroInPlay()?`${d.name||"Your hero"} is already in the campaign. Changes save automatically and show up at the table right away.`:S.chars[S.uid]?.ready?`${d.name||"Your hero"} is marked ready${S.game?.status==="playing"?" and joins the campaign at the next scene":" for the next campaign"}. Changes save automatically.`:"Everything is filled in. Tap I'm ready to join the table."}),sheetView(previewDoc(),{live:false})]}
   const nb=k!=="review"?stepNeedsBox(k):null;p.replaceChildren(...body.filter(Boolean),nb||"")}
 function previewDoc(){const d=S.draft,prev=S.chars[S.uid]||{};const doc=buildDoc(d.ready);return{...doc,hp:doc.hp,level:prev.level||1}}
 function renderHeroCard(){const d=S.draft;const dv=derive(d);const fs=dv.fs;const done=STEPS.filter(([k])=>!(needs(d)[k]||[]).length).length;
@@ -833,20 +833,24 @@ function partyCtx(){return Object.entries(S.chars).filter(([id])=>id!==S.uid).ma
 const GEN_SPEC={name:"a fitting fantasy name (first name and surname, under 30 characters)",appearance:"1-2 sentences of vivid, specific appearance",personality:"2 personality traits and one flaw, in 1-2 sentences",backstory:"a backstory of one short paragraph (90-140 words) with a secret or unfinished business the DM can use",
   spells:"a level-1 spell selection from the D&D 2024 Player's Handbook for this class, formatted 'Cantrips: A, B; 1st: C, D' with exactly the right counts for the class",miSpells:"a Magic Initiate pick from the background's spell list: exactly 2 cantrips and 1 level-1 spell, formatted 'Cantrips: A, B; 1st: C'",humanMISpells:"a Magic Initiate pick from the chosen list: exactly 2 cantrips and 1 level-1 spell, formatted 'Cantrips: A, B; 1st: C'"};
 let genBusy=false;
+const SPELL_FIELDS=["spells","miSpells","humanMISpells"];
+function spellText(v){if(v==null)return "";if(typeof v==="string")return v;if(Array.isArray(v))return v.map(spellText).filter(Boolean).join(", ");
+  if(typeof v==="object"){const parts=[];for(const[k,x]of Object.entries(v)){const t=spellText(x);if(!t)continue;const lk=k.toLowerCase();parts.push(`${/cantrip|^0|level ?0/.test(lk)?"Cantrips":/1|first|level/.test(lk)?"1st":k}: ${t}`)}return parts.join("; ")}return String(v)}
+function genValue(r,field){if(r==null)return "";if(typeof r==="string")return r;const v=r.value??r[field]??r.text;const isSp=SPELL_FIELDS.includes(field);if(v!=null)return isSp||typeof v!=="string"?spellText(v):v;return isSp?spellText(r):""}
 async function genField(field,btn){if(genBusy)return;if(!S.sample){if(field==="name"){S.draft.name=localName();dirty();renderCreator()}else $("genState").textContent="Generating text needs Claude allowed on this page.";return}
   genBusy=true;const old=btn.textContent;btn.disabled=true;btn.replaceChildren(h("span",{class:"spin"}));const hint=$("f-hint").value.trim();const d=S.draft,cl=CLASSES[d.class];
   const extra=field==="spells"?` Counts: ${(cl.cantrips||0)+(["Magician","Thaumaturge"].includes(d.classOpt)?1:0)} cantrips and ${cl.prepared} level-1 spells.`:field==="miSpells"?` List: ${BG[d.background].mi}.`:field==="humanMISpells"?` List: ${d.humanMI}.`:"";
   const prompt=`You help players build level-1 characters for D&D 5e using the 2024 Player's Handbook. Write ${GEN_SPEC[field]} for this hero.${extra} Fit the species, class, background, alignment and anything already written. Avoid clichés and well-known characters.${hint?`\nPlayer's idea: ${hint}`:""}\nHero so far: ${JSON.stringify(sheetCtx())}\nOther party members: ${partyCtx()}\nReply with ONLY JSON: {"value":"..."}`;
-  try{const r=await S.sample.json(prompt,{...aiOpts("creator",field==="name"?"quick":"default"),cache:false});const v=String(r?.value||"").trim();if(v){S.draft[field]=v.slice(0,field==="backstory"?1500:field==="name"?40:400);dirty();renderCreator();$("genState").textContent=""}}
+  try{const r=await S.sample.json(prompt,{...aiOpts("creator",field==="name"?"quick":"default"),cache:false});const v=String(genValue(r,field)).trim();if(v){S.draft[field]=v.slice(0,field==="backstory"?1500:field==="name"?40:400);dirty();renderCreator();$("genState").textContent=""}else $("genState").textContent="The DM came back empty-handed. Tap Generate again."}
   catch(e){$("genState").textContent=sampleErr(e)}finally{genBusy=false;btn.disabled=false;btn.textContent=old}}
 const LISTS=()=>`Species: ${SPECIES_NAMES.map(n=>n+(SPECIES[n].opt?` (${SPECIES[n].opt.label}: ${SPECIES[n].opt.list.map(o=>o[0]).join("/")})`:"")).join("; ")}. Classes: ${Object.entries(CLASSES).map(([k,v])=>`${k} picks ${v.n} skills from ${v.from===SK?"any":v.from.join("/")}${v.opt?`; ${v.opt.label}: ${v.opt.list.map(o=>o[0]).join("/")}`:""}`).join(". ")}. Backgrounds (2024): ${BACKGROUNDS.map(n=>`${n} (${BG[n].abil.join("/")}, ${BG[n].feat}, ${BG[n].skills.join("+")})`).join("; ")}. Alignments: ${ALIGN.join(", ")}. Languages: ${LANGS.join(", ")}.`;
-const PATCH_KEYS=`name, species, speciesOpt, class, classOpt, background, alignment, classSkills (array), speciesSkill, languages (array of 2), base (STR..CHA base scores 8-15, a valid 27-point buy: 8:0 9:1 10:2 11:3 12:4 13:5 14:7 15:9), bonus2 and bonus1 (abilities from the background's three for +2 and +1), spells, miSpells, appearance, personality, backstory`;
+const PATCH_KEYS=`name, species, speciesOpt, class, classOpt, background, alignment, classSkills (array), speciesSkill, languages (array of 2), base (STR..CHA base scores 8-15, a valid 27-point buy: 8:0 9:1 10:2 11:3 12:4 13:5 14:7 15:9), bonus2 and bonus1 (abilities from the background's three for +2 and +1), spells, miSpells, humanMISpells, appearance, personality, backstory`;
 $("btnSurprise").onclick=async()=>{if(!S.sample){randomBuild();$("genState").textContent="Rolled a random build. Claude isn't available here to write the rest.";return}
   if(genBusy)return;genBusy=true;const b=$("btnSurprise");b.disabled=true;$("genState").replaceChildren(h("span",{class:"spin"})," the DM is inventing your hero");const hint=$("f-hint").value.trim();
   const prompt=`Invent a complete, memorable level-1 D&D hero using the 2024 Player's Handbook rules, one who would make the party more interesting.${hint?` Build it around the player's idea: ${hint}`:""}
 Other party members: ${partyCtx()}
 ${LISTS()}
-Reply with ONLY a JSON object with these keys: ${PATCH_KEYS}, plus "pitch" (one sentence telling the player why this hero is fun). classSkills must come from that class's list and not repeat the background's skills. Include spells for casters in the form 'Cantrips: ...; 1st: ...' and miSpells if the background's feat is Magic Initiate.`;
+Reply with ONLY a JSON object with these keys: ${PATCH_KEYS}, plus "pitch" (one sentence telling the player why this hero is fun). classSkills must come from that class's list and not repeat the background's skills. Every spell field is ONE string in the form 'Cantrips: A, B; 1st: C, D'. Include spells for every class that casts at level 1 (Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard) with that class's exact counts, miSpells if the background's feat is Magic Initiate, and humanMISpells if a Human takes Magic Initiate as their Versatile feat.`;
   try{const r=await S.sample.json(prompt,{...aiOpts("creator","default"),cache:false});if(!r||typeof r!=="object")throw{code:"invalid_json"};randomBuildBase();applyPatch({patch:r});
     $("genState").textContent=r.pitch?String(r.pitch).slice(0,200):"Here's your hero. Change anything you like.";S.coach.push({role:"dm",text:"I made you "+(S.draft.name||"a hero")+(r.pitch?". "+r.pitch:".")});renderCoach();S.step="review";renderCreator()}
   catch(e){$("genState").textContent=sampleErr(e)}finally{genBusy=false;b.disabled=false}};
@@ -861,7 +865,8 @@ function renderCoach(){const log=$("coachLog");
     if(m.patch&&Object.keys(m.patch).length){const keys=Object.keys(m.patch).map(k=>({base:"ability scores",classSkills:"skills",bonus2:"bonuses",bonus1:"bonuses",speciesOpt:"species option",classOpt:"class option",miSpells:"magic initiate"}[k]||k));el.append(h("div",{style:"margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"},h("span",{class:"label",text:"suggests "+[...new Set(keys)].join(", ")}),m.applied?h("span",{class:"status ready",text:"applied"}):h("button",{type:"button",onclick:()=>{applyPatch(m);renderCoach()}},"Apply to sheet")))}
     return el}));log.scrollTop=log.scrollHeight}
 function applyPatch(m){const p=m.patch,d=S.draft;
-  for(const k of ["name","appearance","personality","backstory","spells","miSpells"])if(typeof p[k]==="string")d[k]=p[k].slice(0,k==="backstory"?1500:k==="name"?40:400);
+  for(const k of ["name","appearance","personality","backstory"])if(typeof p[k]==="string")d[k]=p[k].slice(0,k==="backstory"?1500:k==="name"?40:400);
+  for(const k of SPELL_FIELDS)if(p[k]!=null){const t=spellText(p[k]).trim();if(t)d[k]=t.slice(0,400)}
   if(SPECIES[p.species])d.species=p.species;if(CLASSES[p.class])d.class=p.class;if(BG[p.background])d.background=p.background;if(ALIGN.includes(p.alignment))d.alignment=p.alignment;
   if(typeof p.speciesOpt==="string")d.speciesOpt=p.speciesOpt;if(typeof p.classOpt==="string")d.classOpt=p.classOpt;
   if(Array.isArray(p.classSkills))d.classSkills=p.classSkills.map(String);if(SKILLS[p.speciesSkill])d.speciesSkill=p.speciesSkill;
@@ -1842,7 +1847,17 @@ async function rest(kind,sid){if(!S.db)return;const g=S.game,sc=S.scenes[sid];co
   for(const id of ids){const c=S.chars[id];if((c.conditions||[]).includes("dead"))continue;const back=Math.max(1,Math.floor((c.level||1)/2));
     await S.db.doc("characters/"+id).update({hp:c.hpMax,hitDiceUsed:Math.max(0,(c.hitDiceUsed||0)-back),slotsUsed:[],exhaustion:Math.max(0,(c.exhaustion||0)-1),deathSaves:{s:0,f:0},conditions:(c.conditions||[]).filter(x=>!["unconscious","stable","prone"].includes(x)),inspiration:speciesOf(c)==="Human"?true:!!c.inspiration}).catch(()=>{})}
   const tL=sceneTime(sid)+480;await S.db.doc("scenes/"+sid).update({time:tL,lastHereAt:tL}).catch(()=>{});await S.db.doc("game/state").update({time:Math.max(gameTime(g),tL),day:Math.floor(Math.max(gameTime(g),tL)/1440)+1,log:[...(g.log||[]),{day:Math.floor(tL/1440)+1,scene:sc?.name||"",text:"The heroes take a long rest and wake at dawn, restored."}].slice(-40)}).catch(()=>{});if((sc?.incoming||[]).some(x=>x.at<=tL+30))S.db.collection("updates").add({scene:sid,reason:"Time has passed; anyone waiting to arrive walks in now.",status:"pending",by:S.uid||"",at:Date.now()}).catch(()=>{});toast("Long rest: HP, spell slots and half your hit dice restored.")}
-async function resetCampaign(){hostConfirm=false;try{await S.db.doc("game/state").set({status:"lobby",day:1,log:[],heroScene:{}});for(const id of Object.keys(S.scenes))await S.db.doc("scenes/"+id).delete();for(const[id,c]of Object.entries(S.chars)){if(c.inPlay)await S.db.doc("characters/"+id).update({inPlay:false,ready:false})}}catch(e){toast("Couldn't end the campaign.")}}
+S.raw={};
+const cur=list=>{const t=S.game?.resetAt;return t?(list||[]).filter(m=>(m.at||0)>=t):(list||[])};
+function refilter(){if(S.raw.talk)S.talk=cur(S.raw.talk);if(S.raw.checks)S.checks=cur(S.raw.checks);if(S.raw.myQA)S.myQA=cur(S.raw.myQA);if(S.raw.chat)S.chat=cur(S.raw.chat)}
+let cleaning=false,cleanedAt=0;
+async function cleanupOld(){const g=S.game;if(!S.isOwner||!S.db||cleaning||!g||g.status!=="lobby"||!g.resetAt||cleanedAt===g.resetAt)return;cleaning=true;cleanedAt=g.resetAt;
+  try{for(const col of ["talk","checks","actions","updates","npcmem"]){const r=await S.db.collection(col).limit(300).get();for(const d of r.docs)await S.db.doc(col+"/"+d.id).delete().catch(()=>{})}
+    const c=await S.db.collection("chat").limit(300).get();for(const d of c.docs)if((d.data()?.at||0)<g.resetAt)await S.db.doc("chat/"+d.id).delete().catch(()=>{});
+    const sc=await S.db.collection("scenes").limit(200).get();for(const d of sc.docs)await S.db.doc("scenes/"+d.id).delete().catch(()=>{});
+    const ch=await S.db.collection("characters").get();for(const d of ch.docs)if(d.data()?.inPlay)await S.db.doc("characters/"+d.id).update({inPlay:false,ready:false}).catch(()=>{})}catch(e){}finally{cleaning=false}}
+async function resetCampaign(){hostConfirm=false;const settings=S.game?.settings;try{await S.db.doc("game/state").set({status:"lobby",day:1,log:[],heroScene:{},resetAt:Date.now(),...(settings?{settings}:{})});for(const id of Object.keys(S.scenes))await S.db.doc("scenes/"+id).delete();
+  for(const[id,c]of Object.entries(S.chars)){if(c.inPlay||c.ready)await S.db.doc("characters/"+id).update({inPlay:false,ready:false})}toast("Campaign ended. Heroes keep their level and gear and can be edited for the next one.",4000)}catch(e){toast("Couldn't end the campaign.")}}
 
 /* host housekeeping: migrate the old single-scene table, seat new heroes, run the auto-DM */
 let migrating=false,autoT=null;const lastAuto={};
@@ -1883,21 +1898,21 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
     if(!S.draftLoaded){S.draftLoaded=true;const mine=o[S.uid];if(mine){if(mine.rules===2024){S.draft={...blank(),...clone(mine)}}else{S.draft=convertLegacy(mine);setTimeout(()=>saveChar(!!mine.ready,true),400)}S.step=mine.ready?"review":"class";loadForm();$("saveState").textContent=mine.ready?"ready":"draft saved"}route()}
     partyRows("partyMini",false);if(S.draftLoaded&&heroInPlay()!==S.lastHub)renderCreator();rerender();autoCheck()},()=>{});
   db.collection("actions").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.actions=o;if(onTable()){renderHost();renderActionBox()}autoCheck()},()=>{});
-  db.doc("game/state").onSnapshot(d=>{S.game=d.exists?d.data():null;rerender();autoCheck()},()=>{});
+  db.doc("game/state").onSnapshot(d=>{S.game=d.exists?d.data():null;refilter();rerender();autoCheck();cleanupOld()},()=>{});
   db.collection("scenes").onSnapshot(snap=>{const prevMine=myScene(),prev=S.scenes;const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.scenes=o;S.scenesLoaded=true;
     const ms=myScene(),sc=o[ms],ps=prev[ms];
     if(sc&&ps){if(sc.mode==="combat"&&ps.mode!=="combat")toast("Roll for initiative!",3000);const ae=activeEntry(sc);if(ae?.kind==="hero"&&ae.id===S.uid&&(ps.turn!==sc.turn||ps.mode!=="combat"||ps.seq!==sc.seq)){toast("It's your turn!",3000);$("actInput").value=""}}
     if(prevMine&&ms&&prevMine!==ms&&S.chars[S.uid]?.ready){S.view=null;toast("You arrive at "+(o[ms]?.name||"a new place")+".",3000)}
     rerender();autoCheck()},()=>{});
-  db.collection("talk").orderBy("at","desc").limit(200).onSnapshot(snap=>{S.talk=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable()){renderTalk();renderSceneBar()}},()=>{});
-  db.collection("checks").orderBy("at","desc").limit(60).onSnapshot(snap=>{const before=new Set(S.checks.filter(c=>c.status==="pending"&&c.hero===S.uid).map(c=>c.id));S.checks=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));
+  db.collection("talk").orderBy("at","desc").limit(200).onSnapshot(snap=>{S.raw.talk=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));S.talk=cur(S.raw.talk);if(onTable()){renderTalk();renderSceneBar()}},()=>{});
+  db.collection("checks").orderBy("at","desc").limit(60).onSnapshot(snap=>{const before=new Set(S.checks.filter(c=>c.status==="pending"&&c.hero===S.uid).map(c=>c.id));S.raw.checks=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));S.checks=cur(S.raw.checks);
     if(S.checks.some(c=>c.status==="pending"&&c.hero===S.uid&&!before.has(c.id)))toast("The DM asks you for a roll. See your hero panel.",3500);
     if(onTable()){renderMyChecks();renderWaiting();renderHost()}autoCheck()},()=>{});
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});
   db.collection("npcmem").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.npcmem=o;if(onTable())renderMap()},()=>{});
-  db.collection("data/users/"+S.uid).onSnapshot(snap=>{S.myQA=snap.docs.filter(d=>d.exists&&d.data().type==="dmqa").map(d=>({id:d.id,...d.data()}));S.retired=snap.docs.filter(d=>d.exists&&d.data().type==="retired").map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.at-a.at);if(onTable())renderTalk();else if(S.step==="import")renderCreator()},()=>{});
-  db.collection("chat").orderBy("at","desc").limit(150).onSnapshot(snap=>{S.chat=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));renderChat()},()=>{});
+  db.collection("data/users/"+S.uid).onSnapshot(snap=>{S.raw.myQA=snap.docs.filter(d=>d.exists&&d.data().type==="dmqa").map(d=>({id:d.id,...d.data()}));S.myQA=cur(S.raw.myQA);S.retired=snap.docs.filter(d=>d.exists&&d.data().type==="retired").map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.at-a.at);if(onTable())renderTalk();else if(S.step==="import")renderCreator()},()=>{});
+  db.collection("chat").orderBy("at","desc").limit(150).onSnapshot(snap=>{S.raw.chat=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));S.chat=cur(S.raw.chat);renderChat()},()=>{});
   if(room){room.on("roll",m=>{if(m.sameTab)return;const c=m.by&&S.chars[m.by];const r=m.data||{};showRoll(c?.name||"Someone",{d:Number(r.d)||0,n:Number(r.n)||0,label:String(r.label||"").slice(0,40),text:r.text?String(r.text).slice(0,80):undefined})});
     room.on("talkbusy",m=>{if(m.sameTab)return;const sc=String(m.data?.scene||"").slice(0,60),n=String(m.data?.npc||"").slice(0,40);if(!n)return;const key=sc+"|"+n;if(m.data?.done)delete S.talkBusy[key];else S.talkBusy[key]=Date.now();if(onTable())renderTalk()});
     room.onPeers(ch=>{const ids=[...new Set(ch.peers.map(p=>p.by).filter(Boolean))];if(!user)return;user.profiles(ids).then(ps=>$("presence").replaceChildren(...ids.slice(0,8).map(id=>h("img",{src:ps[id].avatarUrl,alt:"",title:(ps[id].name||"Someone")+" is here"}))))})}
