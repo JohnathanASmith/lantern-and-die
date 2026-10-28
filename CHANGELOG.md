@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2
+
+- Pronouns: a new field on the Story step (and in Edit story for heroes in play). Generate, Surprise me, painted portraits, the DM and NPCs all use it. With no pronouns set, generated text uses the hero's name or they/them instead of guessing.
+- Match story to name & pronouns: one tap rewrites the appearance, personality and backstory so they use the hero's current name and pronouns, leaving everything else as written.
+- Pixel heroes follow the pronouns you set.
+
 ## 1.1.1
 
 - Ending a campaign now clears everything from it: talk, checks, turns, NPC memories, scenes and party chat, and private Ask the DM answers no longer show. Heroes keep their level and gear and unlock for editing.
