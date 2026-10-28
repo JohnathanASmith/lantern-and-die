@@ -1,0 +1,15 @@
+{
+  "name": "lantern-and-die",
+  "owner": {
+    "name": "Johnathan"
+  },
+  "description": "Lantern & Die: a shared D&D 2024 table for Claude, with Claude as the Dungeon Master.",
+  "plugins": [
+    {
+      "name": "lantern-and-die",
+      "source": "./plugins/lantern-and-die",
+      "description": "A shared D&D 2024 table where Claude is the Dungeon Master: start, update and host Lantern & Die tables, with recaps, backups, session prep and repairs.",
+      "version": "1.0.0"
+    }
+  ]
+}

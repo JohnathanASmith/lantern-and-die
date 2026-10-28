@@ -1,0 +1,17 @@
+{
+  "name": "lantern-and-die",
+  "version": "1.0.0",
+  "description": "A shared D&D 2024 table where Claude is the Dungeon Master: start, update and host Lantern & Die tables, with recaps, backups, session prep and repairs.",
+  "author": {
+    "name": "Johnathan"
+  },
+  "keywords": [
+    "dnd",
+    "dungeons-and-dragons",
+    "tabletop",
+    "game",
+    "artifact"
+  ],
+  "repository": "https://github.com/JohnathanASmith/lantern-and-die",
+  "homepage": "https://github.com/JohnathanASmith/lantern-and-die"
+}
