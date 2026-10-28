@@ -5,7 +5,9 @@ A shared Dungeons & Dragons (2024 rules) table that runs as a claude.ai artifact
 - **Step-by-step hero builder** with 2024 classes, backgrounds, species and origin feats, plus Generate, Surprise me and Ask the DM.
 - **Live play**: say or do anything, NPCs answer right away, the DM calls for the checks that matter.
 - **Scenes and split parties**, each with its own clock, so time away matters.
-- **Fog-of-war world map** that grows as you explore, with routes and journeys.
+- **Pixel-art scene maps** with lighting, NPC sprites and furnished places.
+- **Illustrated fog-of-war world map** that grows as you explore, with routes and journeys.
+- **Hero portraits and player cards**: a pixel hero, a portrait painted by Claude, or your own art.
 - **Combat** in initiative order with death saves.
 - **Party chat**, private Ask the DM, hero export and import.
 
@@ -37,3 +39,7 @@ To update by hand, say **"Update my Lantern & Die table."**
   - `skills/table/assets/capabilities.json`: artifact capabilities and database rules the page needs
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
+
+## Credits
+
+Map and character tiles come from [Dungeon Crawl Stone Soup](https://github.com/crawl/crawl) (RLTiles), dedicated to the public domain under CC0.
