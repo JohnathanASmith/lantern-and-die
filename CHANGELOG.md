@@ -1,10 +1,9 @@
 # Changelog
 
-## 1.1.2
+## 1.1.3
 
-- Pronouns: a new field on the Story step (and in Edit story for heroes in play). Generate, Surprise me, painted portraits, the DM and NPCs all use it. With no pronouns set, generated text uses the hero's name or they/them instead of guessing.
-- Match story to name & pronouns: one tap rewrites the appearance, personality and backstory so they use the hero's current name and pronouns, leaving everything else as written.
-- Pixel heroes follow the pronouns you set.
+- Gender: a simple Male / Female / Other choice on the Story step (and in Edit story) replaces the pronouns box from 1.1.2. Generate, Surprise me, painted portraits, pixel heroes, the DM and NPCs all follow it. With no gender set, generated text uses the hero's name or they/them instead of guessing.
+- Match story to name & gender: one tap rewrites the appearance, personality and backstory so they use the hero's current name and gender, leaving everything else as written.
 
 ## 1.1.1
 
