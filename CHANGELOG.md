@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Character tab: once a hero is in play, story details are read-only until you tap Edit story.
+- Character tab: the Ask the DM coach is hidden once a hero is in play (use Ask the DM in Talk instead).
+
 ## 1.0.0
 
 First public version.

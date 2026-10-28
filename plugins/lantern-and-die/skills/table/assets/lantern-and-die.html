@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.0.0">
+<meta name="lantern-and-die-version" content="1.0.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -281,7 +281,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.0.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.0.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -304,7 +304,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   </div>
   <aside class="cside">
     <section class="panel" id="heroCard" aria-label="Your hero so far"></section>
-    <section class="panel" aria-labelledby="coachTitle">
+    <section class="panel" id="coachPanel" aria-labelledby="coachTitle">
       <h3 id="coachTitle">Ask the Dungeon Master</h3>
       <div class="coach-log" id="coachLog" aria-live="polite"></div>
       <div class="suggest" id="coachSuggest"></div>
@@ -591,7 +591,7 @@ const allNeeds=d=>Object.values(needs(d)).flat();
 /* ================= CREATOR: render ================= */
 function loadForm(){renderCreator()}
 function heroInPlay(){const c=S.chars[S.uid];return !!(c&&c.ready&&c.inPlay)}
-function renderCreator(){if(!S.draft)return;const hub=heroInPlay();S.lastHub=hub;for(const id of ["steps","peek","creatorTools","stepNav"])$(id).hidden=hub;if(hub){renderHub();renderHeroCard();return}renderSteps();renderStep();renderHeroCard();$("btnBack").disabled=S.step===STEPS[0][0];const last=S.step==="review";$("btnNext").textContent=last?(S.chars[S.uid]?.ready?"Back to the table":"I'm ready"):"Next";}
+function renderCreator(){if(!S.draft)return;const hub=heroInPlay();S.lastHub=hub;for(const id of ["steps","peek","creatorTools","stepNav","coachPanel"])$(id).hidden=hub;if(hub){renderHub();renderHeroCard();return}renderSteps();renderStep();renderHeroCard();$("btnBack").disabled=S.step===STEPS[0][0];const last=S.step==="review";$("btnNext").textContent=last?(S.chars[S.uid]?.ready?"Back to the table":"I'm ready"):"Next";}
 function renderSteps(){const nd=needs(S.draft);$("steps").replaceChildren(...STEPS.map(([k,l],i)=>h("button",{type:"button","aria-current":S.step===k?"step":null,class:(nd[k]||[]).length?"":"done",onclick:()=>{S.step=k;renderCreator();$("stepPanel").scrollIntoView({block:"nearest"})}},h("span",{class:"mono",text:i+1}),l)))}
 function card(on,title,line,extra,onclick,small){return h("button",{type:"button",class:"ccard"+(on?" on":"")+(small?" small":""),"aria-pressed":String(!!on),onclick},h("b",{text:title}),line?h("span",{class:"att",text:line}):null,extra||null)}
 function chipPick(list,chosen,max,onToggle,locked=[],disabledFn){return h("div",{class:"picks"},list.map(s=>{const isL=locked.includes(s),on=isL||chosen.includes(s);return h("button",{type:"button",class:isL?"bg":"","aria-pressed":String(on),disabled:isL||(disabledFn&&disabledFn(s)&&!on)||null,onclick:()=>{if(on){onToggle(s,false)}else{if(chosen.length>=max){toast(`You can pick ${max}. Unpick one first.`,2200);return}onToggle(s,true)}}},s)}))}
@@ -743,7 +743,9 @@ function renderHub(){const c=S.chars[S.uid],d=S.draft,g=S.game||{};const dead=(c
     dead?h("div",{class:"needs",text:`${c.name} has fallen. Retire them below to build a new hero for this campaign.`}):null,
     h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"primary",onclick:()=>{location.hash="table";setTimeout(()=>{if(innerWidth<=1000)document.querySelector('#ptabs [data-p=me]')?.click()},50)}},"Open your sheet at the table")),
     h("p",{class:"lede",text:"Your class, abilities and skills are locked while you play. Your live sheet, rolls and gear are on the Table under Me."}),
-    section("story · edit any time",...storyFields(d)),
+    S.editStory?section("story",...storyFields(d),h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"primary",onclick:()=>{S.editStory=false;renderCreator()}},"Done"))):
+      section("story",h("div",{class:"feat"},h("b",{text:"Alignment. "}),d.alignment||""),d.appearance?h("div",{class:"feat"},h("b",{text:"Appearance. "}),d.appearance):null,d.personality?h("div",{class:"feat"},h("b",{text:"Personality. "}),d.personality):null,d.backstory?h("div",{class:"feat"},h("b",{text:"Backstory. "}),d.backstory):null,
+        h("div",{class:"att",text:"Your story can grow as you play: update it when something changes your hero."}),h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",onclick:()=>{S.editStory=true;renderCreator()}},"Edit story"))),
     section("export",h("div",{class:"att",text:"Save a copy of this hero to bring into another Lantern & Die table, or keep as a backup."}),h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",onclick:()=>exportHero("current")},"Export as they are now"),h("button",{type:"button",onclick:()=>exportHero("fresh")},"Export fresh at level 1")),h("div",{class:"att",text:"As they are now keeps level, XP, HP, gold and gear. Fresh at level 1 keeps the build and story with starting gear, for a new campaign that starts from scratch."}),
       S.exportText?h("div",{class:"field"},h("label",{class:"label",for:"exportText",text:"copy this text and paste it into Import a hero on the other table"}),h("textarea",{id:"exportText",rows:4,readonly:true,onfocus:e=>e.target.select()},S.exportText)):null),
     section("retire",h("div",{class:"att",text:"Retiring takes this hero out of the campaign and keeps a copy in your retired heroes, so you can export them or bring them back later. You then build a new hero for this campaign."}),
