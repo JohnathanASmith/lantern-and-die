@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3
+
+- Catch-ups after a long time away now keep the start of what happened as well as the end, so early events (like the result of something you started just before leaving) aren't dropped.
+
 ## 1.3.2
 
 Better "Last time…" catch-ups.

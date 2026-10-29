@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.3.2">
+<meta name="lantern-and-die-version" content="1.3.3">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -330,7 +330,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.3.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.3.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1476,7 +1476,7 @@ async function maybeRecap(){if(S.recapAsked||!S.sample||!S.uid||S.game?.status!=
 async function catchUp(since){if(!S.sample){toast("Allow Claude on this page to get a catch-up.");return}if(S.recap?.busy)return;const c=S.chars[S.uid];if(!c)return;
   const sid=myScene(),sc=S.scenes[sid]||{},P=posOf(sid);const mineLines=S.talk.filter(m=>canSee(m)&&m.kind!=="dmq").sort((a,b)=>a.at-b.at);
   const auto=!!since;const cut=since||0;
-  const before=mineLines.filter(m=>m.at<(auto?cut:Date.now()-20*60e3)).slice(-30),away=auto?mineLines.filter(m=>m.at>=cut&&m.hero!==S.uid).slice(-30):[],recent=auto?[]:mineLines.filter(m=>m.at>=Date.now()-20*60e3).slice(-12);
+  const before=mineLines.filter(m=>m.at<(auto?cut:Date.now()-20*60e3)).slice(-30),away=auto?(l=>l.length>60?[...l.slice(0,18),{kind:"sys",text:"… more happened here …"},...l.slice(-42)]:l)(mineLines.filter(m=>m.at>=cut&&m.hero!==S.uid)):[],recent=auto?[]:mineLines.filter(m=>m.at>=Date.now()-20*60e3).slice(-12);
   const fmt=list=>list.map(m=>`[${S.scenes[msgScene(m)]?.name||"somewhere"}] ${fmtLine(m,false,sceneTime(msgScene(m)))}`).join("\n");
   const log=myNotes("log").sort((a,b)=>a.at-b.at).slice(-10).map(n=>n.text),quests=myNotes("quest").filter(n=>(n.status||"active")==="active").map(n=>`${n.title}: ${n.text}`),clues=myNotes("clue").sort((a,b)=>a.at-b.at).slice(-8).map(n=>n.text);
   const people=(sc.npcs||[]).map(n=>`${n.name}${P.npcs[n.name]?.spot?" ("+P.npcs[n.name].spot+")":""}${n.about?": "+n.about:""}`),mates=heroesIn(sid).filter(id=>id!==S.uid).map(id=>`${heroName(id)}${holdOf(sid,id)?" ("+holdText(sid,id)+")":""}`);
