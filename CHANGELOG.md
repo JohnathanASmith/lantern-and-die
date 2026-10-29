@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+One hero sleeping no longer fast-forwards everyone else.
+
+- Long actions (sleeping, a long rest, reading through the night) put just that hero on hold until a set time. Everyone else in the place keeps playing at the current hour.
+- Heroes still awake get a card: keep playing, rest until then too, or skip ahead. The clock jumps only when everyone there is resting or skipping, and then everyone wakes together with a short "morning" from the DM. Sleeping 6+ hours restores like a long rest.
+- Sleepers don't hear normal talk. A shout, a fight or someone shaking them wakes them, and they can tap Wake up any time.
+
 ## 1.2.2
 
 - Fixed: when an NPC answered a hero loudly enough for the whole room, the hero who spoke could end up outside the reply, seeing "talks with you out of earshot" with Listen in. The hero who triggers a reply now always hears it.

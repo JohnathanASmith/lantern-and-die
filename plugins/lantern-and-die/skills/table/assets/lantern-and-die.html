@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.2.2">
+<meta name="lantern-and-die-version" content="1.3.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -284,6 +284,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
 /* art */
 [hidden]{display:none!important}
+.holdcard{border:1px solid var(--gold);border-radius:var(--r);background:var(--raised);padding:10px 12px;display:grid;gap:6px;margin:8px 0}
 .line.stub{opacity:.75;font-size:.9rem;color:var(--muted);font-style:italic}.line.stub .nd{background:var(--line)}
 .ideas{display:grid;gap:6px}.ideas:empty{display:none}
 .idea{display:grid;gap:2px;text-align:left;border-style:dashed;padding:.4rem .7rem}.idea .label{font-size:.72rem}.idea .uses{font-size:.78rem;color:var(--accent);font-family:var(--f-label)}
@@ -329,7 +330,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.2.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.3.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -384,6 +385,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div class="sceneHead"><h2 id="sceneTitle">The table is set</h2><span class="label mono" id="roundTag"></span></div>
     <div class="derived" id="modeRow"></div>
     <div id="recapBox"></div>
+    <div id="holdBox"></div>
     <div id="journeyBox"></div>
     <div id="incomingBox" class="sub"></div>
     <div class="notice" id="watchNote" hidden style="margin:0"></div>
@@ -411,6 +413,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div class="sceneHead"><h3 id="talkTitle">Talk</h3><span class="label" id="talkWhere"></span></div>
     <div class="feed" id="feed" aria-live="polite"></div>
     <div class="label" id="talkBusy"></div>
+    <div id="holdTalk"></div>
     <form class="talkform" id="talkForm">
       <div class="talkctl">
         <select id="talkKind" aria-label="How you speak"><option value="say">Say</option><option value="do">Do</option><option value="ask">Ask the DM</option></select>
@@ -1283,9 +1286,9 @@ async function makeCheck(req,source,sceneId,seq,heard){if(!S.db||!S.chars[req.he
 function renderTalk(){const vid=viewId(),sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?"at "+sc.name:"";
   const watching=vid!==mine;const opts=(ms.npcs||[]).map(n=>n.name).filter(Boolean);const cur=$("talkTo").value;
   $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...opts.map(n=>h("option",{value:n,text:"To "+n})));if(opts.includes(cur))$("talkTo").value=cur;
-  const combat=ms.mode==="combat";const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing";
+  const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend"])$(id).disabled=!canTalk;
-  $("talkHint").textContent=watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
+  $("talkHint").textContent=held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const msgs=[...S.talk.filter(m=>msgScene(m)===vid&&(canSee(m)||m.stub)),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(-80);
   if(!msgs.length)feed.replaceChildren(h("div",{class:"empty"},S.game?.status==="playing"?"Say something to the people around you. Pick Do for actions like searching, sneaking, cooking or leaving.":"Talk opens once the campaign begins."));
   else{const out=[];let lastStub=null;
@@ -1302,7 +1305,7 @@ function renderTalk(){const vid=viewId(),sc=S.scenes[vid]||{},mine=myScene(),ms=
     if(m.kind==="ooc")return h("div",{class:"line ooc"},h("span",{}),h("div",{},h("b",{text:heroName(m.hero)}),` (ooc): ${m.text}`));
     if(m.kind==="npc")return h("div",{class:"line"+(m.speaker==="Narrator"?" narrator":"")},h("span",{class:"nd",style:`background:var(--${m.speaker==="Narrator"?"muted":"gold"})`}),h("div",{},h("span",{class:"who",text:m.speaker||"Someone"}),Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length?h("span",{class:"att",text:m.heard.length<=1?" · only you":" · private"}):null,m.action?h("div",{class:"act",text:m.action}):null,m.text?h("div",{text:m.text}):null));
     const c=S.chars[m.hero];const priv=Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length;return h("div",{class:"line"},c?face(m.hero,"face sm"):sigil(c?.color,c?.name),h("div",{},h("span",{class:"who",text:c?.name||"Someone"}),m.to?h("span",{class:"att",text:" to "+m.to}):null,m.vol==="whisper"?h("span",{class:"att",text:" · whispering"}):m.vol==="shout"?h("span",{class:"att",text:" · shouting"}):m.vol==="quiet"?h("span",{class:"att",text:" · quietly"}):null,priv?h("span",{class:"att",title:"Only heroes within earshot see this",text:" · "+(m.heard.length<=1?"only you":"private")}):null,h("div",{class:m.kind==="do"?"act":"",text:m.kind==="do"?m.text:`“${m.text}”`})))}
-  if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();
+  if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();renderHolds();
   const busy=Object.entries(S.talkBusy).filter(([k,t])=>Date.now()-t<60000&&k.startsWith(vid+"|")).map(([k])=>k.split("|")[1]);$("talkBusy").textContent=busy.length?busy.join(", ")+" thinking…":""}
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
   const text=`I try to get close enough to hear ${who.join(" and ")||"them"}${sp?.spot?" on the "+sp.spot:""} without being noticed.`;const line=await sayLine(sid,"do","",text,"whisper");
@@ -1330,6 +1333,7 @@ async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this pag
   const trig=trigger.check?`CHECK RESULT: ${heroName(trigger.check.hero)} (${trigger.check.hero}) rolled ${trigger.check.label} = ${trigger.check.result.total} vs DC ${trigger.check.dc}: ${trigger.check.result.success?"SUCCESS":"FAILURE"} (${trigger.check.reason}). Narrate or voice the outcome of exactly that. Do not ask for this check again.`
     :`NEW: ${heroName(S.uid)} (${S.uid}) ${trigger.line.kind==="do"?(trigger.line.vol==="quiet"?"quietly does":"does"):trigger.line.vol==="whisper"?"whispers":trigger.line.vol==="shout"?"shouts":"says"}${trigger.line.to?" to "+trigger.line.to:""}: ${trigger.line.text}`;
   const earTxt=tHeard?`Within earshot of this: heroes ${tHeard.map(id=>heroName(id)+" ("+id+")").join(", ")}; NPCs ${(tNh||[]).join(", ")||"none"}. Only NPCs within earshot may answer or react, unless the hero went to them.`:"Everyone here can hear this.";
+  const holdsTxt=heroesIn(sid).filter(id=>holdOf(sid,id)).map(id=>`${heroName(id)} (${id}) is ${holdText(sid,id)}`).join("; ");
   const listenTxt=trigger.listen?`LISTENING IN: ${heroName(S.uid)} wants to overhear ${[...trigger.listen.heroes.map(heroName),...trigger.listen.npcs].join(", ")}${trigger.listen.spot?" on the "+trigger.listen.spot:""}. If they could be noticed, ask for a Stealth check (DC from the setting, usually 10-15). On success, or if there's nothing to sneak past, move them within earshot with "moves" (same spot, a nearby x,y) and narrate privately (audience "private") what they can now hear. On failure the people there notice them.`:"";
   const prompt=`You are the Dungeon Master running a live D&D 5e scene, voicing the NPCs and narrating. Stay in character. Give each NPC a distinct voice, wants and fears. Keep replies short (1-3 sentences per speaker) so play flows.
 WHO ANSWERS: usually exactly ONE NPC replies, the one the hero addressed, or else the one the words or action most concern. Another NPC chimes in only when they would naturally interrupt (at most one extra, and not every time). The others stay quiet. Never repeat a warning, hint or line already said in the recent conversation; move things forward with something new.
@@ -1340,6 +1344,7 @@ EARSHOT: people only know what they saw or heard. Each past line shows [heard by
 For each reply set "audience": "same" (the people who heard the hero's line, the default), "private" (only the acting hero, e.g. what they secretly find or notice), or "room" (everyone in that spot can hear or see it). Set "othersSee" to one short line of what people out of earshot notice, or "" if nothing (sneaking unseen, reading a note to oneself).
 MOVES: when someone moves within this place (crosses to the bar, sits with someone, steps onto the vestry stair, slips into the back room), set "moves" with their new x,y and "spot" (a short name like "vestry stair" for a private nook, or "" for the main room). Keep x,y on walkable floor.
 KNOWLEDGE: "learned" lists new facts heroes just picked up (a name, a place, a clue, a secret), each with the hero ids who saw or heard it. "people" lists a person a hero just met or learned something about, with a short note in their own eyes. "reveals" lists any new fact you just established about a hero's OWN past, family, blood or nature: check their backstory and what's already revealed about them first, and keep it consistent.
+LONG ACTIONS: when the acting hero starts something that takes more than about 30 minutes (sleeping, a long rest, reading through the night, working a shift, waiting for hours), set "longAction" and narrate only them settling in. Do NOT use sceneUpdate for that time passing: other heroes here keep playing at the current time, and the page moves the clock when everyone is ready. If something wakes a sleeping or busy hero (a loud noise, a fight, someone shaking them, being called by name), list them in "wake". Quiet talk does not wake a sleeper; sneaking up on one may call for a Perception check from the sleeper with disadvantage.
 COINS: when the acting hero pays, receives or finds coins, set "coins" to the change for that hero only, in gp, sp and cp (paying 5 silver is {"sp":-5}). Other heroes' coins go through sceneUpdate.
 Everything a hero does is part of the one campaign. Heroes may chase their own goals (open a shop, become a famous chef, follow a rival); play along and tie it into the story's threads, people and dangers.
 TRAVEL: if a hero sets off for a different place that takes more than about 30 minutes to reach, do NOT move them yourself. Give a short Narrator send-off (they gather their things and leave) and set "journey"; the trip then plays out on the road. Read the pace from their words (hurrying = fast, creeping or sneaking = slow, otherwise normal) and include other heroes only if they clearly said they are coming. Short hops (stepping outside, crossing the street, a few minutes across town) are not journeys: use sceneUpdate as usual.
@@ -1355,9 +1360,11 @@ Recent conversation here that ${heroName(S.uid)} saw or heard (other private tal
 ${recent}
 ${trig}
 ${earTxt}
+${holdsTxt?"ASLEEP OR BUSY RIGHT NOW: "+holdsTxt+". They are out of the action until they wake.":""}
 ${listenTxt}
 
-Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty"}],"moves":[],"learned":[],"people":[],"reveals":[],"coins":null,"check":null,"sceneUpdate":null,"journey":null}
+Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty"}],"moves":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null}
+longAction: {"minutes":480,"kind":"sleep|busy","label":"a few words, e.g. on the rafter above the hearth"} or null. wake: ["<hero id>"].
 moves: [{"who":"<hero id> or NPC name","x":0,"y":0,"spot":""}]. learned: [{"heroes":["<hero id>"],"text":"the fact, one sentence"}]. people: [{"heroes":["<hero id>"],"name":"","note":"who they are and what the hero knows of them, one sentence"}]. reveals: [{"hero":"<hero id>","fact":"one sentence"}]. coins: {"gp":0,"sp":0,"cp":0,"why":"a few words"} or null.
 journey, when a hero sets off on a real trip: {"heroes":["<hero id>"],"to":"destination name (the exact world map name if it is on the map)","pace":"fast|normal|slow"}
 check, when needed: {"hero":"<hero id>","kind":"skill|ability|save|tool","skill":"skill name or empty","ability":"STR|DEX|CON|INT|WIS|CHA","tool":"tool name or empty","dc":15,"reason":"what's at stake, under 12 words","adv":"none|adv|dis"}
@@ -1374,12 +1381,14 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
     for(const x of (Array.isArray(r?.learned)?r.learned:[]).slice(0,4)){if(x?.text)await addNote("clue",(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:kn).filter(id=>kn.includes(id)||id===S.uid),{text:x.text,scene:sid})}
     for(const x of (Array.isArray(r?.people)?r.people:[]).slice(0,4)){if(x?.name&&x.note)await addNote("person",(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:kn).filter(id=>kn.includes(id)||id===S.uid),{name:x.name,text:x.note,scene:sid})}
     for(const x of (Array.isArray(r?.reveals)?r.reveals:[]).slice(0,2)){if(x?.fact&&S.chars[x.hero])await addNote("reveal",[x.hero],{hero:x.hero,text:x.fact,scene:sid})}
+    for(const w of (Array.isArray(r?.wake)?r.wake:[]).slice(0,4))if(holdOf(sid,w))await clearHold(sid,w,"wakes up");
+    const la=r?.longAction;if(la&&typeof la==="object"&&Number(la.minutes)>=30&&!holdOf(sid,S.uid))await setHold(sid,S.uid,la.minutes,la.label,la.kind==="sleep"?"sleep":"busy");
     const co=r?.coins;if(co&&typeof co==="object"&&(co.gp||co.sp||co.cp)){const me=S.chars[S.uid];const np=purseAdd(purseOf(me),co);if(np){await selfUpdate(pursePatch(np));const parts=[["gp",co.gp],["sp",co.sp],["cp",co.cp]].filter(([,v])=>Number(v)).map(([k,v])=>(v>0?"+":"")+Math.round(v)+" "+k);await postTalk({kind:"sys",text:`Purse: ${parts.join(", ")}${co.why?" ("+String(co.why).slice(0,60)+")":""} · now ${purseLabel(np)}`,scene:sid,heard:[S.uid],nh:[],stub:""})}else toast("You don't have enough coin for that.")}
     for(const u of (Array.isArray(r?.npcUpdates)?r.npcUpdates:[]).slice(0,4)){if(!u?.name)continue;const id=slug(u.name),prev=S.npcmem[id]||{name:u.name,notes:[]};const notes=[...(prev.notes||[])];if(u.remember)notes.push(String(u.remember).slice(0,160));
       try{await S.db.doc("npcmem/"+id).set({name:String(u.name).slice(0,60),attitude:["friendly","indifferent","hostile"].includes(u.attitude)?u.attitude:(prev.attitude||"indifferent"),notes:notes.slice(-12),at:Date.now()})}catch(e){}}
     if(r?.check&&r.check.hero&&S.chars[r.check.hero]){const id=await makeCheck(r.check,"talk",sid,0,tHeard||undefined);if(id&&r.check.hero!==S.uid)toast(`${heroName(r.check.hero)} needs to roll ${r.check.skill||r.check.ability||"a check"}.`,3000)}
     const jr=r?.journey;if(jr&&jr.to&&!pendingFor(sid,"travel")){await startJourneyRequest(sid,Array.isArray(jr.heroes)&&jr.heroes.length?jr.heroes:[S.uid],String(jr.to),jr.pace)}
-    if(!(jr&&jr.to)&&r?.sceneUpdate&&r.sceneUpdate.reason){try{await S.db.collection("updates").add({scene:sid,reason:String(r.sceneUpdate.reason).slice(0,240),by:S.uid,status:"pending",at:Date.now()})}catch(e){}}}
+    if(!(jr&&jr.to)&&r?.sceneUpdate&&r.sceneUpdate.reason&&!(la&&Number(la.minutes)>=30&&/sleep|rest|night|hours|dawn|morning|until/i.test(String(r.sceneUpdate.reason))&&!/hp|gold|silver|item|xp|damage|heal|quest/i.test(String(r.sceneUpdate.reason)))){try{await S.db.collection("updates").add({scene:sid,reason:String(r.sceneUpdate.reason).slice(0,240),by:S.uid,status:"pending",at:Date.now()})}catch(e){}}}
   catch(e){toast(sampleErr(e))}
   finally{npcBusy=false;setBusy(sid,who,false);if(npcQueued){const q=npcQueued;npcQueued=null;npcRespond(q)}}}
 
@@ -1394,7 +1403,7 @@ function posOf(sid){const sc=S.scenes[sid]||{},base=sc.posAt||0;const rows=parse
 const sameSpot=(a,b)=>(a?.spot||"").toLowerCase()===(b?.spot||"").toLowerCase();
 const near=(a,b,r)=>!!(a&&b&&(r>=999||(sameSpot(a,b)&&Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))<=r)));
 function earshot(sid,from,vol){const P=posOf(sid);const o=from.hero?P.heroes[from.hero]:from.npc?P.npcs[from.npc]:from;const r=RANGE[vol]??4;
-  const heard=Object.entries(P.heroes).filter(([,p])=>near(o,p,r)).map(([id])=>id);if(from.hero&&!heard.includes(from.hero))heard.push(from.hero);
+  const heard=Object.entries(P.heroes).filter(([id,p])=>near(o,p,r)&&(r>=999||id===from.hero||holdOf(sid,id)?.kind!=="sleep")).map(([id])=>id);if(from.hero&&!heard.includes(from.hero))heard.push(from.hero);
   const nh=Object.entries(P.npcs).filter(([,p])=>near(o,p,r)).map(([n])=>n);if(from.npc&&!nh.includes(from.npc))nh.push(from.npc);return{heard,nh}}
 const canSee=m=>!Array.isArray(m.heard)||m.heard.includes(S.uid)||m.hero===S.uid;
 function walkableAt(sc,x,y){const rows=parseMap(sc.map);if(y<0||y>=rows.length||x<0||x>=rows[0].length)return false;return!!WALKGROUND[GLYPH[rows[y][x]]||"floor"]}
@@ -1489,6 +1498,59 @@ function journalView(){const c=S.chars[S.uid];if(!c||S.game?.status!=="playing")
       :h("div",{class:"feat"+(n.status==="new"?" newrev":"")},n.text,h("div",{class:"actbar",style:"justify-content:flex-start;margin-top:4px"},n.status==="new"?h("button",{type:"button",class:"gen",onclick:()=>S.db.doc("notes/"+n.id).update({status:"kept"}).catch(()=>{})},"Keep it"):h("span",{class:"label",text:n.status==="changed"?"changed by you":"kept"}),h("button",{type:"button",class:"gen",onclick:()=>{S.revEdit=n.id;renderMe()}},"Change it"))))):null,
     section("clues",clues.length?clues.map(n=>h("div",{class:"feat"},n.text,shared(n),h("div",{},...shareBtns(n)))):h("div",{class:"att",text:"Things your hero learns show up here."})),
     people.length?section("people met",...people.map(n=>h("div",{class:"feat"},h("b",{text:n.name+". "}),n.text,shared(n),h("div",{},...shareBtns(n))))):null)}
+
+/* ================= HOLDS: one hero sleeps or is busy for hours while others play on ================= */
+S.holds={};S.holdSeen={};
+const holdKey=(sid,id)=>`${sid}~${slug(id).slice(0,60)}`;
+function holdOf(sid,id){const x=S.holds[sid]?.[id];return x&&(x.until||0)>sceneTime(sid)?x:null}
+const awakeIn=sid=>heroesIn(sid).filter(id=>!holdOf(sid,id));
+const hourLabel=t=>{const hr=Math.floor((t%1440)/60),h12=((hr+11)%12)+1,mn=t%60;return`${h12}${mn?":"+String(mn).padStart(2,"0"):""} ${hr<12?"am":"pm"}`};
+function holdText(sid,id){const x=holdOf(sid,id);if(!x)return"";return`${x.kind==="sleep"?"asleep":x.kind==="skip"?"letting the hours pass":"busy"} until about ${hourLabel(x.until)}`}
+async function setHold(sid,hero,minutes,label,kind){if(!S.db||!sid||!S.chars[hero])return;const t0=sceneTime(sid),m=Math.max(30,Math.min(1440,Math.round(Number(minutes)||480)));const k=["sleep","busy","skip"].includes(kind)?kind:"busy";
+  const d={sid,hero,start:t0,until:t0+m,kind:k,label:String(label||"").slice(0,80),at:Date.now()};(S.holds[sid]=S.holds[sid]||{})[hero]=d;
+  try{await S.db.doc("holds/"+holdKey(sid,hero)).set(d)}catch(e){toast("Couldn't save that.");return}
+  const e=earshot(sid,{hero},"see");await postTalk({kind:"sys",text:`${heroName(hero)} ${k==="sleep"?"settles in to sleep":k==="skip"?"lets the hours pass":"gets busy"}${d.label?" ("+d.label+")":""} · until about ${hourLabel(d.until)}`,scene:sid,heard:e.heard,nh:e.nh,stub:""});
+  await checkAllHeld(sid);if(onTable())renderTable()}
+async function clearHold(sid,hero,why){if(!S.db)return;const had=S.holds[sid]?.[hero];if(S.holds[sid])delete S.holds[sid][hero];try{await S.db.doc("holds/"+holdKey(sid,hero)).delete()}catch(e){}
+  if(had&&why!=="silent"){const e=earshot(sid,{hero},"see");await postTalk({kind:"sys",text:`${heroName(hero)} ${why||"is up again"} · ${hourLabel(sceneTime(sid))}`,scene:sid,heard:e.heard,nh:e.nh,stub:""})}if(onTable())renderTable()}
+async function checkAllHeld(sid){const ids=heroesIn(sid);if(!ids.length||ids.some(id=>!holdOf(sid,id)))return;if(pendingFor(sid,"wake"))return;
+  const to=Math.max(...ids.map(id=>holdOf(sid,id).until));try{await S.db.collection("updates").add({scene:sid,kind:"wake",to,by:S.uid||"",status:"pending",at:Date.now(),reason:`everyone rests until ${hourLabel(to)}`})}catch(e){}}
+/* host: everyone in a place is asleep or skipping, so the place moves on together */
+async function processWake(u){if(!S.db||S.busy)return;const sid=u.scene,sc=S.scenes[sid];if(!sc){try{await S.db.doc("updates/"+u.id).update({status:"done"})}catch(e){}return}
+  S.busy=true;renderHost();setBusy(sid,"The DM",true);try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}
+  const t0=sceneTime(sid),to=Math.max(t0,Number(u.to)||t0),mins=to-t0,ids=heroesIn(sid),hs=S.holds[sid]||{};const g=S.game||{};
+  try{for(const id of ids){const x=hs[id],c=S.chars[id];if(!x||x.kind!=="sleep"||!c||(c.conditions||[]).includes("dead"))continue;if(to-(x.start||t0)<360)continue;const back=Math.max(1,Math.floor((c.level||1)/2));
+      await S.db.doc("characters/"+id).update({hp:c.hpMax,hitDiceUsed:Math.max(0,(c.hitDiceUsed||0)-back),slotsUsed:[],exhaustion:Math.max(0,(c.exhaustion||0)-1),deathSaves:{s:0,f:0},conditions:(c.conditions||[]).filter(x=>!["unconscious","stable","prone"].includes(x)),inspiration:speciesOf(c)==="Human"?true:!!c.inspiration}).catch(()=>{})}
+    let r=null;if(S.sample&&mins>0){const prompt=`${DM_RULES}
+TIME PASSES in "${sc.name}" from ${clockLabel(t0)} to ${clockLabel(to)} (${spanLabel(mins)}) while the heroes here rest or let the hours go by: ${ids.map(id=>`${heroName(id)} (${hs[id]?.kind==="sleep"?"sleeping":"passing the time"}${hs[id]?.label?": "+hs[id].label:""})`).join("; ")}.
+Narrate the morning (or whatever hour it is now) as they wake and gather: what changed while they rested, who is here now, what the place looks and sounds like. Small consequences only unless something was already in motion. Set minutesPassed to ${mins}. No checks.
+CAMPAIGN: ${JSON.stringify({title:g.title,quests:g.quests,world:worldBrief()})}
+THIS SCENE: ${JSON.stringify({name:sc.name,description:sc.description,map:sc.map,tokens:sc.tokens,npcs:sc.npcs,lastNarration:String(sc.scene||"").slice(0,800)})}
+HEROES HERE (keyed by hero id): ${JSON.stringify(partyForPrompt(ids))}
+RECENT PLAY HERE:
+${talkSince(sid,sc.lastUpdateAt,20)||"(nothing new)"}
+${SHAPE}`;
+      try{r=await S.sample.json(prompt,{...aiOpts("dm","complex"),cache:false})}catch(e){r=null}}
+    if(!r||typeof r!=="object")r={narration:"",minutesPassed:mins};r.minutesPassed=mins;r.daysPassed=0;r.moves=[];r.journeys=[];r.combat=null;S.wakeApply=true;
+    await applySceneResult(sid,r,{combat:false});S.wakeApply=false;
+    for(const id of Object.keys(hs)){try{await S.db.doc("holds/"+holdKey(sid,id)).delete()}catch(e){}}if(S.holds[sid])S.holds[sid]={};
+    await postTalk({kind:"sys",text:`Everyone is up · ${clockLabel(to)}`,scene:sid,gt:to});await S.db.doc("updates/"+u.id).update({status:"done"})}
+  catch(e){toast(sampleErr(e));try{await S.db.doc("updates/"+u.id).update({status:"failed"})}catch(_){}}
+  finally{S.wakeApply=false;S.busy=false;setBusy(sid,"The DM",false);renderHost();autoCheck()}}
+/* the hold card: shown to the sleeper and to everyone still awake in that place */
+function holdView(){const sid=myScene();if(!sid||S.game?.status!=="playing"||!S.chars[S.uid]?.ready)return null;const mine=holdOf(sid,S.uid);const others=heroesIn(sid).filter(id=>id!==S.uid&&holdOf(sid,id));
+  if(mine){const up=awakeIn(sid).map(heroName);return h("div",{class:"holdcard"},h("b",{text:`You're ${holdText(sid,S.uid)}.`}),
+      h("div",{class:"att",text:pendingFor(sid,"wake")?"Everyone's resting now. The DM is moving the clock forward.":up.length?`${up.join(" and ")} ${up.length>1?"are":"is"} still up and playing ${hourLabel(sceneTime(sid))}. You'll wake when everyone here rests or skips ahead, if the clock reaches your time, or if something wakes you.`:"Waiting for the clock to move on."}),
+      h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",onclick:()=>clearHold(sid,S.uid,mine.kind==="sleep"?"wakes up early":"stops and rejoins")},mine.kind==="sleep"?"Wake up":"Stop and rejoin")))}
+  const fresh=others.filter(id=>!S.holdSeen[holdKey(sid,id)+"|"+S.holds[sid][id].at]);if(!fresh.length)return null;const until=Math.max(...fresh.map(id=>holdOf(sid,id).until));
+  return h("div",{class:"holdcard"},h("b",{text:fresh.map(id=>`${heroName(id)} is ${holdText(sid,id)}.`).join(" ")}),
+    h("div",{class:"att",text:`It's ${hourLabel(sceneTime(sid))} for you. Play on through the night, or rest until then too.`}),
+    h("div",{class:"actbar",style:"justify-content:flex-start"},
+      h("button",{type:"button",onclick:()=>{for(const id of fresh)S.holdSeen[holdKey(sid,id)+"|"+S.holds[sid][id].at]=1;renderTable()}},"Keep playing"),
+      h("button",{type:"button",class:"primary",onclick:()=>setHold(sid,S.uid,until-sceneTime(sid),"",'sleep')},"Rest until "+hourLabel(until)),
+      h("button",{type:"button",class:"ghost",onclick:()=>setHold(sid,S.uid,until-sceneTime(sid),"",'skip')},"Skip ahead to "+hourLabel(until))))}
+function renderHolds(){for(const id of ["holdBox","holdTalk"]){const el=$(id);if(el)el.replaceChildren(...[holdView()].filter(Boolean))}
+  const sid=myScene(),x=S.holds[sid]?.[S.uid];if(x&&(x.until||0)<=sceneTime(sid)&&!S.expiring){S.expiring=true;clearHold(sid,S.uid,"wakes").finally(()=>{S.expiring=false})}}
 
 /* Ask the DM (out-of-character questions) */
 S.myQA=[];
@@ -1912,7 +1974,8 @@ async function processUpdates(sid,force){if(!S.sample||!S.db||S.busy)return;cons
   const ids=heroesIn(sid);const g=S.game||{};
   const prompt=`${DM_RULES}
 WORLD UPDATE for the scene "${sc.name}". Now: ${clockLabel(sceneTime(sid))}. The heroes here have been playing freely through conversation and actions (below). Apply the consequences to the game state: HP, items, gold, conditions, XP, Heroic Inspiration, quests, NPC changes, time, and heroes who leave for other places (moves). The conversation already settled uncertain outcomes, so do not ask for checks. Do not retell everything: the narration describes the scene as it stands now, in 1-2 short paragraphs. If a fight has broken out, use combat.start.
-What changed, as flagged during play: ${pend.length?pend.map(u=>u.reason).join(" | "):"(host asked for a general update)"}
+${heroesIn(sid).some(id=>holdOf(sid,id))?`ASLEEP OR BUSY: ${heroesIn(sid).filter(id=>holdOf(sid,id)).map(id=>heroName(id)+" is "+holdText(sid,id)).join("; ")}. Other heroes here are still playing at ${clockLabel(sceneTime(sid))}: keep minutesPassed to what THEY did (30 at most); the page moves the clock when everyone rests.
+`:""}What changed, as flagged during play: ${pend.length?pend.map(u=>u.reason).join(" | "):"(host asked for a general update)"}
 CAMPAIGN: ${JSON.stringify({title:g.title,day:g.day,timeOfDay:g.timeOfDay,quests:g.quests,world:worldBrief(),recentChronicle:(g.log||[]).slice(-5).map(l=>l.text)})}
 THIS SCENE: ${JSON.stringify({name:sc.name,description:sc.description,map:sc.map,tokens:sc.tokens,npcs:sc.npcs,lastNarration:String(sc.scene||"").slice(0,800)})}
 OTHER SCENES RIGHT NOW: ${JSON.stringify(worldSummary(sid))}
@@ -1966,6 +2029,8 @@ async function applyHeroChanges(changes){for(const ch of Array.isArray(changes)?
     while((n.level||1)<10&&(n.xp||0)>=XP_LV[n.level||1]){n.level=(n.level||1)+1;const add=Math.max(1,Math.floor((CLASSES[n.class]?.hd||8)/2)+1+mods(n).CON+extraHpPerLevel(n));n.hpMax+=add;n.hp=(patch.hp??n.hp)+add;patch.level=n.level;patch.hpMax=n.hpMax;patch.hp=n.hp;toast(`${n.name} reached level ${n.level}!`)}
     if(Object.keys(patch).length){patch.inPlay=true;try{await S.db.doc("characters/"+ch.id).update(patch)}catch(e){}}}}
 async function applySceneResult(sid,r,{combat}){if(!r||typeof r!=="object")throw{code:"invalid_json"};const g=S.game||{},sc=S.scenes[sid]||{},now=Date.now();
+  if(!S.wakeApply&&!combat){const hsN=heroesIn(sid);if(hsN.some(id=>holdOf(sid,id))&&hsN.some(id=>!holdOf(sid,id))){r.minutesPassed=Math.min(Number(r.minutesPassed)||0,30);r.daysPassed=0}}
+  if(r.combat&&typeof r.combat==="object"&&Array.isArray(r.combat.start)&&r.combat.start.length){for(const id of heroesIn(sid))if(holdOf(sid,id))await clearHold(sid,id,"is jolted awake")}
   const t0=sceneTime(sid),t1=t0+Math.max(0,Math.min(43200,Math.round(Number(r.minutesPassed)||0)+Math.round((Number(r.daysPassed)||0)*1440)));const arrivals=[],pendingArr=[];
   await applyHeroChanges(r.changes);
   const next={...sc};const sp=r.scene&&typeof r.scene==="object"?r.scene:{};
@@ -2038,7 +2103,7 @@ const cur=list=>{const t=S.game?.resetAt;return t?(list||[]).filter(m=>(m.at||0)
 function refilter(){if(S.raw.talk)S.talk=cur(S.raw.talk);if(S.raw.checks)S.checks=cur(S.raw.checks);if(S.raw.myQA)S.myQA=cur(S.raw.myQA);if(S.raw.chat)S.chat=cur(S.raw.chat)}
 let cleaning=false,cleanedAt=0;
 async function cleanupOld(){const g=S.game;if(!S.isOwner||!S.db||cleaning||!g||g.status!=="lobby"||!g.resetAt||cleanedAt===g.resetAt)return;cleaning=true;cleanedAt=g.resetAt;
-  try{for(const col of ["talk","checks","actions","updates","npcmem","pos","notes"]){const r=await S.db.collection(col).limit(300).get();for(const d of r.docs)await S.db.doc(col+"/"+d.id).delete().catch(()=>{})}
+  try{for(const col of ["talk","checks","actions","updates","npcmem","pos","notes","holds"]){const r=await S.db.collection(col).limit(300).get();for(const d of r.docs)await S.db.doc(col+"/"+d.id).delete().catch(()=>{})}
     const c=await S.db.collection("chat").limit(300).get();for(const d of c.docs)if((d.data()?.at||0)<g.resetAt)await S.db.doc("chat/"+d.id).delete().catch(()=>{});
     const sc=await S.db.collection("scenes").limit(200).get();for(const d of sc.docs)await S.db.doc("scenes/"+d.id).delete().catch(()=>{});
     const ch=await S.db.collection("characters").get();for(const d of ch.docs)if(d.data()?.inPlay)await S.db.doc("characters/"+d.id).update({inPlay:false,ready:false}).catch(()=>{})}catch(e){}finally{cleaning=false}}
@@ -2062,7 +2127,7 @@ function autoCheck(){if(!S.isOwner||!S.db)return;const g=S.game;if(!g||g.status!
       if(s.phase==="rolls")go=!S.checks.some(c=>c.source==="dm"&&c.scene===s.id&&c.seq===seq&&c.status==="pending");
       else{const a=S.actions[ae.id];go=ae.kind==="npc"||(a&&a.scene===s.id&&a.seq===seq)||!alive(S.chars[ae.id])}
       const key=`${seq}|${s.phase}|${s.turn}`;if(go&&lastAuto[s.id]!==key){lastAuto[s.id]=key;resolveCombat(s.id);return}}
-    const p=S.updates.filter(u=>u.status==="pending").sort((a,b)=>a.at-b.at)[0];if(p&&S.scenes[p.scene]){if(p.kind==="travel")processTravel(p);else if(p.kind==="leg")processLeg(p);else if(p.kind==="skip")processSkip(p);else if(p.kind==="cancelwait")processCancelWait(p);else processUpdates(p.scene)}else if(p&&S.scenesLoaded)S.db.doc("updates/"+p.id).update({status:"failed"}).catch(()=>{})},1500)}
+    const p=S.updates.filter(u=>u.status==="pending").sort((a,b)=>a.at-b.at)[0];if(p&&S.scenes[p.scene]){if(p.kind==="travel")processTravel(p);else if(p.kind==="leg")processLeg(p);else if(p.kind==="skip")processSkip(p);else if(p.kind==="wake")processWake(p);else if(p.kind==="cancelwait")processCancelWait(p);else processUpdates(p.scene)}else if(p&&S.scenesLoaded)S.db.doc("updates/"+p.id).update({status:"failed"}).catch(()=>{})},1500)}
 
 /* keep talk and chat pinned to the newest line unless the reader scrolled up */
 for(const id of ["feed","chatFeed"])$(id).addEventListener("scroll",e=>{const f=e.target;if(f.clientHeight>0)S.stick[id]=f.scrollHeight-f.scrollTop-f.clientHeight<40});
@@ -2096,6 +2161,7 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
     if(onTable()){renderMyChecks();renderWaiting();renderHost()}autoCheck()},()=>{});
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});
+  db.collection("holds").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid||!x.hero)return;(o[x.sid]=o[x.sid]||{})[x.hero]=x});S.holds=o;if(onTable())renderTable()},()=>{});
   db.collection("pos").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;if(onTable()){renderMap();renderTalk()}},()=>{});
   db.collection("notes").onSnapshot(snap=>{S.notes=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(n=>!S.game?.resetAt||(n.at||0)>=S.game.resetAt);S.notesLoaded=true;if(onTable()){renderLog();renderMap();renderMe()}maybeRecap()},()=>{});
   db.collection("npcmem").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.npcmem=o;if(onTable())renderMap()},()=>{});
