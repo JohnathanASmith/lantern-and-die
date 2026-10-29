@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1
+- The DM only speaks or acts for a hero when that hero's player is away from the table, and then plays them true to their personality and how their player has been playing them, keeping big choices for the player.
+- Away heroes follow the party like a real party member, including on journeys.
+- Lines the DM plays for an away hero are labeled "played by the DM".
+
 ## 1.7.0
 - The scene clock moves with play: each exchange takes in-world minutes (a quick line, a search, a ritual).
 - NPC errands: when someone leaves the heroes for a while, the DM records what they're doing and when they'll be back, and brings them back once the clock gets there.
