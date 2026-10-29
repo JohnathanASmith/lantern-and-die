@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.3.3">
+<meta name="lantern-and-die-version" content="1.4.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -284,6 +284,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
 /* art */
 [hidden]{display:none!important}
+.mapwrap .spots{color:#d8cfbd;font-size:.85rem;padding:6px 10px}.roomtabs{margin:0 0 6px}.roomtabs button{font-size:.85rem;padding:.3rem .6rem}
+.roomshut{display:grid;gap:4px;place-items:center;text-align:center;padding:28px 12px;color:var(--muted);background:repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 8px,transparent 8px 16px)}
 .holdcard{border:1px solid var(--gold);border-radius:var(--r);background:var(--raised);padding:10px 12px;display:grid;gap:6px;margin:8px 0}
 .line.stub{opacity:.75;font-size:.9rem;color:var(--muted);font-style:italic}.line.stub .nd{background:var(--line)}
 .ideas{display:grid;gap:6px}.ideas:empty{display:none}
@@ -330,7 +332,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.3.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.4.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -954,7 +956,7 @@ function viewId(){if(S.view&&S.scenes[S.view]&&activeScenes().some(s=>s.id===S.v
 const viewScene=()=>S.scenes[viewId()]||null;
 const msgScene=m=>m.scene||S.game?.legacyScene||primaryScene();
 function activeEntry(sc){if(!sc||sc.mode!=="combat"||!Array.isArray(sc.initiative)||!sc.initiative.length)return null;return sc.initiative[(sc.turn||0)%sc.initiative.length]}
-function cleanNpcs(list){return(Array.isArray(list)?list:[]).slice(0,14).map(n=>({name:String(n?.name||"Stranger").slice(0,60),x:Number(n?.x)||0,y:Number(n?.y)||0,hostile:!!n?.hostile,hp:n?.hp?String(n.hp).slice(0,20):"",attitude:n?.attitude?String(n.attitude).slice(0,20):"",about:String(n?.about||"").slice(0,80),...(n?.sprite?{sprite:String(n.sprite).toLowerCase().slice(0,30)}:{}),...(n?.spot?{spot:String(n.spot).slice(0,40)}:{})}))}
+function cleanNpcs(list){return(Array.isArray(list)?list:[]).slice(0,14).map(n=>({name:String(n?.name||"Stranger").slice(0,60),x:Number(n?.x)||0,y:Number(n?.y)||0,hostile:!!n?.hostile,hp:n?.hp?String(n.hp).slice(0,20):"",attitude:n?.attitude?String(n.attitude).slice(0,20):"",about:String(n?.about||"").slice(0,80),...(n?.sprite?{sprite:String(n.sprite).toLowerCase().slice(0,30)}:{}),...(n?.spot?{spot:String(n.spot).slice(0,40)}:{}),...(n?.perch?{perch:String(n.perch).slice(0,40)}:{}),...(n?.hidden?{hidden:true}:{})}))}
 const cleanMap=m=>m&&Array.isArray(m.rows)?{rows:m.rows.map(String).slice(0,10),...(m.theme?{theme:String(m.theme).toLowerCase().slice(0,20)}:{})}:null;
 
 /* ================= TABLE ================= */
@@ -1010,7 +1012,7 @@ const THEME_WORDS=[["tavern","tavern|inn|alehouse|taproom|pub"],["temple","templ
   ["town","town|city|street|market|square|plaza|alley"],["village","village|hamlet|farm"],["forest","forest|wood|grove|glade|thicket"],["camp","camp|campfire"],["road","road|path|trail|bridge|crossroads"],["ruin","ruin"],["house","house|home|cottage|shop|smithy|store"]];
 function sceneTheme(sc){const t=String(sc?.map?.theme||"").toLowerCase();if(THEMES[t])return t;const txt=`${sc?.name||""} ${sc?.description||""}`.toLowerCase();for(const[k,re]of THEME_WORDS)if(new RegExp(`\\b(${re})`).test(txt))return k;return "wild"}
 const SPRITES=Object.keys(ATLAS.idx).filter(k=>k.startsWith("m.")).map(k=>k.slice(2));
-const SPRITE_WORDS=[["guard","guard|watchman|sentry|warden"],["captain","captain|sergeant|commander"],["knight","knight|paladin"],["soldier","soldier|militia|mercenar|sellsword"],["priest","priest|cleric|abbot|bishop|monk"],["acolyte","acolyte|novice|nun"],
+const SPRITE_WORDS=[["guard","guard|watchman|sentry|warden"],["captain","captain|sergeant|commander"],["knight","knight|paladin"],["soldier","soldier|militia|mercenar|sellsword"],["acolyte","priest|cleric|abbot|bishop|monk"],["acolyte","acolyte|novice|nun"],
   ["mage","wizard|mage|magus|arcan|enchanter"],["sorceress","sorceress|enchantress"],["necromancer","necromancer"],["cultist","cult|zealot|occult"],["warlock","warlock|hexblade"],["witch","witch|hag"],["crone","crone|granny|old woman|grandmother"],
   ["noble","noble|lord|duke|count|baron|mayor|magistrate|prince|king"],["noblewoman","lady|duchess|countess|princess|queen"],["merchant","merchant|trader|shopkeep|peddler|vendor|innkeep|barkeep|bartender|tavern keeper|landlord|smith"],
   ["rogue","rogue|spy|assassin|cutpurse"],["thief","thief|pickpocket|burglar"],["bandit","bandit|brigand|raider|thug|highwayman|outlaw|ruffian"],["pirate","pirate|sailor|smuggler"],["bard","bard|minstrel|singer|musician"],
@@ -1019,7 +1021,7 @@ const SPRITE_WORDS=[["guard","guard|watchman|sentry|warden"],["captain","captain
   ["skeleton","skeleton"],["zombie","zombie"],["ghoul","ghoul"],["ghost","ghost|spirit|specter|spectre|apparition"],["wraith","wraith|shade"],["vampire","vampire"],["lich","lich"],["mummy","mummy"],
   ["wolf","wolf|wolves"],["warg","warg|worg|dire wolf"],["rat","rat"],["bat","bat"],["bear","bear"],["boar","boar|pig|swine"],["spider","spider"],["snake","snake|serpent|viper"],["raven","raven|crow|bird"],["hound","dog|hound|mastiff"],
   ["dragon","dragon"],["drake","drake|wyrmling"],["imp","imp"],["demon","demon|devil|fiend"],["ooze","ooze|slime|jelly"],["beholder","beholder"],["golem","golem|construct"],["gargoyle","gargoyle"],["angel","angel|celestial"],["centaur","centaur"],["harpy","harpy"],["minotaur","minotaur"],["merfolk","merfolk|mermaid|merman"]];
-function npcSprite(n){const s=String(n?.sprite||"").toLowerCase().replace(/\s+/g,"_");if(ATLAS.idx["m."+s]!=null)return "m."+s;const t=`${n?.name||""} ${n?.about||""}`.toLowerCase();
+function npcSprite(n){let s=String(n?.sprite||"").toLowerCase().replace(/\s+/g,"_");if(s==="priest")s="acolyte";if(ATLAS.idx["m."+s]!=null)return "m."+s;const t=`${n?.name||""} ${n?.about||""}`.toLowerCase();
   for(const[k,re]of SPRITE_WORDS)if(new RegExp(`\\b(${re})`).test(t)&&ATLAS.idx["m."+k]!=null)return "m."+k;return "m."+spick(["commoner","commoner2","commoner3","merchant","peasant"],n?.name||"x")}
 
 /* ---- procedural furniture (drawn at 32px units) ---- */
@@ -1044,7 +1046,7 @@ function furn(ctx,kind,x,y,nb,seed){const r=rng(seed);ctx.save();ctx.translate(x
   ctx.restore()}
 
 /* ---- scene map renderer ---- */
-function drawScene(cv,sc,vid){const rows=parseMap(sc.map),W=rows[0].length,H=rows.length,C=32,K=2;cv.width=W*C*K;cv.height=H*C*K;const ctx=cv.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.setTransform(K,0,0,K,0,0);
+function drawScene(cv,sc,vid,opt={}){if(opt.map)sc={...sc,map:opt.map,name:(sc.name||"")+"/"+(opt.room||"")};const rows=parseMap(sc.map),W=rows[0].length,H=rows.length,C=32,K=2;cv.width=W*C*K;cv.height=H*C*K;const ctx=cv.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.setTransform(K,0,0,K,0,0);
   const th=sceneTheme(sc),[fl,wl,dark]=THEMES[th]||THEMES.wild,outdoor=dark===0;const at=(x,y)=>(x<0||y<0||x>=W||y>=H)?"fog":(GLYPH[rows[y][x]]||"floor");
   const ground=(kind,x,y)=>{const s=x+","+y+sc.name;const m={floor:fl,wood:"f.wood",flag:"f.flag",grass:"f.grass",dirt:"f.dirt",sand:"f.sand_",road:/town|street|market|castle|village/.test(th)?"f.cobble":outdoor?"f.dirt":"f.stone",water:"x.shallow_water",deep:"x.deep_water",lava:"f.lava"}[kind]||fl;
     const list=m.startsWith("x.")?[m,m+"2"].filter(k=>ATLAS.idx[k]!=null):vars(m);const g=kind==="grass"&&rng(s)()<.12?spick(vars("f.flowers"),s):spick(list,s);tile(ctx,g,x*C,y*C);if(m==="f.wood"){ctx.globalCompositeOperation="screen";ctx.fillStyle="rgba(150,96,52,.30)";ctx.fillRect(x*C,y*C,C,C);ctx.globalCompositeOperation="source-over"}};
@@ -1069,12 +1071,13 @@ function drawScene(cv,sc,vid){const rows=parseMap(sc.map),W=rows[0].length,H=row
     else{furn(ctx,k,px,py,nb,s);if(k==="fire")lights.push([px+16,py+16,4.5,"#ffb050"]);if(k==="torch")lights.push([px+16,py+10,3.2,"#ffc470"])}}
   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(at(x,y)==="lava")lights.push([x*C+16,y*C+16,1.5,"#ff5a1f"]);
   /* tokens */
-  const toks=[];const PP=posOf(vid);(sc.npcs||[]).forEach(n=>{const p=PP.npcs[n.name];if(!p||p.spot)return;const x=p.x,y=p.y;if(x>=0&&y>=0&&x<W&&y<H)toks.push({x,y,kind:"npc",n})});
-  heroesIn(vid).forEach(id=>{const p=PP.heroes[id];if(!p||p.spot)return;const x=p.x,y=p.y;if(x>=0&&y>=0&&x<W&&y<H)toks.push({x,y,kind:"hero",id})});
-  toks.sort((a,b)=>a.y-b.y);for(const t of toks){const px=t.x*C,py=t.y*C;ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(px+16,py+28,10,3.5,0,0,7);ctx.fill();
-    if(t.kind==="npc"){ctx.strokeStyle=t.n.hostile?"#ff4d3d":"#f2c14e";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();tile(ctx,npcSprite(t.n),px,py)}
+  const toks=(opt.toks||liveToks(vid,"")).filter(t=>t.x>=0&&t.y>=0&&t.x<W&&t.y<H);
+  toks.sort((a,b)=>a.y-b.y);for(const t of toks){const px=t.x*C,gy=t.y*C,py=gy-(t.perch?11:0);ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(px+16,gy+28,10,3.5,0,0,7);ctx.fill();
+    if(t.perch){ctx.save();ctx.setLineDash([2,2]);ctx.strokeStyle="rgba(242,193,78,.8)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+16,gy+27);ctx.lineTo(px+16,py+27);ctx.stroke();ctx.restore();ctx.fillStyle="#f2c14e";ctx.beginPath();ctx.moveTo(px+27,py+1);ctx.lineTo(px+32,py+9);ctx.lineTo(px+22,py+9);ctx.closePath();ctx.fill()}
+    if(t.hidden){ctx.globalAlpha=.55}
+    if(t.kind==="npc"){ctx.strokeStyle=t.n.hostile?"#ff4d3d":"#f2c14e";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();tile(ctx,npcSprite(t.n),px,py);ctx.globalAlpha=1}
     else{const c=S.chars[t.id]||{};ctx.strokeStyle=c.color||"#888";ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();if(t.id===S.uid){ctx.setLineDash([3,3]);ctx.strokeStyle="#fff";ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(px+16,py+28,14.5,6,0,0,7);ctx.stroke();ctx.setLineDash([])}
-      ctx.globalAlpha=c.hp<=0?.45:1;drawDoll(ctx,dollOf(t.id),px,py,32);ctx.globalAlpha=1;if(dark||todOf(sceneTime(vid))==="night")lights.push([px+16,py+16,2.6,"#ffe2a8"])}}
+      ctx.globalAlpha=c.hp<=0||t.hidden?.5:1;drawDoll(ctx,dollOf(t.id),px,py,32);ctx.globalAlpha=1;if(dark||todOf(sceneTime(vid))==="night")lights.push([px+16,py+16,2.6,"#ffe2a8"])}}
   /* light */
   const tod=todOf(sceneTime(vid));let amb=dark===2?.62:outdoor?({night:.62,dusk:.34,dawn:.28}[tod]||0):({night:.48,dusk:.3,dawn:.25}[tod]||.14);
   if(amb>0){const lc=document.createElement("canvas");lc.width=cv.width;lc.height=cv.height;const l=lc.getContext("2d");l.setTransform(K,0,0,K,0,0);l.fillStyle=dark===2?`rgba(4,4,10,${amb})`:`rgba(8,12,40,${amb})`;l.fillRect(0,0,W*C,H*C);
@@ -1085,6 +1088,7 @@ function drawScene(cv,sc,vid){const rows=parseMap(sc.map),W=rows[0].length,H=row
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(at(x,y)==="fog")continue;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){if(at(x+dx,y+dy)!=="fog"||x+dx<0||y+dy<0||x+dx>=W||y+dy>=H)continue;const x0=x*C+(dx>0?C:0),y0=y*C+(dy>0?C:0);
     const g=dx?ctx.createLinearGradient(x0,0,x0-dx*14,0):ctx.createLinearGradient(0,y0,0,y0-dy*14);g.addColorStop(0,"rgba(7,8,12,.9)");g.addColorStop(1,"rgba(7,8,12,0)");ctx.fillStyle=g;ctx.fillRect(dx?Math.min(x0,x0-dx*14):x*C,dy?Math.min(y0,y0-dy*14):y*C,dx?14:C,dy?14:C)}}
   const vg=ctx.createRadialGradient(W*C/2,H*C/2,Math.min(W,H)*C*.35,W*C/2,H*C/2,Math.max(W,H)*C*.75);vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,"rgba(0,0,0,.35)");ctx.fillStyle=vg;ctx.fillRect(0,0,W*C,H*C);
+  if(opt.memory){ctx.globalCompositeOperation="saturation";ctx.fillStyle="hsl(0,0%,50%)";ctx.globalAlpha=.75;ctx.fillRect(0,0,W*C,H*C);ctx.globalCompositeOperation="source-over";ctx.globalAlpha=.25;ctx.fillStyle="#1a1410";ctx.fillRect(0,0,W*C,H*C);ctx.globalAlpha=1}
   return{W,H,toks,theme:th}}
 
 /* ---- hero dolls ---- */
@@ -1218,13 +1222,17 @@ function inkIcon(add,g,kind,status,INK){const op=status==="rumored"?.5:1;const g
 /* map */
 function parseMap(m){let rows=Array.isArray(m?.rows)?m.rows.map(r=>String(r).slice(0,16)).slice(0,10):[];if(!rows.length)rows=["################","#..............#","#..............#","#......$.......#","#..............#","#######DD#######"];const w=Math.max(...rows.map(r=>r.length));return rows.map(r=>r.padEnd(w," "))}
 function renderMap(){syncMapView();const g=S.game||{},sc=viewScene()||{},vid=viewId();const rows=parseMap(sc.map);
-  const cv=h("canvas",{class:"scenecv",role:"img","aria-label":"Map of "+(sc.name||"the area")});let info=null;try{info=drawScene(cv,sc,vid)}catch(e){console.error(e)}
+  trackRoom();const meHere=vid===myScene()?posOf(vid).heroes[S.uid]:null,myRoom=meHere?.spot||"";const rooms=knownRooms(vid);let sel=S.mapRoom??myRoom;if(!rooms.some(r=>slug(r)===slug(sel)))sel=myRoom;
+  const live=slug(sel)===slug(myRoom);let drawOpt={room:sel},memNote=null;
+  if(live)drawOpt={...drawOpt,map:sel?roomMapOf(vid,sel):null,toks:liveToks(vid,sel)};
+  else{memNote=myNotes("room").find(n=>n.scene===vid&&slug(n.room||"")===slug(sel));if(memNote)drawOpt={...drawOpt,map:{rows:memNote.rows,theme:memNote.theme},memory:true,toks:(memNote.toks||[]).map(t=>t.kind==="npc"?{kind:"npc",n:{name:t.name,sprite:t.sprite,hostile:t.hostile,about:t.about},x:t.x,y:t.y,perch:t.perch}:{kind:"hero",id:t.id,x:t.x,y:t.y,perch:t.perch}).filter(t=>t.kind==="npc"||S.chars[t.id])}}
+  const tabs=rooms.length>1?h("div",{class:"seg roomtabs",role:"tablist"},...rooms.map(r=>h("button",{type:"button",role:"tab","aria-selected":String(slug(r)===slug(sel)),onclick:()=>{S.mapRoom=r;renderMap()}},roomLabel(vid,r)+(slug(r)===slug(myRoom)&&meHere?" · you":"")))):null;
+  const cv=h("canvas",{class:"scenecv",role:"img","aria-label":"Map of "+(sel?roomLabel(vid,sel):(sc.name||"the area"))});let info=null;if(live||memNote){try{info=drawScene(cv,sc,vid,drawOpt)}catch(e){console.error(e)}}
   const cap=h("div",{class:"mapcap",id:"mapCap","aria-live":"polite"});
   cv.addEventListener("click",e=>{if(!info)return;const r=cv.getBoundingClientRect();const x=Math.floor((e.clientX-r.left)/r.width*info.W),y=Math.floor((e.clientY-r.top)/r.height*info.H);const t=info.toks.find(t=>t.x===x&&t.y===y);
-    if(!t){cap.textContent="";return}if(t.kind==="npc"){const mem=S.npcmem[slug(t.n.name)];cap.textContent=`${t.n.name||"Stranger"}${t.n.about?" · "+t.n.about:""} · ${t.n.hostile?"hostile":(mem?.attitude||t.n.attitude||"")}`}else{const c=S.chars[t.id];cap.textContent=`${c?.name||"A hero"}${t.id===S.uid?" (you)":""} · HP ${c?.hp}/${c?.hpMax}`}});
-  const PS=posOf(vid),spots={};for(const[id,p]of Object.entries(PS.heroes))if(p.spot)(spots[p.spot]=spots[p.spot]||[]).push(heroName(id)+(id===S.uid?" (you)":""));for(const[n,p]of Object.entries(PS.npcs))if(p.spot)(spots[p.spot]=spots[p.spot]||[]).push(n);
-  const spotRow=Object.keys(spots).length?h("div",{class:"spots"},...Object.entries(spots).map(([k,v])=>h("span",{class:"chip"},h("b",{text:k[0].toUpperCase()+k.slice(1)+": "}),v.join(", ")))):null;
-  $("map").replaceChildren(cv,cap,...(spotRow?[spotRow]:[]));
+    if(!t){cap.textContent="";return}const per=t.perch?` · ${t.perch}`:"";if(t.kind==="npc"){const mem=S.npcmem[slug(t.n.name)];cap.textContent=`${t.n.name||"Stranger"}${t.n.about?" · "+t.n.about:""}${per} · ${t.n.hostile?"hostile":(mem?.attitude||t.n.attitude||"")}`}else{const c=S.chars[t.id];cap.textContent=`${c?.name||"A hero"}${t.id===S.uid?" (you)":""}${per}${t.hidden?" · hidden":""} · HP ${c?.hp}/${c?.hpMax}`}});
+  const note=live?null:memNote?h("div",{class:"spots"},`${roomLabel(vid,sel)} as you last saw it · ${clockLabel(memNote.t||0)}. People may have moved since.`):h("div",{class:"roomshut"},h("b",{text:roomLabel(vid,sel)}),h("span",{text:"You haven't been in here. The door is shut."}));
+  $("map").replaceChildren(...[tabs,live||memNote?cv:null,live||memNote?cap:null,note].filter(Boolean));
   const has=new Set(rows.join("").split("").map(ch=>GLYPH[ch]).filter(Boolean));const feat=[["bar","bar"],["table","tables"],["fire","fire"],["torch","torches"],["door","doors"],["chest","treasure"],["trap","hazards"],["water","water"],["stairsdown","stairs"],["altar","altar"],["tree","trees"]].filter(([k])=>has.has(k)).map(([,l])=>l);
   $("legend").replaceChildren(h("span",{},h("i",{style:"background:transparent;border:2px solid #f2c14e;border-radius:50%"}),"NPC"),h("span",{},h("i",{style:"background:transparent;border:2px solid #ff4d3d;border-radius:50%"}),"Hostile"),h("span",{},h("i",{style:"background:transparent;border:2px dashed var(--fg);border-radius:50%"}),"You"),h("span",{text:"Tap someone to see who they are"}),feat.length?h("span",{text:"Here: "+feat.join(", ")}):null);
   $("locTitle").textContent=sc.name||"Unknown lands";$("locDesc").textContent=sc.description||"";$("timeTag").textContent=todOf(sceneTime(vid));
@@ -1342,7 +1350,7 @@ NPCs only know what they plausibly would, can lie, bargain, refuse, warm up or g
 Call for a check only when the outcome is uncertain and failure would be interesting (persuading, deceiving or intimidating someone who resists, reading motives with Insight, recalling lore, sneaking, picking a lock, haggling, performing, cooking for a critic, and so on). Ask for exactly one check from the right hero, using DC 5 very easy, 10 easy, 15 medium, 20 hard, 25 very hard, and stop the story at the attempt. Don't ask for checks for ordinary conversation.
 EARSHOT: people only know what they saw or heard. Each past line shows [heard by: ...]. An NPC never knows, repeats or reacts to something they did not hear, unless they learn it now. Whispers reach only the person addressed; normal talk reaches people within about 4 squares in the same spot; shouts reach everyone here. A "spot" is a private nook off the main room (a vestry stair, a back room, a booth with a curtain): people in different spots can't hear each other.
 For each reply set "audience": "same" (the people who heard the hero's line, the default), "private" (only the acting hero, e.g. what they secretly find or notice), or "room" (everyone in that spot can hear or see it). Set "othersSee" to one short line of what people out of earshot notice, or "" if nothing (sneaking unseen, reading a note to oneself).
-MOVES: when someone moves within this place (crosses to the bar, sits with someone, steps onto the vestry stair, slips into the back room), set "moves" with their new x,y and "spot" (a short name like "vestry stair" for a private nook, or "" for the main room). Keep x,y on walkable floor.
+MOVES: when someone moves within this place, set "moves" with their new x,y. "spot" is a SEPARATE ROOM off the main room, behind a door (vestry, back room, cellar, upstairs bedroom): use an existing room name exactly if there is one (${Object.values(roomsOf(sid)).map(r=>r.name).join(", ")||"none yet"}), x,y are then on that room's own small map; "" means the main room. "perch" is a place INSIDE the main room that is up high or tucked away (the rafters, a balcony, behind the bar, under a table): keep spot "" and put x,y where it is on the main map. "hidden": true when they're hiding and nobody noticed. When someone enters a NEW separate room, add it to "rooms" with a small map.
 KNOWLEDGE: "learned" lists new facts heroes just picked up (a name, a place, a clue, a secret), each with the hero ids who saw or heard it. "people" lists a person a hero just met or learned something about, with a short note in their own eyes. "reveals" lists any new fact you just established about a hero's OWN past, family, blood or nature: check their backstory and what's already revealed about them first, and keep it consistent.
 LONG ACTIONS: when the acting hero starts something that takes more than about 30 minutes (sleeping, a long rest, reading through the night, working a shift, waiting for hours), set "longAction" and narrate only them settling in. Do NOT use sceneUpdate for that time passing: other heroes here keep playing at the current time, and the page moves the clock when everyone is ready. If something wakes a sleeping or busy hero (a loud noise, a fight, someone shaking them, being called by name), list them in "wake". Quiet talk does not wake a sleeper; sneaking up on one may call for a Perception check from the sleeper with disadvantage.
 COINS: when the acting hero pays, receives or finds coins, set "coins" to the change for that hero only, in gp, sp and cp (paying 5 silver is {"sp":-5}). Other heroes' coins go through sceneUpdate.
@@ -1363,14 +1371,15 @@ ${earTxt}
 ${holdsTxt?"ASLEEP OR BUSY RIGHT NOW: "+holdsTxt+". They are out of the action until they wake.":""}
 ${listenTxt}
 
-Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty"}],"moves":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null}
+Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty"}],"moves":[],"rooms":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null}
 longAction: {"minutes":480,"kind":"sleep|busy","label":"a few words, e.g. on the rafter above the hearth"} or null. wake: ["<hero id>"].
-moves: [{"who":"<hero id> or NPC name","x":0,"y":0,"spot":""}]. learned: [{"heroes":["<hero id>"],"text":"the fact, one sentence"}]. people: [{"heroes":["<hero id>"],"name":"","note":"who they are and what the hero knows of them, one sentence"}]. reveals: [{"hero":"<hero id>","fact":"one sentence"}]. coins: {"gp":0,"sp":0,"cp":0,"why":"a few words"} or null.
+moves: [{"who":"<hero id> or NPC name","x":0,"y":0,"spot":"","perch":"","hidden":false}]. rooms: [{"name":"vestry stair","theme":"temple","rows":["up to 10 chars","up to 6 rows, walls # and a door D back to the main room"]}] for new separate rooms only. learned: [{"heroes":["<hero id>"],"text":"the fact, one sentence"}]. people: [{"heroes":["<hero id>"],"name":"","note":"who they are and what the hero knows of them, one sentence"}]. reveals: [{"hero":"<hero id>","fact":"one sentence"}]. coins: {"gp":0,"sp":0,"cp":0,"why":"a few words"} or null.
 journey, when a hero sets off on a real trip: {"heroes":["<hero id>"],"to":"destination name (the exact world map name if it is on the map)","pace":"fast|normal|slow"}
 check, when needed: {"hero":"<hero id>","kind":"skill|ability|save|tool","skill":"skill name or empty","ability":"STR|DEX|CON|INT|WIS|CHA","tool":"tool name or empty","dc":15,"reason":"what's at stake, under 12 words","adv":"none|adv|dis"}
 sceneUpdate, when needed: {"reason":"one sentence describing what changed"}
 Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator plus up to two reactions). A new NPC may join by speaking under a new name.`;
   try{const r=await S.sample.json(prompt,{...aiOpts("talk","default"),cache:false});
+    for(const rm of (Array.isArray(r?.rooms)?r.rooms:[]).slice(0,2)){const m=cleanMap(rm);if(!rm?.name||!m||roomsOf(sid)[slug(rm.name)])continue;try{await S.db.doc("pos/"+`${sid}~r~${slug(rm.name).slice(0,60)}`).set({sid,kind:"r",name:String(rm.name).slice(0,40),rows:m.rows.map(x=>x.slice(0,12)).slice(0,8),theme:m.theme||"",at:Date.now()})}catch(e){}}
     for(const mv of (Array.isArray(r?.moves)?r.moves:[]).slice(0,6)){if(!mv)continue;const who=String(mv.who||"");if(S.chars[who]&&posOf(sid).heroes[who])await setPos(sid,{hero:who},mv);else{const nn=npcs.find(n=>slug(n.name)===slug(who));if(nn)await setPos(sid,{npc:nn.name},mv)}}
     for(const rp of (Array.isArray(r?.replies)?r.replies:[]).slice(0,3)){const line=String(rp.line||"").slice(0,700),act=String(rp.action||"").slice(0,200);if(!line&&!act)continue;const spk=String(rp.speaker||"Someone").slice(0,60);
       let ear={};if(rp.audience==="private")ear={heard:[S.uid],nh:spk==="Narrator"?[]:[spk]};else if(rp.audience==="room"){const e=earshot(sid,spk!=="Narrator"&&posOf(sid).npcs[spk]?{npc:spk}:{hero:S.uid},"room");ear={heard:e.heard,nh:e.nh}}else if(tHeard){const e=spk!=="Narrator"&&posOf(sid).npcs[spk]?earshot(sid,{npc:spk},"talk"):{heard:[],nh:[]};ear={heard:[...new Set([...tHeard,...e.heard])],nh:[...new Set([...(tNh||[]),...e.nh,...(spk==="Narrator"?[]:[spk])])]}}
@@ -1397,17 +1406,18 @@ const RANGE={whisper:1,talk:4,see:8,room:60,shout:999};
 S.pos={};S.notes=[];S.ideas=null;S.ideasBusy=false;S.recap=null;S.lastSeenAt=null;S.recapAsked=false;
 const posKey=(sid,kind,id)=>`${sid}~${kind}~${slug(id).slice(0,60)}`;
 function posOf(sid){const sc=S.scenes[sid]||{},base=sc.posAt||0;const rows=parseMap(sc.map),W=rows[0].length,H=rows.length;const ov=S.pos[sid]||{h:{},n:{}};
-  const heroes={};heroesIn(sid).forEach((id,i)=>{const t=(sc.tokens||{})[id];let o=Array.isArray(t)?{x:+t[0]||0,y:+t[1]||0,spot:String(t[2]||"")}:{x:1+(i%Math.max(1,W-2)),y:Math.max(1,H-2),spot:""};const q=ov.h[slug(id)];if(q&&(q.at||0)>base)o={x:+q.x||0,y:+q.y||0,spot:String(q.spot||"")};heroes[id]=o});
-  const npcs={};(sc.npcs||[]).forEach(n=>{let o={x:+n.x||0,y:+n.y||0,spot:String(n.spot||"")};const q=ov.n[slug(n.name)];if(q&&(q.at||0)>base)o={x:+q.x||0,y:+q.y||0,spot:String(q.spot||"")};npcs[n.name]=o});
+  const norm=(x,y,spot,perch,hidden)=>{const sp=perch!=null&&perch!==""?{spot:roomKey(sid,spot),perch:String(perch)}:splitSpot(sid,spot);return{x:+x||0,y:+y||0,spot:sp.spot,perch:sp.perch,hidden:!!hidden}};
+  const heroes={};heroesIn(sid).forEach((id,i)=>{const t=(sc.tokens||{})[id];let o=Array.isArray(t)?norm(t[0],t[1],t[2],t[3]):{x:1+(i%Math.max(1,W-2)),y:Math.max(1,H-2),spot:"",perch:"",hidden:false};const q=ov.h[slug(id)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);heroes[id]=o});
+  const npcs={};(sc.npcs||[]).forEach(n=>{let o=norm(n.x,n.y,n.spot,n.perch,n.hidden);const q=ov.n[slug(n.name)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);npcs[n.name]=o});
   return{heroes,npcs}}
-const sameSpot=(a,b)=>(a?.spot||"").toLowerCase()===(b?.spot||"").toLowerCase();
+const sameSpot=(a,b)=>slug(a?.spot||"")===slug(b?.spot||"");
 const near=(a,b,r)=>!!(a&&b&&(r>=999||(sameSpot(a,b)&&Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))<=r)));
 function earshot(sid,from,vol){const P=posOf(sid);const o=from.hero?P.heroes[from.hero]:from.npc?P.npcs[from.npc]:from;const r=RANGE[vol]??4;
   const heard=Object.entries(P.heroes).filter(([id,p])=>near(o,p,r)&&(r>=999||id===from.hero||holdOf(sid,id)?.kind!=="sleep")).map(([id])=>id);if(from.hero&&!heard.includes(from.hero))heard.push(from.hero);
   const nh=Object.entries(P.npcs).filter(([,p])=>near(o,p,r)).map(([n])=>n);if(from.npc&&!nh.includes(from.npc))nh.push(from.npc);return{heard,nh}}
 const canSee=m=>!Array.isArray(m.heard)||m.heard.includes(S.uid)||m.hero===S.uid;
 function walkableAt(sc,x,y){const rows=parseMap(sc.map);if(y<0||y>=rows.length||x<0||x>=rows[0].length)return false;return!!WALKGROUND[GLYPH[rows[y][x]]||"floor"]}
-async function setPos(sid,who,p){if(!S.db||!sid)return;const kind=who.hero?"h":"n",id=who.hero||who.npc,now=Date.now();const d={sid,kind,id:String(id).slice(0,80),x:Math.round(+p.x||0),y:Math.round(+p.y||0),spot:String(p.spot||"").slice(0,40),at:now};
+async function setPos(sid,who,p){if(!S.db||!sid)return;const kind=who.hero?"h":"n",id=who.hero||who.npc,now=Date.now();const d={sid,kind,id:String(id).slice(0,80),x:Math.round(+p.x||0),y:Math.round(+p.y||0),spot:String(p.spot||"").slice(0,40),perch:String(p.perch||"").slice(0,40),hidden:!!p.hidden,at:now};
   const ov=S.pos[sid]||(S.pos[sid]={h:{},n:{}});ov[kind][slug(id)]=d;try{await S.db.doc("pos/"+posKey(sid,kind,id)).set(d)}catch(e){}}
 /* walk the hero over to someone they address when they're out of earshot */
 async function approach(sid,npcName){const P=posOf(sid),me=P.heroes[S.uid],n=P.npcs[npcName];if(!me||!n||near(me,n,1))return;const sc=S.scenes[sid]||{};
@@ -1454,7 +1464,7 @@ const pursePatch=p=>({gold:p.gp,sp:p.sp,cp:p.cp});
 /* ================= IDEAS ================= */
 async function getIdeas(){if(!S.sample){toast("Allow Claude on this page to get ideas.");return}if(S.ideasBusy)return;const sid=myScene(),sc=S.scenes[sid]||{},c=S.chars[S.uid];if(!c)return;S.ideasBusy=true;renderIdeas();
   const P=posOf(sid);const seen=S.talk.filter(m=>msgScene(m)===sid&&canSee(m)&&m.kind!=="dmq").sort((a,b)=>a.at-b.at).slice(-14).map(m=>fmtLine(m,false,sceneTime(sid))).join("\n");
-  const dv=derive(c);const notes=myNotes().filter(n=>n.kind!=="log").slice(-24).map(n=>n.kind==="quest"?`Quest ${n.title} (${n.status||"active"}): ${n.text}`:n.kind==="person"?`${n.name}: ${n.text}`:n.kind==="reveal"?`About me: ${n.text}`:n.text);
+  const dv=derive(c);const notes=myNotes().filter(n=>n.kind!=="log"&&n.kind!=="room").slice(-24).map(n=>n.kind==="quest"?`Quest ${n.title} (${n.status||"active"}): ${n.text}`:n.kind==="person"?`${n.name}: ${n.text}`:n.kind==="reveal"?`About me: ${n.text}`:n.text);
   const prompt=`Suggest what a D&D player's hero could say or do next. Write 4 short options in the hero's voice, each different: one that pushes the story forward, one that uses something specific the hero has (a skill, spell, item or coins), one cautious or clever, and one that fits their personality. Only use what this hero knows (below), never secrets they haven't learned. Keep each under 20 words. If someone was mid-explanation, one option can be a short "go on" style prompt.
 Hero: ${JSON.stringify({name:c.name,species:speciesOf(c),class:c.class,background:c.background,personality:c.personality,skills:heroSkills(c),spells:c.spells||"",magicInitiate:[c.miSpells,c.humanMISpells].filter(Boolean).join("; "),features:dv.features.map(f=>f[0]).slice(0,12),inventory:(c.inventory||[]).map(i=>i.name),purse:purseLabel(purseOf(c)),hp:`${c.hp}/${c.hpMax}`,inspiration:!!c.inspiration})}
 Place: ${sc.name||""}, ${sc.description||""}. ${sc.prompt?"The DM asked: "+sc.prompt:""}
@@ -1514,6 +1524,33 @@ function journalView(){const c=S.chars[S.uid];if(!c||S.game?.status!=="playing")
       :h("div",{class:"feat"+(n.status==="new"?" newrev":"")},n.text,h("div",{class:"actbar",style:"justify-content:flex-start;margin-top:4px"},n.status==="new"?h("button",{type:"button",class:"gen",onclick:()=>S.db.doc("notes/"+n.id).update({status:"kept"}).catch(()=>{})},"Keep it"):h("span",{class:"label",text:n.status==="changed"?"changed by you":"kept"}),h("button",{type:"button",class:"gen",onclick:()=>{S.revEdit=n.id;renderMe()}},"Change it"))))):null,
     section("clues",clues.length?clues.map(n=>h("div",{class:"feat"},n.text,shared(n),h("div",{},...shareBtns(n)))):h("div",{class:"att",text:"Things your hero learns show up here."})),
     people.length?section("people met",...people.map(n=>h("div",{class:"feat"},h("b",{text:n.name+". "}),n.text,shared(n),h("div",{},...shareBtns(n))))):null)}
+
+/* ================= ROOMS AND PERCHES ================= */
+/* a "spot" is either a separate room off the main one (vestry, back room, cellar) or a perch inside the main room (rafters, balcony, behind the bar) */
+S.rooms={};S.mapRoom=null;S.lastRoom=null;S.lastRoomSnap=null;
+const PERCH_RE=/rafter|beam|balcon|loft|ledge|roof|gallery|behind the bar|under (a|the)|atop|on top|perch|shelf|sill|landing|chandelier|mantel|in the corner|by the (door|fire|hearth|window)/i;
+function roomsOf(sid){const out={};const sc=S.scenes[sid]||{};for(const[k,v]of Object.entries(sc.rooms||{}))if(v)out[slug(k)]={name:v.name||k,map:v.map||v,theme:(v.map||v).theme};for(const v of Object.values(S.rooms[sid]||{}))out[slug(v.name)]={name:v.name,map:{rows:v.rows,theme:v.theme}};return out}
+function roomKey(sid,name){name=String(name||"").trim();if(!name)return"";const rs=roomsOf(sid),k=slug(name);if(rs[k])return rs[k].name;
+  const word=(name.toLowerCase().match(/[a-z]{5,}/)||[])[0];if(word){const hit=Object.values(rs).find(r=>r.name.toLowerCase().includes(word));if(hit)return hit.name}return name}
+function splitSpot(sid,spot){spot=String(spot||"").trim();if(!spot)return{spot:"",perch:""};if(roomsOf(sid)[slug(spot)]||!PERCH_RE.test(spot))return{spot:roomKey(sid,spot),perch:""};return{spot:"",perch:spot}}
+function defaultRoomMap(sc){const t=sceneTheme(sc);return{theme:["tavern","inn","house","shop","library"].includes(t)?"house":t,rows:["########","#......#","#......#","#......#","###D####"]}}
+function roomMapOf(sid,room){const sc=S.scenes[sid]||{};if(!room)return sc.map;return roomsOf(sid)[slug(room)]?.map||defaultRoomMap(sc)}
+const roomLabel=(sid,room)=>room?room.replace(/^the /i,"").replace(/^./,c=>c.toUpperCase()):(S.scenes[sid]?.name||"Here");
+function knownRooms(sid){const set=new Map([["",""]]);for(const r of Object.values(roomsOf(sid)))set.set(slug(r.name),r.name);const P=posOf(sid);for(const p of[...Object.values(P.heroes),...Object.values(P.npcs)])if(p.spot)set.set(slug(p.spot),p.spot);
+  for(const n of myNotes("room"))if(n.scene===sid&&n.room)set.set(slug(n.room),n.room);return[...set.values()]}
+/* who stands in a room right now, for drawing */
+function liveToks(sid,room){const P=posOf(sid),sc=S.scenes[sid]||{},toks=[];
+  for(const n of sc.npcs||[]){const p=P.npcs[n.name];if(!p||!sameSpot(p,{spot:room}))continue;if(p.hidden)continue;toks.push({x:p.x,y:p.y,kind:"npc",n,perch:p.perch||""})}
+  for(const id of heroesIn(sid)){const p=P.heroes[id];if(!p||!sameSpot(p,{spot:room}))continue;if(p.hidden&&id!==S.uid)continue;toks.push({x:p.x,y:p.y,kind:"hero",id,perch:p.perch||"",hidden:!!p.hidden})}return toks}
+/* remember a room the way you last saw it */
+const roomNoteId=(sid,room)=>`room~${slug(sid).slice(0,40)}~${slug(room||"main").slice(0,40)}~${slug(S.uid||"x").slice(0,30)}`;
+async function rememberRoom(sid,room,toks){if(!S.db||!S.uid||!sid)return;const map=roomMapOf(sid,room);
+  const d={kind:"room",heroes:[S.uid],scene:sid,room:room||"",rows:(map?.rows||[]).slice(0,10),theme:map?.theme||"",toks:toks.map(t=>t.kind==="npc"?{kind:"npc",name:t.n.name,sprite:t.n.sprite||"",hostile:!!t.n.hostile,about:t.n.about||"",x:t.x,y:t.y,perch:t.perch||""}:{kind:"hero",id:t.id,x:t.x,y:t.y,perch:t.perch||""}).slice(0,20),t:sceneTime(sid),at:Date.now(),text:""};
+  try{await S.db.doc("notes/"+roomNoteId(sid,room)).set(d)}catch(e){}}
+function trackRoom(){const sid=myScene();if(!sid||!S.chars[S.uid]?.ready)return;const me=posOf(sid).heroes[S.uid];if(!me)return;const room=me.spot||"";const key=sid+"|"+room;
+  if(S.lastRoom&&S.lastRoom!==key&&S.lastRoomSnap){const[psid,proom]=S.lastRoom.split("|");rememberRoom(psid,proom,S.lastRoomSnap)}
+  if(S.lastRoom!==key){S.mapRoom=null;S.lastRoom=key}S.lastRoomSnap=liveToks(sid,room)}
+addEventListener("pagehide",()=>{if(S.lastRoom&&S.lastRoomSnap){const[psid,proom]=S.lastRoom.split("|");rememberRoom(psid,proom,S.lastRoomSnap)}});
 
 /* ================= HOLDS: one hero sleeps or is busy for hours while others play on ================= */
 S.holds={};S.holdSeen={};
@@ -1953,7 +1990,7 @@ const SHAPE=`Reply with ONLY a JSON object with these keys:
 "reveals": [{"hero":"<hero id>","fact":"a new fact you just established about this hero's own past, family or nature"}] or [],
 "outcomes": [{"id":"<hero id>","text":"one line: what they did and how it went"}],
 "changes": [{"id":"<hero id>","hpDelta":0,"xp":0,"gold":0,"silver":0,"copper":0,"addItems":[{"name":"","qty":1,"note":""}],"removeItems":["exact item name"],"conditions":["full current list, [] clears"],"inspiration":true or false or null,"exhaustionDelta":0,"slotSpent":0}],
-"scene": {"description":"one sentence","map":{"theme":"tavern|inn|house|shop|town|street|village|market|castle|hall|temple|library|dungeon|prison|sewer|crypt|cave|mine|forest|wild|road|camp|field|swamp|desert|snow|mountain|ruin|ship","rows":["up to 16 chars","up to 10 rows"]} or null to keep it,"tokens":{"<hero id>":[x,y] or [x,y,"spot"]},"npcs":[full list of NPCs now in this scene: {"name":"","x":0,"y":0,"spot":"private nook name or empty","hostile":false,"hp":"unhurt|wounded|bloodied|near death","attitude":"friendly|indifferent|hostile","about":"who they are in a few words","sprite":"the closest look from SPRITES"}]},
+"scene": {"description":"one sentence","map":{"theme":"tavern|inn|house|shop|town|street|village|market|castle|hall|temple|library|dungeon|prison|sewer|crypt|cave|mine|forest|wild|road|camp|field|swamp|desert|snow|mountain|ruin|ship","rows":["up to 16 chars","up to 10 rows"]} or null to keep it,"tokens":{"<hero id>":[x,y] or [x,y,"separate room name"] or [x,y,"","perch like rafters"]},"rooms":{"<separate room name>":{"theme":"","rows":["up to 10 chars","up to 6 rows"]}} for separate rooms off the main one (omit to keep),"npcs":[full list of NPCs now in this scene: {"name":"","x":0,"y":0,"spot":"separate room name or empty","perch":"rafters, balcony... or empty","hostile":false,"hp":"unhurt|wounded|bloodied|near death","attitude":"friendly|indifferent|hostile","about":"who they are in a few words","sprite":"the closest look from SPRITES"}]},
 "moves": [{"hero":"<hero id>","to":"place name (use an existing scene's exact name to join it)","description":"one sentence","map":{"rows":[]} or null,"npcs":[NPCs there],"token":[x,y],"narration":"one paragraph opening that place"}] for heroes who leave this scene on a SHORT hop (under about 30 minutes, like stepping outside or crossing town), else []. For longer trips do not use moves: use "journeys" instead so the trip plays out on the road,
 "journeys": [{"heroes":["<hero id>"],"to":"destination name","pace":"fast|normal|slow"}] or [],
 "combat": null, or {"start":[{"name":"enemy name","initBonus":2}]} to begin a fight here, or {"remove":["defeated or fled enemy names"]}, or {"end":true},
@@ -2051,7 +2088,7 @@ async function applySceneResult(sid,r,{combat}){if(!r||typeof r!=="object")throw
   await applyHeroChanges(r.changes);
   const next={...sc};const sp=r.scene&&typeof r.scene==="object"?r.scene:{};
   if(sp.description)next.description=String(sp.description).slice(0,300);const mp=cleanMap(sp.map);if(mp)next.map=mp;
-  if(sp.tokens&&typeof sp.tokens==="object")next.tokens={...(sc.tokens||{}),...sp.tokens};if(Array.isArray(sp.npcs))next.npcs=cleanNpcs(sp.npcs);if((sp.tokens&&typeof sp.tokens==="object")||Array.isArray(sp.npcs))next.posAt=now;
+  if(sp.tokens&&typeof sp.tokens==="object")next.tokens={...(sc.tokens||{}),...sp.tokens};if(Array.isArray(sp.npcs))next.npcs=cleanNpcs(sp.npcs);if((sp.tokens&&typeof sp.tokens==="object")||Array.isArray(sp.npcs))next.posAt=now;if(sp.rooms&&typeof sp.rooms==="object"){const rs={...(sc.rooms||{})};for(const[k,v]of Object.entries(sp.rooms).slice(0,6)){const m=cleanMap(v);if(m)rs[String(k).slice(0,40)]=m}next.rooms=rs}
   if(r.narration)next.scene=String(r.narration).slice(0,4000);next.prompt=String(r.prompt||"").slice(0,300);next.outcomes=combat&&Array.isArray(r.outcomes)?r.outcomes.slice(0,12):[];
   /* moves */
   const heroScene={...(g.heroScene||{})};for(const[id,c]of Object.entries(S.chars))if(c.ready&&!heroScene[id])heroScene[id]=sceneOf(id);
@@ -2178,7 +2215,7 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});
   db.collection("holds").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid||!x.hero)return;(o[x.sid]=o[x.sid]||{})[x.hero]=x});S.holds=o;if(onTable())renderTable()},()=>{});
-  db.collection("pos").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;if(onTable()){renderMap();renderTalk()}},()=>{});
+  db.collection("pos").onSnapshot(snap=>{const o={},rm={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;if(x.kind==="r"){(rm[x.sid]=rm[x.sid]||{})[slug(x.name||"")]=x;return}const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;S.rooms=rm;if(onTable()){renderMap();renderTalk()}},()=>{});
   db.collection("notes").onSnapshot(snap=>{S.notes=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(n=>!S.game?.resetAt||(n.at||0)>=S.game.resetAt);S.notesLoaded=true;if(onTable()){renderLog();renderMap();renderMe()}maybeRecap()},()=>{});
   db.collection("npcmem").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.npcmem=o;if(onTable())renderMap()},()=>{});
   db.collection("data/users/"+S.uid).onSnapshot(snap=>{S.raw.myQA=snap.docs.filter(d=>d.exists&&d.data().type==="dmqa").map(d=>({id:d.id,...d.data()}));S.myQA=cur(S.raw.myQA);if(S.lastSeenAt===null){const sd=snap.docs.find(d=>d.exists&&d.id==="seen");S.lastSeenAt=sd?(sd.data().at||0):0;maybeRecap()}S.retired=snap.docs.filter(d=>d.exists&&d.data().type==="retired").map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.at-a.at);if(onTable())renderTalk();else if(S.step==="import")renderCreator()},()=>{});

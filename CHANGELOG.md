@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0
+
+Maps follow where your hero is and what they've seen.
+
+- Perches: high or tucked-away places inside a room (rafters, a balcony, behind the bar) are drawn on the map with a raised token and a gold marker. Hidden heroes show faded to themselves and not at all to others.
+- Separate rooms (a vestry, a back room, a cellar) get their own tab above the map with their own small map.
+- Your room is live. Rooms you've been in show as you last saw them, greyed, with the time, and people stay where you last saw them. Rooms you haven't entered show a shut door.
+- The DM draws a small map whenever someone enters a new room, and tells perches and rooms apart.
+
 ## 1.3.3
 
 - Catch-ups after a long time away now keep the start of what happened as well as the end, so early events (like the result of something you started just before leaving) aren't dropped.
