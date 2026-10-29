@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.4
+- Repeating an action before rolling no longer stacks a second copy of the same check.
+
 ## 1.6.3
 - Fixed journeys resetting to 0%: pushing on while already on the road continues the same journey instead of starting a new one over the top of it.
 - The DM knows how far along the road the party is and no longer narrates covering the distance outside the journey controls.

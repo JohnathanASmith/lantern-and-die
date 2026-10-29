@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.6.3">
+<meta name="lantern-and-die-version" content="1.6.4">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.6.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.6.4"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1293,7 +1293,10 @@ async function finalizeCheck(k,r){delete S.pendingRoll[k.id];if(!S.db)return;
   if(k.source==="talk"){await postTalk({kind:"check",hero:S.uid,text:`${heroName(S.uid)} · ${r.label}: ${r.total} vs DC ${k.dc} · ${r.success?"success":"failure"}`,scene:k.scene,...(Array.isArray(k.heard)?{heard:k.heard,nh:[],stub:""}:{})});npcRespond({check:{...k,result:r}})}}
 async function makeCheck(req,source,sceneId,seq,heard){if(!S.db||!S.chars[req.hero])return null;const kind=["skill","ability","save","tool","attack"].includes(req.kind)?req.kind:"ability";
   const k={hero:String(req.hero),kind,skill:SKILLS[req.skill]?req.skill:"",ability:AB.includes(req.ability)?req.ability:"",tool:String(req.tool||"").slice(0,40),dc:Math.max(1,Math.min(40,Math.round(Number(req.dc)||15))),reason:String(req.reason||"").slice(0,160),adv:["adv","dis"].includes(req.adv)?req.adv:"none",source,scene:sceneId,seq:seq||0,status:"pending",at:Date.now()};if(Array.isArray(heard))k.heard=[...new Set([...heard,String(req.hero)])];
-  k.label=checkMod(S.chars[k.hero],k).label;try{const ref=await S.db.collection("checks").add(k);return ref.id}catch(e){return null}}
+  k.label=checkMod(S.chars[k.hero],k).label;
+  /* the same hero already has this exact check waiting here: don't stack a duplicate */
+  if(source==="talk"){const dup=S.checks.find(c=>c.status==="pending"&&c.source==="talk"&&c.scene===sceneId&&c.hero===k.hero&&c.kind===k.kind&&(c.skill||"")===k.skill&&(c.ability||"")===k.ability&&(c.tool||"")===k.tool);if(dup)return dup.id}
+  try{const ref=await S.db.collection("checks").add(k);return ref.id}catch(e){return null}}
 
 /* ================= TALK ================= */
 /* reading back the talk of an earlier scene */
