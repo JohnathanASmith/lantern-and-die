@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+- Fixed a stray "null" under the talk box when there were no ideas showing.
+- When a Claude call fails, the message now says why (declined, came back empty, too much to send, sign in again) instead of always "the DM got interrupted".
+
 ## 1.2.0
 
 Talk now follows who can actually hear it.

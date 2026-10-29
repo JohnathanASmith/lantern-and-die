@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.2.0">
+<meta name="lantern-and-die-version" content="1.2.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -329,7 +329,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.2.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.2.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -551,7 +551,7 @@ const slug=s=>String(s||"x").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^
 function notice(t){const n=$("notice");n.textContent=t||"";n.hidden=!t}
 function toast(nodes,ms=4500){const t=h("div",{class:"toast"},nodes);$("toasts").append(t);setTimeout(()=>t.remove(),ms)}
 const use=n=>(window.claude&&typeof window.claude.use==="function")?window.claude.use(n).catch(()=>null):Promise.resolve(null);
-function sampleErr(e){return e?.code==="not_granted"||e?.code==="sampling_disabled"?"Allow Claude on this page so the DM can speak.":e?.code==="rate_limited"?"The DM needs a breather. Try again in a minute.":e?.code==="invalid_json"?"The DM's notes came back garbled. Try again.":"The DM got interrupted. Try again."}
+function sampleErr(e){try{console.warn("Claude call failed",e?.code,e?.message)}catch(_){}if(e&&!e.code&&e.message)return"Something broke on this page ("+String(e.message).slice(0,80)+"). Try again.";if(e?.code==="refused")return"Claude declined that one. Try rewording it.";if(e?.code==="empty_completion")return"Claude came back empty. Try again.";if(e?.code==="prompt_too_large")return"Too much story to send at once. Try again in a moment.";if(e?.code==="session_expired")return"Sign in to Claude again, then try again.";return e?.code==="not_granted"||e?.code==="sampling_disabled"?"Allow Claude on this page so the DM can speak.":e?.code==="rate_limited"?"The DM needs a breather. Try again in a minute.":e?.code==="invalid_json"?"The DM's notes came back garbled. Try again.":"The DM got interrupted"+(e?.code&&e.code!=="upstream_error"?" ("+e.code+")":"")+". Try again."}
 const sel=(id,opts,val,onchange,label)=>h("select",{id,"aria-label":label||id,onchange:e=>onchange(e.target.value)},opts.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return h("option",{value:v,text:l,selected:v===val||null})}));
 
 /* ================= CHARACTER MATH (2024) ================= */
@@ -1456,7 +1456,7 @@ Reply with ONLY JSON: {"ideas":[{"kind":"say|do","to":"exact name of the person 
   catch(e){toast(sampleErr(e))}finally{S.ideasBusy=false;renderIdeas()}}
 function useIdea(x){$("talkKind").value=x.kind;$("talkKind").dispatchEvent(new Event("change"));const opts=[...$("talkTo").options].map(o=>o.value);$("talkTo").value=opts.includes(x.to)?x.to:"";$("talkInput").value=x.text;$("talkInput").focus();S.ideas=null;renderIdeas()}
 function renderIdeas(){const box=$("ideasBox");if(!box)return;const btn=$("ideasBtn");if(btn){btn.disabled=S.ideasBusy||$("talkInput").disabled||null;btn.replaceChildren(...(S.ideasBusy?[h("span",{class:"spin"})," thinking"]:["Ideas"]))}
-  box.replaceChildren(...(S.ideas||[]).map(x=>h("button",{type:"button",class:"idea",onclick:()=>useIdea(x)},h("span",{class:"label",text:(x.kind==="do"?"do":"say")+(x.to?" · to "+x.to:"")}),h("span",{text:x.text}),x.uses?h("span",{class:"uses",text:x.uses}):null)),S.ideas?.length?h("button",{type:"button",class:"ghost",onclick:()=>{S.ideas=null;renderIdeas()}},"Hide ideas"):null)}
+  box.replaceChildren(...(S.ideas||[]).map(x=>h("button",{type:"button",class:"idea",onclick:()=>useIdea(x)},h("span",{class:"label",text:(x.kind==="do"?"do":"say")+(x.to?" · to "+x.to:"")}),h("span",{text:x.text}),x.uses?h("span",{class:"uses",text:x.uses}):null)),...(S.ideas?.length?[h("button",{type:"button",class:"ghost",onclick:()=>{S.ideas=null;renderIdeas()}},"Hide ideas")]:[]))}
 
 /* ================= LAST TIME... ================= */
 async function maybeRecap(){if(S.recapAsked||!S.sample||!S.uid||S.game?.status!=="playing"||!S.chars[S.uid]?.inPlay||!S.notesLoaded||S.lastSeenAt===null)return;S.recapAsked=true;
