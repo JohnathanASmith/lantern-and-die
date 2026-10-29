@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+
+- Fixed: a DM update could replace a quest's whole description in your journal with just the latest change. Updates now add to what your hero already knows instead of wiping it, and the DM is asked for the full picture.
+- Near-identical clues are no longer added twice.
+
 ## 1.3.0
 
 One hero sleeping no longer fast-forwards everyone else.

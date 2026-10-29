@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.3.0">
+<meta name="lantern-and-die-version" content="1.3.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -330,7 +330,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.3.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.3.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1429,8 +1429,10 @@ async function addNote(kind,heroes,fields){if(!S.db)return;const hs=[...new Set(
   if(kind==="person"&&fields.name){const ex=S.notes.find(n=>n.kind==="person"&&slug(n.name)===slug(fields.name)&&hs.every(id=>n.heroes.includes(id))&&n.heroes.length===hs.length);
     if(ex){try{await S.db.doc("notes/"+ex.id).update({text:t.slice(0,300),at:now})}catch(e){}return}}
   if(kind==="quest"&&fields.title){const ex=S.notes.find(n=>n.kind==="quest"&&slug(n.title)===slug(fields.title)&&hs.every(id=>n.heroes.includes(id))&&n.heroes.length===hs.length);
-    if(ex){const up={at:now};if(t)up.text=t.slice(0,600);if(fields.status)up.status=fields.status;try{await S.db.doc("notes/"+ex.id).update(up)}catch(e){}return}}
-  if((kind==="clue"||kind==="log")&&S.notes.some(n=>n.kind===kind&&n.text===t&&hs.every(id=>n.heroes.includes(id))))return;
+    if(ex){const up={at:now};const old=String(ex.text||"");if(t&&t!==old){const words=w=>new Set(w.toLowerCase().match(/[a-z']{4,}/g)||[]);const ow=words(old),nw=words(t);const kept=[...ow].filter(w=>nw.has(w)).length/Math.max(1,ow.size);
+        up.text=(t.length>=old.length*0.7||kept>=0.6?t:`${old} ${t}`).slice(-700)}if(fields.status)up.status=fields.status;try{await S.db.doc("notes/"+ex.id).update(up)}catch(e){}return}}
+  if(kind==="clue"||kind==="log"){const words=w=>new Set(String(w).toLowerCase().match(/[a-z']{4,}/g)||[]);const nw=words(t);
+    if(S.notes.some(n=>n.kind===kind&&hs.every(id=>n.heroes.includes(id))&&(n.text===t||(kind==="clue"&&(()=>{const ow=words(n.text);const same=[...nw].filter(w=>ow.has(w)).length;return same/Math.max(1,Math.min(nw.size,ow.size))>=0.7})()))))return}
   const d={kind,heroes:hs,text:t.slice(0,kind==="log"?600:400),at:now,scene:fields.scene||myScene()||"",by:S.uid||""};
   for(const k of ["name","title","status","hero"])if(fields[k])d[k]=String(fields[k]).slice(0,80);if(kind==="log")d.day=fields.day||Math.floor(sceneTime(d.scene)/1440)+1;if(kind==="reveal")d.status=fields.status||"new";
   try{await S.db.collection("notes").add(d)}catch(e){}}
@@ -1933,7 +1935,7 @@ const DM_RULES=`You are the Dungeon Master for a D&D 5th edition campaign played
 const SHAPE=`Reply with ONLY a JSON object with these keys:
 "narration": 1-3 short paragraphs describing this scene as it now stands, addressed to the heroes here, no markdown,
 "chronicle": one sentence for your own DM log (players don't see it), or "",
-"journal": {"<hero id>": {"log":"one sentence of what THIS hero did, saw or learned in this stretch, only what they witnessed","quests":[{"title":"","status":"active|done|failed","note":"what this hero knows about it"}],"clues":["a new fact this hero learned"],"people":[{"name":"","note":"what this hero knows of them"}]}} for each hero here (omit keys with nothing new),
+"journal": {"<hero id>": {"log":"one sentence of what THIS hero did, saw or learned in this stretch, only what they witnessed","quests":[{"title":"","status":"active|done|failed","note":"the FULL current summary of what this hero knows about this quest, rewriting their earlier note with anything new (never just the change)"}],"clues":["a new fact this hero learned"],"people":[{"name":"","note":"what this hero knows of them"}]}} for each hero here (omit keys with nothing new),
 "reveals": [{"hero":"<hero id>","fact":"a new fact you just established about this hero's own past, family or nature"}] or [],
 "outcomes": [{"id":"<hero id>","text":"one line: what they did and how it went"}],
 "changes": [{"id":"<hero id>","hpDelta":0,"xp":0,"gold":0,"silver":0,"copper":0,"addItems":[{"name":"","qty":1,"note":""}],"removeItems":["exact item name"],"conditions":["full current list, [] clears"],"inspiration":true or false or null,"exhaustionDelta":0,"slotSpent":0}],
