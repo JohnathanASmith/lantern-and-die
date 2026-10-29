@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0
+- New campaign tone: Bawdy & cheeky, a raunchy, playful adult comedy that stays suggestive, never explicit.
+- The chosen tone is now saved and guides every DM call for the whole campaign, not just the opening.
+- The host can change the tone mid-campaign from the host bar.
+
 ## 1.5.1
 - Romance scenes: the DM plays the lead-up in more detail and closes intimate scenes inside the story instead of breaking character to say it is fading to black.
 

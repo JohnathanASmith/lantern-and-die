@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.5.1">
+<meta name="lantern-and-die-version" content="1.6.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.5.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.6.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1352,6 +1352,7 @@ async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this pag
 WHO ANSWERS: usually exactly ONE NPC replies, the one the hero addressed, or else the one the words or action most concern. Another NPC chimes in only when they would naturally interrupt (at most one extra, and not every time). The others stay quiet. Never repeat a warning, hint or line already said in the recent conversation; move things forward with something new.
 DO ACTIONS: when the hero DOES something (reads, searches, picks up, examines, sneaks, cooks, casts, leaves, travels), the first reply is from "Narrator" and states the concrete result: what they see, find or achieve. If they read something, give its exact words. If they search, say what is there. If they leave for another place, narrate them going. If the outcome is uncertain, ask for the check instead and narrate only the attempt. An NPC may then react briefly, or not at all.
 ROMANCE: the heroes are adults and romance between them is part of the story. Play the lead-up with warmth and real detail: flirting, banter, kisses, touch, undressing, tension. When a scene turns fully sexual, close it the way a novel does, inside the story and never with an out-of-character remark (never say \"I'll fade to black\" or mention what you will or won't describe): cut to after, with a wry, in-world beat (the latch holds, the kettle shrieks, later they come out looking pleased with themselves), then move the story on. Each player decides only for their own hero; describe another hero's reactions as an open question for that player.
+${toneRule()}
 NPCs only know what they plausibly would, can lie, bargain, refuse, warm up or get angry, and remember what heroes said and did. Attitudes are friendly, indifferent or hostile; good arguments and appeals to an NPC's goals improve them, insults and threats worsen them.
 Call for a check only when the outcome is uncertain and failure would be interesting (persuading, deceiving or intimidating someone who resists, reading motives with Insight, recalling lore, sneaking, picking a lock, haggling, performing, cooking for a critic, and so on). Ask for exactly one check from the right hero, using DC 5 very easy, 10 easy, 15 medium, 20 hard, 25 very hard, and stop the story at the attempt. Don't ask for checks for ordinary conversation.
 EARSHOT: people only know what they saw or heard. Each past line shows [heard by: ...]. An NPC never knows, repeats or reacts to something they did not hear, unless they learn it now. Whispers reach only the person addressed; normal talk reaches people within about 4 squares in the same spot; shouts reach everyone here. A "spot" is a private nook off the main room (a vestry stair, a back room, a booth with a curtain): people in different spots can't hear each other.
@@ -1605,7 +1606,7 @@ async function processWake(u){if(!S.db||S.busy)return;const sid=u.scene,sc=S.sce
   const t0=sceneTime(sid),to=Math.max(t0,Number(u.to)||t0),mins=to-t0,ids=heroesIn(sid),hs=S.holds[sid]||{};const g=S.game||{};
   try{for(const id of ids){const x=hs[id],c=S.chars[id];if(!x||x.kind!=="sleep"||!c||(c.conditions||[]).includes("dead"))continue;if(to-(x.start||t0)<360)continue;const back=Math.max(1,Math.floor((c.level||1)/2));
       await S.db.doc("characters/"+id).update({hp:c.hpMax,hitDiceUsed:Math.max(0,(c.hitDiceUsed||0)-back),slotsUsed:[],exhaustion:Math.max(0,(c.exhaustion||0)-1),deathSaves:{s:0,f:0},conditions:(c.conditions||[]).filter(x=>!["unconscious","stable","prone"].includes(x)),inspiration:speciesOf(c)==="Human"?true:!!c.inspiration}).catch(()=>{})}
-    let r=null;if(S.sample&&mins>0){const prompt=`${DM_RULES}
+    let r=null;if(S.sample&&mins>0){const prompt=`${DM_RULES}${toneRule()}
 TIME PASSES in "${sc.name}" from ${clockLabel(t0)} to ${clockLabel(to)} (${spanLabel(mins)}) while the heroes here rest or let the hours go by: ${ids.map(id=>`${heroName(id)} (${hs[id]?.kind==="sleep"?"sleeping":"passing the time"}${hs[id]?.label?": "+hs[id].label:""})`).join("; ")}.
 Narrate the morning (or whatever hour it is now) as they wake and gather: what changed while they rested, who is here now, what the place looks and sounds like. Small consequences only unless something was already in motion. Set minutesPassed to ${mins}. No checks.
 CAMPAIGN: ${JSON.stringify({title:g.title,quests:g.quests,world:worldBrief()})}
@@ -1873,7 +1874,7 @@ const TRAVEL_RULES=`Travel rules (2024): Fast pace about 4 miles per hour (disad
 async function processTravel(u){if(!S.sample||!S.db||S.busy)return;const sid=u.scene,sc=S.scenes[sid];if(!sc){try{await S.db.doc("updates/"+u.id).update({status:"failed"})}catch(e){}return}
   S.busy=true;renderHost();setBusy(sid,"The DM",true);try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}
   const party=(u.party||[]).filter(id=>S.chars[id]&&sceneOf(id)===sid);const w=world();const dest=w.places.find(p=>p.id===u.to)||{id:u.to,name:u.toName};const route=routeTo(u.from||sid,u.to)||[];const t0=sceneTime(sid);
-  const prompt=`${DM_RULES}
+  const prompt=`${DM_RULES}${toneRule()}
 ${TRAVEL_RULES}
 JOURNEY START. ${party.map(heroName).join(" and ")} set out from "${sc.name}" for "${dest.name}" at a ${u.pace} pace. Known route: ${route.length?route.map(st=>`${st.link.kind} to ${w.places.find(x=>x.id===st.to)?.name}${st.link.travel?" ("+st.link.travel+")":""}`).join(", then "):placeStatus(dest)==="rumored"?"none: they only know rumors of it":"none: cross-country"}.
 Now: ${clockLabel(t0)}. Estimate the total travel time in minutes at this pace (excluding stops), describe them setting out, and draw a small map of the road where they are now. Any fellow travelers on the road go in npcs.
@@ -1897,7 +1898,7 @@ async function processLeg(u){if(!S.sample||!S.db||S.busy)return;const sid=u.scen
   const ask=u.intent==="camp"?`The heroes MAKE CAMP for the night (about 8 hours): set watches, maybe something happens in the dark (roughly 1 in 4 nights), otherwise a quiet rest. travelMinutes is 0.`
     :u.intent==="turnback"?`The heroes TURN BACK toward "${t.to}". Narrate the turn and advance one leg.`
     :`ADVANCE ONE LEG of travel: up to about 4 hours, or less if something happens. About 1 leg in 3 has an event (an ambush, a traveler with news, weather, an obstacle, a discovery, a shortcut); otherwise give one vivid line of the road and move on. If it is late, suggest making camp.`;
-  const prompt=`${DM_RULES}
+  const prompt=`${DM_RULES}${toneRule()}
 ${TRAVEL_RULES}
 JOURNEY from "${t.from}" to "${t.to}" at a ${t.pace} pace. Progress: ${t.doneMin||0} of ${t.totalMin} travel minutes done, about ${left} left. Now: ${clockLabel(t0)}.
 ${ask}
@@ -1948,7 +1949,7 @@ async function processSkip(u){if(!S.sample||!S.db||S.busy)return;const sid=u.sce
   if(!sc||!inc.length){try{await S.db.doc("updates/"+u.id).update({status:"done"})}catch(e){}return}
   S.busy=true;renderHost();setBusy(sid,"The DM",true);try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}
   const now=sceneTime(sid),until=Math.max(...inc.map(x=>x.at)),mins=Math.max(0,until-now);const ids=heroesIn(sid);const g=S.game||{};
-  const prompt=`${DM_RULES}
+  const prompt=`${DM_RULES}${toneRule()}
 TIME SKIP in "${sc.name}" from ${clockLabel(now)} to ${clockLabel(until)} (${spanLabel(mins)}), so the heroes here catch up with ${inc.map(x=>heroName(x.hero)).join(" and ")}, who arrive then from ${inc.map(x=>x.fromName).filter(Boolean).join(", ")||"the road"}.
 What the heroes here do in the meantime: ${u.plan?`${heroName(u.by)} says: "${u.plan}".`:"(not stated: choose something that fits their personalities and the situation)"}
 Narrate a short montage of that stretch with real consequences (gold won or spent, items, people met, rumors heard, sleep or fatigue, how the people here changed), then end on the moment the arrivals walk in. Set minutesPassed to ${mins}. Update the NPCs present at the end. No checks; decide outcomes fairly from the heroes' skills.
@@ -1986,7 +1987,7 @@ function renderHost(){const a=$("hostArea");if(!S.isOwner){a.replaceChildren();r
     a.replaceChildren(h("form",{class:"hostbar",style:"display:grid;gap:8px",onsubmit:e=>{e.preventDefault();startCampaign()}},
       h("span",{class:"label",text:"host controls · start the campaign"}),
       h("label",{class:"label",for:"pitch"},"the adventure"),h("textarea",{id:"pitch",rows:3,placeholder:"A fog-bound fishing town where the lighthouse keeper vanished and something leaves wet footprints in the chapel"}),
-      h("div",{class:"row2"},h("div",{class:"field"},h("label",{class:"label",for:"tone"},"tone"),h("select",{id:"tone"},["Heroic & fun","Dark & dangerous","Silly & chaotic","Mystery & intrigue","Political & social"].map(t=>h("option",{text:t})))),
+      h("div",{class:"row2"},h("div",{class:"field"},h("label",{class:"label",for:"tone"},"tone"),h("select",{id:"tone"},Object.keys(TONES).map(t=>h("option",{text:t})))),
         h("div",{class:"field"},h("label",{class:"label",for:"structure"},"structure"),h("select",{id:"structure"},["Hub town with side quests (sandbox)","Linear quest","Dungeon crawl","Open world travel"].map(t=>h("option",{text:t}))))),
       h("div",{class:"actbar"},h("span",{class:"label",style:"flex-basis:auto",text:`${ready.length} hero${ready.length===1?"":"es"} ready`}),h("button",{class:"primary",type:"submit",disabled:!ready.length||S.busy},S.busy?"Opening…":"Begin the campaign"))),settingsPanel());return}
   const vid=viewId(),sc=S.scenes[vid]||{},ae=activeEntry(sc);const pend=S.updates.filter(u=>u.status==="pending"&&u.scene===vid).length;
@@ -1996,10 +1997,13 @@ function renderHost(){const a=$("hostArea");if(!S.isOwner){a.replaceChildren();r
   else{status=pend?`${pend} world update${pend>1?"s":""} waiting`:"world is up to date";btn="Update the scene now";act=()=>processUpdates(vid,true)}
   const working=S.busy||sc.resolving;
   a.replaceChildren(h("div",{class:"hostbar"},h("span",{class:"label"},working?h("span",{class:"spin"}):null,` host · ${sc.name||"scene"} · ${working?"the DM is working…":status}`),
+    h("select",{class:"tonepick","aria-label":"Campaign tone",title:"Campaign tone",onchange:async e=>{try{await S.db.doc("game/state").update({tone:e.target.value});toast("Tone: "+e.target.value)}catch(err){toast("Couldn't change the tone")}}},Object.keys(TONES).map(t=>h("option",{text:t,selected:t===(g.tone||"Heroic & fun")}))),
     sc.mode!=="combat"?h("button",{type:"button",onclick:()=>rest("short",vid)},"Short rest"):null,sc.mode!=="combat"?h("button",{type:"button",onclick:()=>rest("long",vid)},"Long rest"):null,
     hostConfirm?h("span",{class:"confirm"},"End this campaign for everyone?",h("button",{type:"button",onclick:resetCampaign},"Yes, end it"),h("button",{type:"button",class:"ghost",onclick:()=>{hostConfirm=false;renderHost()}},"Keep playing")):h("button",{type:"button",class:"ghost",onclick:()=>{hostConfirm=true;renderHost()}},"End campaign"),
     h("button",{type:"button",class:"linkbtn",disabled:working,onclick:act},sc.mode==="combat"?"Stuck? Resolve this turn now":"Something's off? Re-sync this scene")),settingsPanel())}
 
+const TONES={"Heroic & fun":"Heroic and fun: bold deeds, warm friendships, real danger but heroes who can win.","Dark & dangerous":"Dark and dangerous: grim stakes, scarce resources, enemies who play for keeps, consequences that stick.","Silly & chaotic":"Silly and chaotic: absurd situations, slapstick, eccentric NPCs, plans that go sideways in funny ways.","Mystery & intrigue":"Mystery and intrigue: clues, secrets, suspects with motives, and reveals that reward careful players.","Political & social":"Political and social: factions, bargains, reputations and favors; words matter as much as swords.","Bawdy & cheeky":"Bawdy and cheeky, for an adult table: a raunchy, playful comedy in the spirit of a saucy tavern tale or an ecchi romp. Lean into innuendo and double entendres, shameless flirts and outrageous rumors, teasing banter, lusty bards' songs, scandalous wagers, a bathhouse or festival or two, and comic mishaps (a love-potion mix-up, an illusion that leaves someone's clothes see-through for a breath, armor that pops a strap at the worst moment, getting caught in a compromising pose). Keep it suggestive and funny, never explicit; romance still cuts away as in ROMANCE. Everyone flirty or revealing is plainly an adult. Flirting runs both ways and NPCs take a no with good humor; the jokes are mischief, never coercion. Still a real adventure with stakes, quests and fights under the cheek."};
+const toneRule=()=>{const t=S.game?.tone;return t&&TONES[t]?`\nCAMPAIGN TONE: ${TONES[t]}`:""};
 const DM_RULES=`You are the Dungeon Master for a D&D 5th edition campaign played by friends, each on their own screen. Run it like a great human DM.
 - The loop: describe the situation, the players say what they do, you call for a roll only when the outcome is uncertain AND failure would be interesting, then you narrate the result.
 - Balance the three pillars: exploration, social interaction and combat. Most of play is not fighting.
@@ -2040,8 +2044,8 @@ function talkSince(sid,since,max){const all=S.talk.filter(m=>msgScene(m)===sid&&
 async function startCampaign(){if(!S.sample){notice("Claude isn't available on this page, so the DM can't run the game.");return}
   const pitch=$("pitch").value.trim()||"A classic fantasy adventure that starts in a tavern with a strange job offer.",tone=$("tone").value,structure=$("structure").value;S.busy=true;renderHost();
   const ids=Object.entries(S.chars).filter(([,c])=>alive(c)).map(([id])=>id);
-  const prompt=`${DM_RULES}
-Tone: ${tone}. Structure: ${structure}. The host's pitch: ${pitch}
+  const prompt=`${DM_RULES}${toneRule()}
+Tone: ${TONES[tone]||tone} Structure: ${structure}. The host's pitch: ${pitch}
 PARTY (keyed by hero id): ${JSON.stringify(partyForPrompt(ids))}
 Open the campaign like a session one: introduce the setting, give each hero a reason to be here tied to their backstory, put 2-4 named NPCs in the opening scene, plant a hook with a few possible leads, and end on a choice. Also give "title" (the campaign's name) and "scene.name" (the opening place). moves, combat and ripples stay empty. Give "startTime": the hour (0-23) the story begins. Draw the starting world map: the opening place plus the places named in the hook and leads (rumored or known), with the routes between them.
 ${SHAPE}
@@ -2050,14 +2054,14 @@ Add "title" and put "name" inside "scene".`;
     const name=String(r.scene?.name||"The Opening Scene").slice(0,80),sid=sceneIdFor(name),now=Date.now();
     await S.db.doc("scenes/"+sid).set({name,description:String(r.scene?.description||"").slice(0,300),map:cleanMap(r.scene?.map),tokens:r.scene?.tokens||{},npcs:cleanNpcs(r.scene?.npcs),mode:"free",scene:String(r.narration||"").slice(0,4000),prompt:String(r.prompt||"").slice(0,300),outcomes:[],phase:"actions",seq:0,createdAt:now,updatedAt:now,lastUpdateAt:now,time:(Number.isFinite(+r.startTime)?Math.max(0,Math.min(23,Math.round(+r.startTime))):19)*60});
     for(const id of ids){try{await S.db.doc("characters/"+id).update({inPlay:true})}catch(e){}}
-    await S.db.doc("game/state").set({status:"playing",title:String(r.title||"A New Adventure").slice(0,80),day:1,time:(Number.isFinite(+r.startTime)?Math.max(0,Math.min(23,Math.round(+r.startTime))):19)*60,timeOfDay:todOf((Number.isFinite(+r.startTime)?Math.max(0,Math.min(23,Math.round(+r.startTime))):19)*60),quests:Array.isArray(r.quests)?r.quests.slice(0,12):[],heroScene:Object.fromEntries(ids.map(id=>[id,sid])),world:ensureScenePlaces(mergeWorld({places:[],links:[]},r.world),sid,{[sid]:{name,description:String(r.scene?.description||"")}}),log:[{day:1,scene:name,text:String(r.chronicle||r.narration||"").slice(0,1200)}],updatedAt:now});
+    await S.db.doc("game/state").set({status:"playing",tone,title:String(r.title||"A New Adventure").slice(0,80),day:1,time:(Number.isFinite(+r.startTime)?Math.max(0,Math.min(23,Math.round(+r.startTime))):19)*60,timeOfDay:todOf((Number.isFinite(+r.startTime)?Math.max(0,Math.min(23,Math.round(+r.startTime))):19)*60),quests:Array.isArray(r.quests)?r.quests.slice(0,12):[],heroScene:Object.fromEntries(ids.map(id=>[id,sid])),world:ensureScenePlaces(mergeWorld({places:[],links:[]},r.world),sid,{[sid]:{name,description:String(r.scene?.description||"")}}),log:[{day:1,scene:name,text:String(r.chronicle||r.narration||"").slice(0,1200)}],updatedAt:now});
     await applyJournal(r,sid,(Number.isFinite(+r.startTime)?Math.round(+r.startTime):19)*60);for(const q of (Array.isArray(r.quests)?r.quests:[]).slice(0,6))if(q?.title)await addNote("quest",ids,{title:q.title,status:"active",text:q.note||"",scene:sid})}
   catch(e){toast(sampleErr(e))}finally{S.busy=false;renderHost()}}
 async function processUpdates(sid,force){if(!S.sample||!S.db||S.busy)return;const sc=S.scenes[sid];if(!sc)return;const pend=S.updates.filter(u=>u.status==="pending"&&u.scene===sid&&!u.kind);if(!pend.length&&!force)return;
   S.busy=true;renderHost();setBusy(sid,"The DM",true);
   for(const u of pend){try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}}
   const ids=heroesIn(sid);const g=S.game||{};
-  const prompt=`${DM_RULES}
+  const prompt=`${DM_RULES}${toneRule()}
 WORLD UPDATE for the scene "${sc.name}". Now: ${clockLabel(sceneTime(sid))}. The heroes here have been playing freely through conversation and actions (below). Apply the consequences to the game state: HP, items, gold, conditions, XP, Heroic Inspiration, quests, NPC changes, time, and heroes who leave for other places (moves). The conversation already settled uncertain outcomes, so do not ask for checks. Do not retell everything: the narration describes the scene as it stands now, in 1-2 short paragraphs. If a fight has broken out, use combat.start.
 ${heroesIn(sid).some(id=>holdOf(sid,id))?`ASLEEP OR BUSY: ${heroesIn(sid).filter(id=>holdOf(sid,id)).map(id=>heroName(id)+" is "+holdText(sid,id)).join("; ")}. Other heroes here are still playing at ${clockLabel(sceneTime(sid))}: keep minutesPassed to what THEY did (30 at most); the page moves the clock when everyone rests.
 `:""}What changed, as flagged during play: ${pend.length?pend.map(u=>u.reason).join(" | "):"(host asked for a general update)"}
@@ -2079,7 +2083,7 @@ async function resolveCombat(sid){if(!S.sample||!S.db||S.busy)return;const sc=S.
   let guard=0;while(init[i]?.kind==="npc"&&guard++<n){enemyTurns.push(init[i].name);i=(i+1)%n}
   const rolled=S.checks.filter(c=>c.source==="dm"&&c.scene===sid&&c.seq===seq&&c.status==="rolled").map(c=>({hero:heroName(c.hero),id:c.hero,check:c.label,dc:c.dc,total:c.result?.total,result:c.result?.success?"success":"failure",reason:c.reason}));
   const ids=heroesIn(sid);const g=S.game||{};
-  const prompt=`${DM_RULES}
+  const prompt=`${DM_RULES}${toneRule()}
 COMBAT in "${sc.name}", round ${sc.combatRound||1}. ${ae.kind==="hero"?`Resolve ${heroName(ae.id)}'s turn, then`:"Run"} these enemy turns in order: ${enemyTurns.join(", ")||"none"}. Initiative order: ${init.map(e=>e.kind==="hero"?heroName(e.id):e.name).join(", ")}.
 For a hero's attack or spell attack, ask for an attack check against the target's AC. You roll enemies' saving throws against hero spells yourself. Set "waitForChecks": true with "checks":[{"hero":"<hero id>","kind":"skill|ability|save|tool|attack","skill":"","ability":"STR|DEX|CON|INT|WIS|CHA","tool":"","dc":15,"reason":"under 12 words","adv":"none|adv|dis"}] when the hero must roll first (narrate only the setup then). For saving throws a hero must make against an enemy's effect, also use checks with kind "save". Enemies roll their own attacks against hero AC; apply damage with hpDelta. Use combat.remove for enemies who die or flee, and combat.end when the fight is over.
 ${rolled.length?`ALREADY ROLLED this turn (use these, set waitForChecks false): ${JSON.stringify(rolled)}`:"Nothing rolled yet this turn."}
