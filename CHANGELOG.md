@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1
+- Romance scenes: the DM plays the lead-up in more detail and closes intimate scenes inside the story instead of breaking character to say it is fading to black.
+
 ## 1.5.0
 
 Maps that stay consistent, with exits you discover.
