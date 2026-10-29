@@ -9,6 +9,8 @@ A shared Dungeons & Dragons (2024 rules) table that runs as a claude.ai artifact
 - **Illustrated fog-of-war world map** that grows as you explore, with routes and journeys.
 - **Hero portraits and player cards**: a pixel hero, a portrait painted by Claude, or your own art.
 - **Combat** in initiative order with death saves.
+- **Earshot and secrets**: whispers, private spots, Listen in, and per-hero journals so each player knows only what their hero knows.
+- **Ideas** for what to say next, a gold/silver/copper purse, and backstory reveals you keep or change.
 - **Party chat**, private Ask the DM, hero export and import.
 
 ## Install

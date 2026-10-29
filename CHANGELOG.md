@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0
+
+Talk now follows who can actually hear it.
+
+- Earshot: each line is heard only by heroes and NPCs close enough. Choose Whisper, Talk or Shout when you speak, and Openly or Quietly when you act. Talking to someone across the room walks your hero over to them.
+- Private spots: stepping aside (a vestry stair, a back room) puts you in a spot nobody outside can hear. The map lists who is in each spot.
+- Out of earshot, other players see a short grey line instead ("Legrey talks with Brother Ilric on the vestry stair") with Listen in, which may take a Stealth roll.
+- NPCs only know what they heard, so private conversations stay private in the story too.
+- Ideas: tap for 4 suggestions built from what your hero knows and carries, marked with what each uses (a check, coins, a spell).
+- Journals: your chronicle, quests, clues and people met show only what your hero knows. Tell another hero something from your journal to share it in character.
+- Coin purse in gold, silver and copper, updated automatically when coins change hands.
+- Revealed about you: new facts the DM adds about your hero's past appear on your sheet to keep or change, and the DM sticks to your version.
+- Last time…: a short catch-up from your own journal when you come back after a while.
+
 ## 1.1.3
 
 - Gender: a simple Male / Female / Other choice on the Story step (and in Edit story) replaces the pronouns box from 1.1.2. Generate, Surprise me, painted portraits, pixel heroes, the DM and NPCs all follow it. With no gender set, generated text uses the hero's name or they/them instead of guessing.
