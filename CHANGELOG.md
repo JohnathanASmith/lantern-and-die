@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+
+- Tap anything on the map to see what it is: the DM names and describes notable things (the hearth, the bar, a locked chest), and everything else gets a plain name (barrel, door, stairs).
+- Things in your room come with Look closer and Go to it, and people with Talk to and Look at. They fill in your talk box so you can edit before sending.
+- The DM only draws furniture the story has established or that plainly belongs, since whatever is on the map becomes real.
+
 ## 1.4.0
 
 Maps follow where your hero is and what they've seen.
