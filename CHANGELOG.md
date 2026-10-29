@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.4
+- Learned names: when an NPC tells a hero their name, that hero sees it everywhere (Talk feed, To list, map, who's here). Heroes who weren't there keep seeing the description until they learn it too.
+
 ## 1.7.3
 - Appearance and personality now hold up to 800 characters (were 400, which cut generated text off mid-word), with taller boxes.
 - Generated appearance and personality are asked to stay short and finish every sentence.
