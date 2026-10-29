@@ -977,7 +977,7 @@ function renderTable(){const g=S.game,sc=viewScene(),vid=viewId();const playing=
     $("outcomes").replaceChildren(...(sc?.outcomes||[]).map(o=>h("div",{},h("b",{text:heroName(o.id)+": "}),o.text||"")))}
   renderWaiting();renderHost();renderLog();renderMap();renderMe();renderTalk();renderChat();partyRows("partyList",true)}
 function renderLog(){const L=myNotes("log").sort((a,b)=>b.at-a.at);$("log").hidden=!L.length||S.game?.status!=="playing";
-  $("log").replaceChildren(h("div",{class:"label",text:"your chronicle · what your hero lived through"}),...L.slice(0,30).map(e=>h("details",{},h("summary",{text:`${e.day?"Day "+e.day:"Round "+(e.round||1)} · ${S.scenes[e.scene]?.name||world().places.find(p=>p.id===e.scene)?.name||e.location||e.scene||""}`}),...paras(e.text))))}
+  $("log").replaceChildren(h("div",{class:"label",text:"your chronicle · what your hero lived through"}),...L.slice(0,30).map(e=>h("div",{class:"feat"},h("div",{class:"label",text:`${e.day?"day "+e.day:"round "+(e.round||1)} · ${S.scenes[e.scene]?.name||world().places.find(p=>p.id===e.scene)?.name||e.location||e.scene||""}`}),e.text)))}
 function renderWaiting(){const vid=viewId();const p=S.checks.filter(c=>c.status==="pending"&&c.hero!==S.uid&&(c.scene||vid)===vid);$("waiting").replaceChildren(...p.map(c=>h("div",{},"Waiting on ",h("b",{text:heroName(c.hero)}),canSee(c)?`: ${c.label||c.skill||"a check"} · ${c.kind==="attack"?"AC":"DC"} ${c.dc}`:" to roll something")))}
 
 /* ===== art: tile atlas (Dungeon Crawl Stone Soup tiles, CC0), scene maps, hero dolls, portraits, player card ===== */
