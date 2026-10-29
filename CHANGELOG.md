@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0
+- The scene clock moves with play: each exchange takes in-world minutes (a quick line, a search, a ritual).
+- NPC errands: when someone leaves the heroes for a while, the DM records what they're doing and when they'll be back, and brings them back once the clock gets there.
+- New Wait button next to Ideas: lets time pass until the next errand is due (or 15 minutes).
+
 ## 1.6.4
 - Repeating an action before rolling no longer stacks a second copy of the same check.
 
