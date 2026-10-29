@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.2
+- Companions: NPCs who travel with the party (an escort, guide or employer) now go along on journeys and arrive with the heroes instead of staying behind.
+
 ## 1.6.1
 - Talk can read back earlier scenes: pick "Earlier: <scene>" above the feed to scroll what your hero saw and heard there, then "Now" to return.
 - Fixed a stray "null" under the map legend.
