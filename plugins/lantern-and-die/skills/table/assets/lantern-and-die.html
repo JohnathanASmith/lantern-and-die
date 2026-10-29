@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.2.1">
+<meta name="lantern-and-die-version" content="1.2.2">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -329,7 +329,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.2.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.2.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1367,6 +1367,7 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
     for(const mv of (Array.isArray(r?.moves)?r.moves:[]).slice(0,6)){if(!mv)continue;const who=String(mv.who||"");if(S.chars[who]&&posOf(sid).heroes[who])await setPos(sid,{hero:who},mv);else{const nn=npcs.find(n=>slug(n.name)===slug(who));if(nn)await setPos(sid,{npc:nn.name},mv)}}
     for(const rp of (Array.isArray(r?.replies)?r.replies:[]).slice(0,3)){const line=String(rp.line||"").slice(0,700),act=String(rp.action||"").slice(0,200);if(!line&&!act)continue;const spk=String(rp.speaker||"Someone").slice(0,60);
       let ear={};if(rp.audience==="private")ear={heard:[S.uid],nh:spk==="Narrator"?[]:[spk]};else if(rp.audience==="room"){const e=earshot(sid,spk!=="Narrator"&&posOf(sid).npcs[spk]?{npc:spk}:{hero:S.uid},"room");ear={heard:e.heard,nh:e.nh}}else if(tHeard){const e=spk!=="Narrator"&&posOf(sid).npcs[spk]?earshot(sid,{npc:spk},"talk"):{heard:[],nh:[]};ear={heard:[...new Set([...tHeard,...e.heard])],nh:[...new Set([...(tNh||[]),...e.nh,...(spk==="Narrator"?[]:[spk])])]}}
+      if(ear.heard&&!ear.heard.includes(S.uid))ear.heard=[...ear.heard,S.uid];
       if(ear.heard)ear.stub=String(rp.othersSee||"").slice(0,200)||(spk==="Narrator"?"":`${spk} talks with ${heroName(S.uid)} out of earshot.`);
       await postTalk({kind:"npc",speaker:spk,text:line,action:act,scene:sid,...ear})}
     const kn=tHeard||heroesIn(sid);

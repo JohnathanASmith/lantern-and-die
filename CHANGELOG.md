@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.2
+
+- Fixed: when an NPC answered a hero loudly enough for the whole room, the hero who spoke could end up outside the reply, seeing "talks with you out of earshot" with Listen in. The hero who triggers a reply now always hears it.
+
 ## 1.2.1
 
 - Fixed a stray "null" under the talk box when there were no ideas showing.
