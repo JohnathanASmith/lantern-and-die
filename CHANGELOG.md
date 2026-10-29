@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.3
+- Appearance and personality now hold up to 800 characters (were 400, which cut generated text off mid-word), with taller boxes.
+- Generated appearance and personality are asked to stay short and finish every sentence.
+- Item notes keep up to 200 characters instead of 60.
+
 ## 1.7.2
 - Other heroes in the scene appear in the Say/Do "To" list, marked "(away)" when their player isn't at the table.
 - Saying something to a friend who is present and playing goes straight to them; the DM doesn't answer for them.
