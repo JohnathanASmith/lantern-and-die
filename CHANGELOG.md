@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.2
+- Other heroes in the scene appear in the Say/Do "To" list, marked "(away)" when their player isn't at the table.
+- Saying something to a friend who is present and playing goes straight to them; the DM doesn't answer for them.
+
 ## 1.7.1
 - The DM only speaks or acts for a hero when that hero's player is away from the table, and then plays them true to their personality and how their player has been playing them, keeping big choices for the player.
 - Away heroes follow the party like a real party member, including on journeys.

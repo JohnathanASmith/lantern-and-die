@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.1">
+<meta name="lantern-and-die-version" content="1.7.2">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1307,8 +1307,8 @@ $("talkPast").addEventListener("change",e=>{const v=e.target.value||null;S.pastV
 function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastView&&!past.some(([id])=>id===S.pastView))S.pastView=null;
   const tp=$("talkPast");tp.hidden=!past.length;tp.replaceChildren(h("option",{value:"",text:"Now"}),...past.map(([id,n])=>h("option",{value:id,text:"Earlier: "+n,selected:id===S.pastView})));
   const reading=!!S.pastView;const vid=S.pastView||live,sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?(reading?"reading back ":"at ")+sc.name:"";
-  const watching=vid!==mine||reading;const opts=(ms.npcs||[]).map(n=>n.name).filter(Boolean);const cur=$("talkTo").value;
-  $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...opts.map(n=>h("option",{value:n,text:"To "+n})));if(opts.includes(cur))$("talkTo").value=cur;
+  const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),isPresent(id)?"":" (away)"]);const opts=[...mates.map(m=>m[0]),...(ms.npcs||[]).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
+  $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...mates.map(([n,a])=>h("option",{value:n,text:"To "+n+a})),...(ms.npcs||[]).map(n=>n.name).filter(Boolean).map(n=>h("option",{value:n,text:"To "+n})));if(opts.includes(cur))$("talkTo").value=cur;
   const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
   $("talkHint").textContent=reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
@@ -1345,6 +1345,8 @@ $("talkForm").addEventListener("submit",async e=>{e.preventDefault();const text=
   const kind=$("talkKind").value,to=$("talkTo").value,sid=myScene(),vol=$("talkVol").value||"talk";$("talkInput").value="";S.ideas=null;renderIdeas();if(kind==="ask"){askDM(text,$("askShare").checked,sid);return}
   if(kind==="ooc"){await postTalk({kind,hero:S.uid,to,text:text.slice(0,500),scene:sid});return}
   const line=await sayLine(sid,kind,to,text,vol);
+  /* talking to a friend who is here and playing: that's between the two of you, the DM stays out of it */
+  const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===to);if(mate&&kind==="say"&&isPresent(mate))return;
   if(S.scenes[sid]?.mode!=="combat")npcRespond({line})});
 $("ideasBtn").addEventListener("click",getIdeas);
 $("talkInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("talkForm").requestSubmit()}});
