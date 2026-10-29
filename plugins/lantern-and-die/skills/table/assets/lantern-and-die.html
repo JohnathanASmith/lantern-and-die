@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.4">
+<meta name="lantern-and-die-version" content="1.7.5">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.4"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.5"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1302,7 +1302,7 @@ async function makeCheck(req,source,sceneId,seq,heard){if(!S.db||!S.chars[req.he
 /* reading back the talk of an earlier scene */
 S.pastView=null;S.pastTalk={};
 function pastScenes(vid){return Object.entries(S.scenes).filter(([id,sc])=>id!==vid&&sc&&sc.name&&(S.talk.some(m=>msgScene(m)===id&&canSee(m))||(S.game?.log||[]).some(l=>l.scene===sc.name))).sort((a,b)=>(b[1].updatedAt||0)-(a[1].updatedAt||0)).map(([id,sc])=>[id,sc.name])}
-async function loadPast(sid){if(!S.db||!sid)return;try{const r=await S.db.collection("talk").where("scene","==",sid).orderBy("at","desc").limit(400).get();S.pastTalk[sid]=r.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}))}catch(e){S.pastTalk[sid]=[]}if(S.pastView===sid&&onTable())renderTalk()}
+async function loadPast(sid){if(!S.db||!sid)return;try{const r=await S.db.collection("talk").where("scene","==",sid).orderBy("at","desc").limit(1000).get();S.pastTalk[sid]=r.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}))}catch(e){S.pastTalk[sid]=[]}if(S.pastView===sid&&onTable())renderTalk()}
 $("talkPast").addEventListener("change",e=>{const v=e.target.value||null;S.pastView=v;S.stick.feed=true;if(v&&!S.pastTalk[v])loadPast(v);renderTalk()});
 function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastView&&!past.some(([id])=>id===S.pastView))S.pastView=null;
   const tp=$("talkPast");tp.hidden=!past.length;tp.replaceChildren(h("option",{value:"",text:"Now"}),...past.map(([id,n])=>h("option",{value:id,text:"Earlier: "+n,selected:id===S.pastView})));
@@ -1312,7 +1312,7 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
   $("talkHint").textContent=reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
-  const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-400:-80);
+  const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
   if(!msgs.length)feed.replaceChildren(h("div",{class:"empty"},S.game?.status==="playing"?"Say something to the people around you. Pick Do for actions like searching, sneaking, cooking or leaving.":"Talk opens once the campaign begins."));
   else{const out=[];let lastStub=null;
     for(const m of msgs){if(!canSee(m)){const key=[...(m.heard||[])].sort().join(",");if(lastStub&&(lastStub.stub===m.stub||lastStub.key===key)){lastStub.n++;lastStub.el.querySelector(".cnt").textContent=` (${lastStub.n} lines)`;continue}
@@ -2250,7 +2250,7 @@ async function applyJournal(r,sid,t1){const j=r?.journal&&typeof r.journal==="ob
     for(const p of (Array.isArray(e.people)?e.people:[]).slice(0,6))if(p?.name&&p.note)await addNote("person",[id],{name:p.name,text:p.note,scene:sid})}
   for(const x of (Array.isArray(r?.reveals)?r.reveals:[]).slice(0,3))if(x?.fact&&S.chars[x.hero])await addNote("reveal",[x.hero],{hero:x.hero,text:x.fact,scene:sid})}
 let pruning=false;
-async function prune(){if(pruning)return;pruning=true;try{const t=await S.db.collection("talk").orderBy("at","desc").limit(500).get();for(const d of t.docs.slice(300))await S.db.doc("talk/"+d.id).delete()}catch(e){}
+async function prune(){if(pruning)return;pruning=true;try{/* talk is the story's record: never pruned */}catch(e){}
   try{const c=await S.db.collection("checks").orderBy("at","desc").limit(200).get();for(const d of c.docs.slice(60))await S.db.doc("checks/"+d.id).delete()}catch(e){}
   try{const u=await S.db.collection("updates").orderBy("at","desc").limit(200).get();for(const d of u.docs.slice(40))if(d.data().status!=="pending")await S.db.doc("updates/"+d.id).delete()}catch(e){}
   try{const c=await S.db.collection("chat").orderBy("at","desc").limit(500).get();for(const d of c.docs.slice(300))await S.db.doc("chat/"+d.id).delete()}catch(e){}

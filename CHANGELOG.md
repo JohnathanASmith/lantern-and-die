@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.5
+- Talk history is never pruned anymore (it used to keep only the newest 300 lines across the whole campaign).
+- Reading back an earlier scene loads up to 1,000 lines.
+
 ## 1.7.4
 - Learned names: when an NPC tells a hero their name, that hero sees it everywhere (Talk feed, To list, map, who's here). Heroes who weren't there keep seeing the description until they learn it too.
 
