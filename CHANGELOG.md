@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0
+
+Maps that stay consistent, with exits you discover.
+
+- Maps you've seen don't get redrawn. The DM can only change single squares, each with a reason from the story (a table knocked over, a hatch found).
+- Every room records where it's entered from on the main map, and a door is always drawn there, so two maps can't disagree about the way in.
+- Every door and stair has a destination the DM knows. If one has none, the DM is asked to explain it or remove it.
+- Destinations stay secret until discovered: you see "Narrow door", not where it goes, until your hero goes through, looks, sees someone use it or is told. Obvious exits (the front door, the door you came in by) show where they lead.
+
 ## 1.4.1
 
 - Tap anything on the map to see what it is: the DM names and describes notable things (the hearth, the bar, a locked chest), and everything else gets a plain name (barrel, door, stairs).
