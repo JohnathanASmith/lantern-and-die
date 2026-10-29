@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+- Talk can read back earlier scenes: pick "Earlier: <scene>" above the feed to scroll what your hero saw and heard there, then "Now" to return.
+- Fixed a stray "null" under the map legend.
+
 ## 1.6.0
 - New campaign tone: Bawdy & cheeky, a raunchy, playful adult comedy that stays suggestive, never explicit.
 - The chosen tone is now saved and guides every DM call for the whole campaign, not just the opening.

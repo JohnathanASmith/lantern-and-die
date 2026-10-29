@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.6.0">
+<meta name="lantern-and-die-version" content="1.6.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.6.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.6.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -413,7 +413,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div class="sub"><div class="label">quests</div><div class="sub" id="quests"></div></div>
   </section>
   <section class="panel" data-panel="talk" aria-labelledby="talkTitle">
-    <div class="sceneHead"><h3 id="talkTitle">Talk</h3><span class="label" id="talkWhere"></span></div>
+    <div class="sceneHead"><h3 id="talkTitle">Talk</h3><span class="label" id="talkWhere"></span><select id="talkPast" class="tonepick" aria-label="Read back an earlier scene" hidden></select></div>
     <div class="feed" id="feed" aria-live="polite"></div>
     <div class="label" id="talkBusy"></div>
     <div id="holdTalk"></div>
@@ -1239,7 +1239,7 @@ function renderMap(){syncMapView();const g=S.game||{},sc=viewScene()||{},vid=vie
   const note=live?null:memNote?h("div",{class:"spots"},`${roomLabel(vid,sel)} as you last saw it · ${clockLabel(memNote.t||0)}. People may have moved since.`):h("div",{class:"roomshut"},h("b",{text:roomLabel(vid,sel)}),h("span",{text:"You haven't been in here. The door is shut."}));
   $("map").replaceChildren(...[tabs,live||memNote?cv:null,live||memNote?cap:null,note].filter(Boolean));
   const has=new Set(rows.join("").split("").map(ch=>GLYPH[ch]).filter(Boolean));const feat=[["bar","bar"],["table","tables"],["fire","fire"],["torch","torches"],["door","doors"],["chest","treasure"],["trap","hazards"],["water","water"],["stairsdown","stairs"],["altar","altar"],["tree","trees"]].filter(([k])=>has.has(k)).map(([,l])=>l);
-  $("legend").replaceChildren(h("span",{},h("i",{style:"background:transparent;border:2px solid #f2c14e;border-radius:50%"}),"NPC"),h("span",{},h("i",{style:"background:transparent;border:2px solid #ff4d3d;border-radius:50%"}),"Hostile"),h("span",{},h("i",{style:"background:transparent;border:2px dashed var(--fg);border-radius:50%"}),"You"),h("span",{text:"Tap people and things to see what they are"}),feat.length?h("span",{text:"Here: "+feat.join(", ")}):null);
+  $("legend").replaceChildren(h("span",{},h("i",{style:"background:transparent;border:2px solid #f2c14e;border-radius:50%"}),"NPC"),h("span",{},h("i",{style:"background:transparent;border:2px solid #ff4d3d;border-radius:50%"}),"Hostile"),h("span",{},h("i",{style:"background:transparent;border:2px dashed var(--fg);border-radius:50%"}),"You"),h("span",{text:"Tap people and things to see what they are"}),...(feat.length?[h("span",{text:"Here: "+feat.join(", ")})]:[]));
   $("locTitle").textContent=sc.name||"Unknown lands";$("locDesc").textContent=sc.description||"";$("timeTag").textContent=todOf(sceneTime(vid));
   const np=sc.npcs||[];$("npcs").replaceChildren(...(np.length?np.map(n=>{const mem=S.npcmem[slug(n.name)];const att=mem?.attitude||n.attitude;
     return h("div",{class:"npc"},h("span",{class:"dot",style:`background:var(--${n.hostile?"danger":"gold"})`}),h("b",{text:n.name||"Stranger"}),n.about?h("span",{class:"att",text:n.about}):null,n.hp&&n.hp!=="unhurt"?h("span",{class:"att",text:n.hp}):null,att?h("span",{class:"att",text:att}):null)}):[h("div",{class:"empty",text:"Nobody but the heroes."})]));
@@ -1296,13 +1296,20 @@ async function makeCheck(req,source,sceneId,seq,heard){if(!S.db||!S.chars[req.he
   k.label=checkMod(S.chars[k.hero],k).label;try{const ref=await S.db.collection("checks").add(k);return ref.id}catch(e){return null}}
 
 /* ================= TALK ================= */
-function renderTalk(){const vid=viewId(),sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?"at "+sc.name:"";
-  const watching=vid!==mine;const opts=(ms.npcs||[]).map(n=>n.name).filter(Boolean);const cur=$("talkTo").value;
+/* reading back the talk of an earlier scene */
+S.pastView=null;S.pastTalk={};
+function pastScenes(vid){return Object.entries(S.scenes).filter(([id,sc])=>id!==vid&&sc&&sc.name&&(S.talk.some(m=>msgScene(m)===id&&canSee(m))||(S.game?.log||[]).some(l=>l.scene===sc.name))).sort((a,b)=>(b[1].updatedAt||0)-(a[1].updatedAt||0)).map(([id,sc])=>[id,sc.name])}
+async function loadPast(sid){if(!S.db||!sid)return;try{const r=await S.db.collection("talk").where("scene","==",sid).orderBy("at","desc").limit(400).get();S.pastTalk[sid]=r.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}))}catch(e){S.pastTalk[sid]=[]}if(S.pastView===sid&&onTable())renderTalk()}
+$("talkPast").addEventListener("change",e=>{const v=e.target.value||null;S.pastView=v;S.stick.feed=true;if(v&&!S.pastTalk[v])loadPast(v);renderTalk()});
+function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastView&&!past.some(([id])=>id===S.pastView))S.pastView=null;
+  const tp=$("talkPast");tp.hidden=!past.length;tp.replaceChildren(h("option",{value:"",text:"Now"}),...past.map(([id,n])=>h("option",{value:id,text:"Earlier: "+n,selected:id===S.pastView})));
+  const reading=!!S.pastView;const vid=S.pastView||live,sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?(reading?"reading back ":"at ")+sc.name:"";
+  const watching=vid!==mine||reading;const opts=(ms.npcs||[]).map(n=>n.name).filter(Boolean);const cur=$("talkTo").value;
   $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...opts.map(n=>h("option",{value:n,text:"To "+n})));if(opts.includes(cur))$("talkTo").value=cur;
   const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend"])$(id).disabled=!canTalk;
-  $("talkHint").textContent=held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
-  const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const msgs=[...S.talk.filter(m=>msgScene(m)===vid&&(canSee(m)||m.stub)),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(-80);
+  $("talkHint").textContent=reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
+  const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-400:-80);
   if(!msgs.length)feed.replaceChildren(h("div",{class:"empty"},S.game?.status==="playing"?"Say something to the people around you. Pick Do for actions like searching, sneaking, cooking or leaving.":"Talk opens once the campaign begins."));
   else{const out=[];let lastStub=null;
     for(const m of msgs){if(!canSee(m)){const key=[...(m.heard||[])].sort().join(",");if(lastStub&&(lastStub.stub===m.stub||lastStub.key===key)){lastStub.n++;lastStub.el.querySelector(".cnt").textContent=` (${lastStub.n} lines)`;continue}
@@ -1318,7 +1325,7 @@ function renderTalk(){const vid=viewId(),sc=S.scenes[vid]||{},mine=myScene(),ms=
     if(m.kind==="ooc")return h("div",{class:"line ooc"},h("span",{}),h("div",{},h("b",{text:heroName(m.hero)}),` (ooc): ${m.text}`));
     if(m.kind==="npc")return h("div",{class:"line"+(m.speaker==="Narrator"?" narrator":"")},h("span",{class:"nd",style:`background:var(--${m.speaker==="Narrator"?"muted":"gold"})`}),h("div",{},h("span",{class:"who",text:m.speaker||"Someone"}),Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length?h("span",{class:"att",text:m.heard.length<=1?" · only you":" · private"}):null,m.action?h("div",{class:"act",text:m.action}):null,m.text?h("div",{text:m.text}):null));
     const c=S.chars[m.hero];const priv=Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length;return h("div",{class:"line"},c?face(m.hero,"face sm"):sigil(c?.color,c?.name),h("div",{},h("span",{class:"who",text:c?.name||"Someone"}),m.to?h("span",{class:"att",text:" to "+m.to}):null,m.vol==="whisper"?h("span",{class:"att",text:" · whispering"}):m.vol==="shout"?h("span",{class:"att",text:" · shouting"}):m.vol==="quiet"?h("span",{class:"att",text:" · quietly"}):null,priv?h("span",{class:"att",title:"Only heroes within earshot see this",text:" · "+(m.heard.length<=1?"only you":"private")}):null,h("div",{class:m.kind==="do"?"act":"",text:m.kind==="do"?m.text:`“${m.text}”`})))}
-  if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();renderHolds();if(!S.recap)renderRecap();maybeRecap();
+  if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();renderHolds();if(!reading){if(!S.recap)renderRecap();maybeRecap()}
   const busy=Object.entries(S.talkBusy).filter(([k,t])=>Date.now()-t<60000&&k.startsWith(vid+"|")).map(([k])=>k.split("|")[1]);$("talkBusy").textContent=busy.length?busy.join(", ")+" thinking…":""}
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
   const text=`I try to get close enough to hear ${who.join(" and ")||"them"}${sp?.spot?" on the "+sp.spot:""} without being noticed.`;const line=await sayLine(sid,"do","",text,"whisper");
