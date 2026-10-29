@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.3.1">
+<meta name="lantern-and-die-version" content="1.3.2">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -330,7 +330,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.3.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.3.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1305,7 +1305,7 @@ function renderTalk(){const vid=viewId(),sc=S.scenes[vid]||{},mine=myScene(),ms=
     if(m.kind==="ooc")return h("div",{class:"line ooc"},h("span",{}),h("div",{},h("b",{text:heroName(m.hero)}),` (ooc): ${m.text}`));
     if(m.kind==="npc")return h("div",{class:"line"+(m.speaker==="Narrator"?" narrator":"")},h("span",{class:"nd",style:`background:var(--${m.speaker==="Narrator"?"muted":"gold"})`}),h("div",{},h("span",{class:"who",text:m.speaker||"Someone"}),Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length?h("span",{class:"att",text:m.heard.length<=1?" · only you":" · private"}):null,m.action?h("div",{class:"act",text:m.action}):null,m.text?h("div",{text:m.text}):null));
     const c=S.chars[m.hero];const priv=Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length;return h("div",{class:"line"},c?face(m.hero,"face sm"):sigil(c?.color,c?.name),h("div",{},h("span",{class:"who",text:c?.name||"Someone"}),m.to?h("span",{class:"att",text:" to "+m.to}):null,m.vol==="whisper"?h("span",{class:"att",text:" · whispering"}):m.vol==="shout"?h("span",{class:"att",text:" · shouting"}):m.vol==="quiet"?h("span",{class:"att",text:" · quietly"}):null,priv?h("span",{class:"att",title:"Only heroes within earshot see this",text:" · "+(m.heard.length<=1?"only you":"private")}):null,h("div",{class:m.kind==="do"?"act":"",text:m.kind==="do"?m.text:`“${m.text}”`})))}
-  if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();renderHolds();
+  if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();renderHolds();if(!S.recap)renderRecap();maybeRecap();
   const busy=Object.entries(S.talkBusy).filter(([k,t])=>Date.now()-t<60000&&k.startsWith(vid+"|")).map(([k])=>k.split("|")[1]);$("talkBusy").textContent=busy.length?busy.join(", ")+" thinking…":""}
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
   const text=`I try to get close enough to hear ${who.join(" and ")||"them"}${sp?.spot?" on the "+sp.spot:""} without being noticed.`;const line=await sayLine(sid,"do","",text,"whisper");
@@ -1471,19 +1471,33 @@ function renderIdeas(){const box=$("ideasBox");if(!box)return;const btn=$("ideas
   box.replaceChildren(...(S.ideas||[]).map(x=>h("button",{type:"button",class:"idea",onclick:()=>useIdea(x)},h("span",{class:"label",text:(x.kind==="do"?"do":"say")+(x.to?" · to "+x.to:"")}),h("span",{text:x.text}),x.uses?h("span",{class:"uses",text:x.uses}):null)),...(S.ideas?.length?[h("button",{type:"button",class:"ghost",onclick:()=>{S.ideas=null;renderIdeas()}},"Hide ideas")]:[]))}
 
 /* ================= LAST TIME... ================= */
-async function maybeRecap(){if(S.recapAsked||!S.sample||!S.uid||S.game?.status!=="playing"||!S.chars[S.uid]?.inPlay||!S.notesLoaded||S.lastSeenAt===null)return;S.recapAsked=true;
-  const since=S.lastSeenAt;const now=Date.now();markSeen();if(!since||now-since<4*3600e3)return;
-  const log=myNotes("log").sort((a,b)=>a.at-b.at).slice(-8).map(n=>n.text),quests=myNotes("quest").filter(n=>(n.status||"active")==="active").map(n=>`${n.title}: ${n.text}`),clues=myNotes("clue").slice(-6).map(n=>n.text);if(!log.length&&!quests.length)return;
-  const c=S.chars[S.uid],sc=S.scenes[myScene()]||{};S.recap={busy:true};renderRecap();
-  const prompt=`Write a short "last time on..." recap for one D&D player returning to the game, in second person, 3-4 sentences, warm and concrete. Use ONLY what their hero knows below. End with where they are now and what's open.
-Hero: ${c.name}. Now at: ${sc.name||""} (${clockLabel(sceneTime(myScene()))}).
+async function maybeRecap(){if(S.recapAsked||!S.sample||!S.uid||S.game?.status!=="playing"||!S.chars[S.uid]?.inPlay||!S.notesLoaded||S.lastSeenAt===null||!S.scenesLoaded)return;S.recapAsked=true;
+  const since=S.lastSeenAt;markSeen();if(!since||Date.now()-since<4*3600e3){renderRecap();return}catchUp(since)}
+async function catchUp(since){if(!S.sample){toast("Allow Claude on this page to get a catch-up.");return}if(S.recap?.busy)return;const c=S.chars[S.uid];if(!c)return;
+  const sid=myScene(),sc=S.scenes[sid]||{},P=posOf(sid);const mineLines=S.talk.filter(m=>canSee(m)&&m.kind!=="dmq").sort((a,b)=>a.at-b.at);
+  const auto=!!since;const cut=since||0;
+  const before=mineLines.filter(m=>m.at<(auto?cut:Date.now()-20*60e3)).slice(-30),away=auto?mineLines.filter(m=>m.at>=cut&&m.hero!==S.uid).slice(-30):[],recent=auto?[]:mineLines.filter(m=>m.at>=Date.now()-20*60e3).slice(-12);
+  const fmt=list=>list.map(m=>`[${S.scenes[msgScene(m)]?.name||"somewhere"}] ${fmtLine(m,false,sceneTime(msgScene(m)))}`).join("\n");
+  const log=myNotes("log").sort((a,b)=>a.at-b.at).slice(-10).map(n=>n.text),quests=myNotes("quest").filter(n=>(n.status||"active")==="active").map(n=>`${n.title}: ${n.text}`),clues=myNotes("clue").sort((a,b)=>a.at-b.at).slice(-8).map(n=>n.text);
+  const people=(sc.npcs||[]).map(n=>`${n.name}${P.npcs[n.name]?.spot?" ("+P.npcs[n.name].spot+")":""}${n.about?": "+n.about:""}`),mates=heroesIn(sid).filter(id=>id!==S.uid).map(id=>`${heroName(id)}${holdOf(sid,id)?" ("+holdText(sid,id)+")":""}`);
+  S.recap={busy:true};renderRecap();
+  const prompt=`Write a catch-up for one D&D player opening the game, in second person, warm and concrete, like a good DM recapping at the start of a session. Use ONLY what their hero knows and witnessed (below): never invent events, never reveal things they didn't see.
+Hero: ${c.name} (${speciesOf(c)} ${c.class}), HP ${c.hp}/${c.hpMax}, purse ${purseLabel(purseOf(c))}${(c.conditions||[]).length?", conditions: "+c.conditions.join(", "):""}${holdOf(sid,S.uid)?", currently "+holdText(sid,S.uid):""}.
 Their chronicle: ${JSON.stringify(log)}
-Open quests: ${JSON.stringify(quests)}
+Open quests as they know them: ${JSON.stringify(quests)}
 Recent clues: ${JSON.stringify(clues)}
-Reply with ONLY JSON: {"recap":"..."}`;
-  try{const r=await S.sample.json(prompt,{...aiOpts("talk","quick"),cache:false});S.recap=r?.recap?{text:String(r.recap).slice(0,900)}:null}catch(e){S.recap=null}renderRecap()}
-function renderRecap(){const box=$("recapBox");if(!box)return;if(!S.recap){box.replaceChildren();return}
-  box.replaceChildren(h("div",{class:"recap"},h("div",{class:"lrow"},h("b",{class:"label",text:"last time…"}),h("button",{type:"button",class:"ghost",onclick:()=>{S.recap=null;renderRecap()}},"Got it")),S.recap.busy?h("div",{class:"att"},h("span",{class:"spin"})," remembering what happened"):h("p",{style:"margin:0",text:S.recap.text})))}
+What they saw and heard last time they played:
+${fmt(before)||"(nothing recorded)"}
+${auto?`What happened near them while the player was away (they can perceive these):\n${fmt(away)||"(nothing)"}`:`The last few minutes:\n${fmt(recent)||"(quiet)"}`}
+Right now: ${sc.name||""}, ${clockLabel(sceneTime(sid))}. ${sc.description||""} Scene as everyone here sees it: ${String(sc.scene||"").slice(0,700)} ${sc.prompt?"The DM last asked: "+sc.prompt:""}
+People here: ${people.join("; ")||"none"}. Other heroes here: ${mates.join(", ")||"none"}.
+Reply with ONLY JSON: {"recap":"3-5 sentences: the story so far for this hero, ending on the threads that matter most","away":"${auto?"1-3 sentences on what happened near them while they were away, or empty if nothing":""}","now":"1-2 sentences: where they are, who's around, and what's waiting on them"}`;
+  try{const r=await S.sample.json(prompt,{...aiOpts("dm","complex"),cache:false});S.recap=r?.recap?{recap:String(r.recap).slice(0,1200),away:String(r.away||"").slice(0,600),now:String(r.now||"").slice(0,500)}:null;if(!S.recap)toast("The catch-up came back empty. Try again.")}
+  catch(e){S.recap=null;toast(sampleErr(e))}renderRecap()}
+function renderRecap(){const box=$("recapBox");if(!box)return;const playing=S.game?.status==="playing"&&S.chars[S.uid]?.inPlay;
+  if(!S.recap){box.replaceChildren(...(playing&&S.sample?[h("div",{class:"actbar",style:"justify-content:flex-start;margin-top:6px"},h("button",{type:"button",class:"ghost",onclick:()=>catchUp(0)},"Catch me up"))]:[]));return}
+  box.replaceChildren(h("div",{class:"recap"},h("div",{class:"lrow"},h("b",{class:"label",text:"last time…"}),S.recap.busy?null:h("button",{type:"button",class:"ghost",onclick:()=>{S.recap=null;renderRecap()}},"Got it")),
+    S.recap.busy?h("div",{class:"att"},h("span",{class:"spin"})," remembering what happened"):[h("p",{style:"margin:0",text:S.recap.recap}),S.recap.away?h("p",{style:"margin:0"},h("b",{text:"While you were away: "}),S.recap.away):null,S.recap.now?h("p",{style:"margin:0"},h("b",{text:"Right now: "}),S.recap.now):null]))}
 let seenT=0;async function markSeen(){if(!S.db||!S.uid)return;const now=Date.now();if(now-seenT<60e3)return;seenT=now;try{await S.db.doc("data/users/"+S.uid+"/seen").set({type:"seen",at:now})}catch(e){}}
 setInterval(()=>{if(document.visibilityState==="visible"&&S.recapAsked)markSeen()},5*60e3);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&S.recapAsked){seenT=0;markSeen()}});

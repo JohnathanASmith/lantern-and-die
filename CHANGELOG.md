@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.2
+
+Better "Last time…" catch-ups.
+
+- Built from the talk your hero actually saw and heard, plus your chronicle, quests and clues, written by the stronger DM model.
+- Three parts: the story so far, what happened near you while you were away, and where you are right now (who's around and what's waiting on you).
+- A Catch me up button on the Scene panel brings one up any time.
+
 ## 1.3.1
 
 - Fixed: a DM update could replace a quest's whole description in your journal with just the latest change. Updates now add to what your hero already knows instead of wiping it, and the DM is asked for the full picture.
