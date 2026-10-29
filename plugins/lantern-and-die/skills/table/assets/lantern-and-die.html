@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.6.2">
+<meta name="lantern-and-die-version" content="1.6.3">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.6.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.6.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1371,7 +1371,7 @@ COINS: when the acting hero pays, receives or finds coins, set "coins" to the ch
 Everything a hero does is part of the one campaign. Heroes may chase their own goals (open a shop, become a famous chef, follow a rival); play along and tie it into the story's threads, people and dangers.
 TRAVEL: if a hero sets off for a different place that takes more than about 30 minutes to reach, do NOT move them yourself. Give a short Narrator send-off (they gather their things and leave) and set "journey"; the trip then plays out on the road. Read the pace from their words (hurrying = fast, creeping or sneaking = slow, otherwise normal) and include other heroes only if they clearly said they are coming. Short hops (stepping outside, crossing the street, a few minutes across town) are not journeys: use sceneUpdate as usual.
 WORLD CHANGES: set "sceneUpdate" whenever this exchange changes the world beyond words: a hero leaves for or arrives at another place, gives, receives, buys, loses or uses an item or gold, takes damage or heals, gains a condition, a quest starts, advances or ends, a fight breaks out, meaningful time passes, or a hero deserves XP or Heroic Inspiration. Describe the change in one sentence. Otherwise null.
-Campaign: ${g.title||""}. Now: ${clockLabel(sceneTime(sid))}. Lines marked "(… ago)" happened that long ago: treat them as past, not the current conversation, and let people and places have moved on. This scene: ${sc.name||""}, ${sc.description||""}. Latest scene description: ${String(sc.scene||"").slice(0,600)}
+Campaign: ${g.title||""}. Now: ${clockLabel(sceneTime(sid))}. Lines marked "(… ago)" happened that long ago: treat them as past, not the current conversation, and let people and places have moved on. This scene: ${sc.name||""}, ${sc.description||""}.${roadNote(sc)} Latest scene description: ${String(sc.scene||"").slice(0,600)}
 Other places where heroes are right now: ${others}
 World map the heroes know (places and routes): ${JSON.stringify(worldBrief())}. When a hero travels, use these routes and travel times, describe the way, and set sceneUpdate.
 NPCs present: ${JSON.stringify(mem)}
@@ -1877,6 +1877,8 @@ function journeyBar(sc,sid){const t=sc.travel,pct=Math.round(100*Math.min(1,(t.d
     mine?h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"primary",disabled:busy||null,onclick:()=>journeyAct("continue")},pendingFor(sid,"leg")?h("span",{},h("span",{class:"spin"})," On the move…"):"Continue the journey"),
       h("button",{type:"button",disabled:busy||null,onclick:()=>journeyAct("camp")},"Make camp"),h("button",{type:"button",class:"ghost",disabled:busy||null,onclick:()=>journeyAct("turnback")},"Turn back")):null,
     mine?h("div",{class:"att",text:"Talk and Do still work on the road: chat with your companions, scout, forage or stop to explore."}):null)}
+function roadNote(sc){if(!isJourney(sc)||sc.travel.done)return"";const t=sc.travel,left=Math.max(0,(t.totalMin||0)-(t.doneMin||0));
+  return `\nON THE ROAD: this scene is the journey from "${t.from}" to "${t.to}", ${Math.round(100*Math.min(1,(t.doneMin||0)/(t.totalMin||1)))}% done, about ${spanLabel(left)} of travel left. Distance is covered ONLY by continuing the journey: when the heroes push on, set the journey to "${t.to}" (or to "${t.from}" to turn back) and narrate nothing beyond setting off again. Never narrate them covering the distance or arriving yourself, and keep minutesPassed to what they actually did here (a chat or a short stop, 30 at most).`}
 const TRAVEL_RULES=`Travel rules (2024): Fast pace about 4 miles per hour (disadvantage on Wisdom (Perception) and Survival checks, can't move stealthily), Normal about 3 (can't move stealthily), Slow about 2 (advantage on Perception and Survival, can move stealthily). A travel day is about 8 hours; pushing past it risks exhaustion. Roads are safe and easy to follow. Off-road or searching for a place the heroes have only heard of, a Survival check decides whether they lose time or go astray.`;
 async function processTravel(u){if(!S.sample||!S.db||S.busy)return;const sid=u.scene,sc=S.scenes[sid];if(!sc){try{await S.db.doc("updates/"+u.id).update({status:"failed"})}catch(e){}return}
   S.busy=true;renderHost();setBusy(sid,"The DM",true);try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}
@@ -1889,7 +1891,7 @@ RECENT PLAY THERE: ${talkSince(sid,Date.now()-3600000,12)||"(nothing)"}
 WORLD: ${JSON.stringify(worldBrief())}
 HEROES: ${JSON.stringify(partyForPrompt(party))}
 Reply with ONLY JSON: {"totalMinutes":180,"narration":"1-2 short paragraphs setting out","departure":"one sentence for anyone left behind","map":{"theme":"road|forest|wild|camp|swamp|desert|snow|mountain","rows":["up to 16 chars","up to 10 rows"]},"npcs":[{"name":"","x":0,"y":0,"hostile":false,"hp":"unhurt","attitude":"indifferent","about":"","sprite":"closest look from: ${SPRITES.join(", ")}"}],"companions":["exact names"],"prompt":"one short question"}`;
-  try{const r=await S.sample.json(prompt,{...aiOpts("dm","complex"),cache:false});const now=Date.now();const name=`Road to ${dest.name} · day ${Math.floor(t0/1440)+1}`,jid=sceneIdFor(name);
+  try{const r=await S.sample.json(prompt,{...aiOpts("dm","complex"),cache:false});const now=Date.now();let name=`Road to ${dest.name} · day ${Math.floor(t0/1440)+1}`;for(let k=2;S.scenes[sceneIdFor(name)]&&k<9;k++)name=`Road to ${dest.name} · day ${Math.floor(t0/1440)+1} (${k})`;const jid=sceneIdFor(name);
     const total=Math.max(30,Math.min(60*24*14,Math.round(Number(r?.totalMinutes)||240)));
     const cn=new Set((Array.isArray(r?.companions)?r.companions:[]).map(x=>slug(String(x))));const comps=(sc.npcs||[]).filter(n=>n.companion||cn.has(slug(n.name)));
     const roadNpcs=cleanNpcs(r?.npcs).filter(n=>!comps.some(c=>slug(c.name)===slug(n.name)));const jm=cleanMap(r?.map);
@@ -1936,7 +1938,10 @@ Also include "travelMinutes" (travel progress made, at most ${left}), "arrived" 
   finally{S.busy=false;setBusy(sid,"The DM",false);renderHost();autoCheck()}}
 
 function placeOfScene(sid){const x=S.scenes[sid];if(x?.travel)return x.travel.done?x.travel.toId:((x.travel.doneMin||0)/(x.travel.totalMin||1)<.5?x.travel.fromId:x.travel.toId);return sid}
-async function startJourneyRequest(sid,heroes,to,pace){if(!S.db)return;const party=[...new Set(heroes.map(String))].filter(id=>S.chars[id]&&sceneOf(id)===sid&&!S.game?.waiting?.[id]);if(!party.length)return;
+async function startJourneyRequest(sid,heroes,to,pace){if(!S.db)return;
+  {const js=S.scenes[sid];if(isJourney(js)&&!js.travel.done){const tid0=sceneIdFor(to),t=js.travel;const intent=(tid0===t.fromId||slug(to)===slug(t.from))?"turnback":"continue";
+    if(intent==="continue"&&tid0!==t.toId&&slug(to)!==slug(t.to)&&!slug(to).includes(slug(t.to))){/* a new destination: fall through and start a fresh journey */}
+    else{if(!pendingFor(sid,"leg"))try{await S.db.collection("updates").add({scene:sid,kind:"leg",intent,reason:intent,by:S.uid||"",status:"pending",at:Date.now()})}catch(e){}return}}}const party=[...new Set(heroes.map(String))].filter(id=>S.chars[id]&&sceneOf(id)===sid&&!S.game?.waiting?.[id]);if(!party.length)return;
   const tid=sceneIdFor(to);if(tid===placeOfScene(sid))return;
   try{await S.db.collection("updates").add({scene:sid,from:placeOfScene(sid),kind:"travel",to:tid,toName:to.slice(0,60),pace:["fast","normal","slow"].includes(pace)?pace:"normal",party,reason:`${party.map(heroName).join(" and ")} set out for ${to}`,by:S.uid||"",status:"pending",at:Date.now()})}catch(e){}}
 
@@ -2074,7 +2079,7 @@ async function processUpdates(sid,force){if(!S.sample||!S.db||S.busy)return;cons
   for(const u of pend){try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}}
   const ids=heroesIn(sid);const g=S.game||{};
   const prompt=`${DM_RULES}${toneRule()}
-WORLD UPDATE for the scene "${sc.name}". Now: ${clockLabel(sceneTime(sid))}. The heroes here have been playing freely through conversation and actions (below). Apply the consequences to the game state: HP, items, gold, conditions, XP, Heroic Inspiration, quests, NPC changes, time, and heroes who leave for other places (moves). The conversation already settled uncertain outcomes, so do not ask for checks. Do not retell everything: the narration describes the scene as it stands now, in 1-2 short paragraphs. If a fight has broken out, use combat.start.
+WORLD UPDATE for the scene "${sc.name}". Now: ${clockLabel(sceneTime(sid))}. The heroes here have been playing freely through conversation and actions (below). Apply the consequences to the game state: HP, items, gold, conditions, XP, Heroic Inspiration, quests, NPC changes, time, and heroes who leave for other places (moves). The conversation already settled uncertain outcomes, so do not ask for checks. Do not retell everything: the narration describes the scene as it stands now, in 1-2 short paragraphs. If a fight has broken out, use combat.start.${isJourney(sc)&&!sc.travel.done?roadNote(sc).replace("set the journey to","put them in \"journeys\" with \"to\":"):""}
 ${heroesIn(sid).some(id=>holdOf(sid,id))?`ASLEEP OR BUSY: ${heroesIn(sid).filter(id=>holdOf(sid,id)).map(id=>heroName(id)+" is "+holdText(sid,id)).join("; ")}. Other heroes here are still playing at ${clockLabel(sceneTime(sid))}: keep minutesPassed to what THEY did (30 at most); the page moves the clock when everyone rests.
 `:""}What changed, as flagged during play: ${pend.length?pend.map(u=>u.reason).join(" | "):"(host asked for a general update)"}
 CAMPAIGN: ${JSON.stringify({title:g.title,day:g.day,timeOfDay:g.timeOfDay,quests:g.quests,world:worldBrief(),recentChronicle:(g.log||[]).slice(-5).map(l=>l.text)})}

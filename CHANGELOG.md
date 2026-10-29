@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.3
+- Fixed journeys resetting to 0%: pushing on while already on the road continues the same journey instead of starting a new one over the top of it.
+- The DM knows how far along the road the party is and no longer narrates covering the distance outside the journey controls.
+
 ## 1.6.2
 - Companions: NPCs who travel with the party (an escort, guide or employer) now go along on journeys and arrive with the heroes instead of staying behind.
 
