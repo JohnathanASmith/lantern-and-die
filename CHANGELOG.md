@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.6
+- Quiet actions (and anything done while hidden) are secret: other heroes don't see them, or the rolls that come with them, just because they're standing close. Only the person the action is aimed at is in on it, and the DM decides if anyone notices.
+
 ## 1.7.5
 - Talk history is never pruned anymore (it used to keep only the newest 300 lines across the whole campaign).
 - Reading back an earlier scene loads up to 1,000 lines.
