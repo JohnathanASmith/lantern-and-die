@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.11.1">
+<meta name="lantern-and-die-version" content="1.12.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -302,6 +302,17 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .worldwrap{background:var(--parch)}
 .face{display:inline-grid;place-items:center;width:34px;height:38px;flex:none;border-radius:8px;border:2px solid var(--hc,#888);background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--hc,#888) 35%,transparent),transparent 75%),var(--raised);overflow:hidden}
 .face img{width:100%;height:100%;object-fit:cover;object-position:50% 15%}
+.face.npix img{image-rendering:pixelated;object-fit:contain;transform:scale(1.25) translateY(6%)}
+.face.tap{cursor:zoom-in}
+.scenepic{margin:0;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--raised)}
+.scenepic img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;cursor:zoom-in}
+.scenepic figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;font-size:.85em;color:var(--muted)}
+.scenepic figcaption button{padding:2px 8px;min-height:0}
+.line.pic .scenepic{max-width:420px}
+.lightbox{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:16px;cursor:zoom-out}
+.lightbox figure{margin:0;display:grid;gap:8px;justify-items:center;max-width:min(92vw,900px)}
+.lightbox img{max-width:100%;max-height:82vh;border-radius:10px;background:#111}
+.lightbox figcaption{color:#eee;text-align:center}
 .face.pix img{image-rendering:pixelated;object-fit:contain;transform:scale(1.25) translateY(6%)}
 .face.sm{width:24px;height:27px;border-radius:6px;border-width:1.5px}.line .face{width:24px;height:27px}
 .face.lg{width:54px;height:62px;border-radius:10px}
@@ -333,7 +344,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.11.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.12.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -404,6 +415,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div class="sceneHead"><h3 id="locTitle">Unknown lands</h3><span class="label" id="timeTag"></span></div>
     <div class="seg" id="mapSeg" role="group" aria-label="Map view"><button type="button" data-v="scene" aria-pressed="true">This scene</button><button type="button" data-v="world" aria-pressed="false">World map</button></div>
     <div class="sub" id="sceneMapBox">
+    <figure class="scenepic" id="scenePic" hidden></figure>
     <div class="mapwrap" id="map"></div>
     <div class="legend" id="legend"></div>
     <p id="locDesc" style="margin:0;color:var(--muted)"></p>
@@ -1028,6 +1040,64 @@ const SPRITE_WORDS=[["guard","guard|watchman|sentry|warden"],["captain","captain
 function npcSprite(n){let s=String(n?.sprite||"").toLowerCase().replace(/\s+/g,"_");if(s==="priest")s="acolyte";if(ATLAS.idx["m."+s]!=null)return "m."+s;const t=`${n?.name||""} ${n?.about||""}`.toLowerCase();
   for(const[k,re]of SPRITE_WORDS)if(new RegExp(`\\b(${re})`).test(t)&&ATLAS.idx["m."+k]!=null)return "m."+k;return "m."+spick(["commoner","commoner2","commoner3","merchant","peasant"],n?.name||"x")}
 
+/* ===== painted art: NPC portraits, NPC figures, scene pictures ===== */
+const PEOPLE_TILES=new Set(["acolyte","bandit","barbarian","bard","blackguard","captain","child","commoner","commoner2","commoner3","crone","cultist","drow","drow_mage","druid","dwarf","dwarf_lord","elf","elf_archer","elf_priest","guard","halfling","hunter","knight","lady","mage","merchant","monk","necromancer","noble","noblewoman","peasant","pirate","priest","rogue","sage","scholar","soldier","sorceress"]);
+const NPC_CLASS=[["Fighter","guard|watch|sergeant|soldier|captain|knight|militia|mercenar|warden|sellsword|blackguard"],["Cleric","priest|cleric|acolyte|nun|abbot|monk|brother "],["Wizard","mage|wizard|scholar|sage|sorcer|necromancer|scribe"],["Rogue","thief|rogue|smuggler|bandit|cutpurse|spy|pirate|lurker"],["Ranger","hunter|ranger|trapper|archer"],["Bard","bard|minstrel|singer"],["Druid","druid|herbal|hedge-witch"],["Barbarian","barbarian|brute"]];
+const NPC_SPECIES=[["Elf","elf|elven|elvish"],["Dwarf","dwarf|dwarven"],["Halfling","halfling"],["Gnome","gnome"],["Orc","orc|half-orc"],["Tiefling","tiefling|horned"],["Dragonborn","dragonborn"],["Goliath","goliath"]];
+function npcLooks(n){return S.npcmem?.[slug(n?.name||"")]?.looks||n?.looks||""}
+function findNpc(name){const k=slug(name||"");for(const sc of Object.values(S.scenes||{}))for(const n of sc.npcs||[])if(slug(n.name)===k)return n;return null}
+const npcDollCache=new Map();
+function npcDoll(n){if(!n)return null;const k=npcSprite(n).slice(2);if(!PEOPLE_TILES.has(k))return null;const looks=npcLooks(n);const key=n.name+"|"+looks+"|"+(n.about||"")+"|"+k;if(npcDollCache.has(key))return npcDollCache.get(key);
+  const t=` ${n.name||""} ${n.about||""} ${looks} `.toLowerCase();const sp=(NPC_SPECIES.find(([,re])=>new RegExp(`\\b(${re})`).test(t))||["Human"])[0];const cl=(NPC_CLASS.find(([,re])=>new RegExp(`\\b(${re})`).test(t))||[""])[0];
+  const fem=/\b(she|her|woman|girl|lady|mother|wife|widow|sister|daughter|maid|crone|nun|matron|landlady|alewife|fishwife|goodwife)\b/.test(t)||/^(lady|noblewoman|sorceress|crone)$/.test(k),male=/\b(he|him|his|man|boy|father|husband|brother|son|lord|sergeant|old man)\b/.test(t);
+  let d=null;try{d=autoDoll({name:n.name,species:sp,class:cl||"__none",gender:fem&&!male?"Female":male&&!fem?"Male":fem?"Female":"",appearance:looks+" "+(n.about||""),inventory:[]})}catch(e){d=null}
+  npcDollCache.set(key,d);return d}
+const tileCache=new Map();function tileURL(key,scale=2){if(tileCache.has(key))return tileCache.get(key);const cv=document.createElement("canvas");cv.width=cv.height=32*scale;const ctx=cv.getContext("2d");ctx.imageSmoothingEnabled=false;const ok=tile(ctx,key,0,0,32*scale);const u=cv.toDataURL();if(ok!==false)tileCache.set(key,u);return u}
+const svgURL=svg=>"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+function npcArt(name){const a=S.art?.["npc~"+slug(name||"")];return a?.svg?svgURL(a.svg):""}
+function npcFace(name,cls="face sm"){const n=findNpc(name)||{name};const src=npcArt(name);const big=()=>showArt(src||null,npcLabel(name),name);
+  if(src)return h("span",{class:cls+" tap",style:"--hc:var(--gold)",title:"See "+npcLabel(name),onclick:big},h("img",{src,alt:"",loading:"lazy"}));
+  const d=npcDoll(n);return h("span",{class:cls+" npix tap",style:"--hc:var(--gold)",title:"See "+npcLabel(name),onclick:big},h("img",{src:d?dollURL(d,2):tileURL(npcSprite(n)),alt:""}))}
+function showArt(src,caption,npcName){const close=()=>box.remove();const kids=[];
+  if(src)kids.push(h("img",{src,alt:caption||""}));else if(npcName){const n=findNpc(npcName)||{name:npcName};const d=npcDoll(n);kids.push(h("img",{src:d?dollURL(d,8):tileURL(npcSprite(n),8),alt:"",style:"image-rendering:pixelated;width:256px;max-width:70vw"}));
+    kids.push(h("div",{style:"color:#ccc",text:npcLooks(n)?"Not painted yet. The DM paints people once it knows how they look.":"The DM hasn't described how they look yet."}))}
+  if(npcName&&npcLooks(findNpc(npcName)||{name:npcName}))kids.push(h("div",{style:"color:#ccc;max-width:520px;text-align:center",text:npcLooks(findNpc(npcName)||{name:npcName})}));
+  if(npcName&&S.sample&&npcLooks(findNpc(npcName)||{name:npcName}))kids.push(h("button",{type:"button",onclick:async e=>{e.stopPropagation();e.target.disabled=true;e.target.textContent="Painting…";await paintNpc(npcName,true);close()}},src?"Repaint":"Paint now"));
+  const box=h("div",{class:"lightbox",onclick:e=>{if(e.target.tagName!=="BUTTON")close()}},h("figure",{},...kids,caption?h("figcaption",{text:caption}):null));document.body.append(box)}
+let painting=false;const paintTried=new Set();
+async function paintSVG(prompt){const r=await S.sample(prompt,{modelTier:"complex",cache:false});const svg=sanitizeSVG(r?.text);if(!svg)throw new Error("bad svg");return svg}
+async function paintNpc(name,force){if(!S.sample||!S.db)return;const n=findNpc(name)||{name};const looks=npcLooks(n);if(!looks)return;const id="npc~"+slug(name);if(!force&&S.art?.[id])return;
+  const prompt=`You are a fantasy character illustrator who paints with SVG. Paint a head-and-shoulders portrait of this person from a Dungeons & Dragons campaign.
+Who: ${name}${n.about?", "+n.about:""}. How they look: ${looks}.
+Campaign tone: ${S.game?.tone||"heroic"}.
+Rules: one <svg> with viewBox="0 0 300 400" and no width or height. Painterly look: layered shapes, <linearGradient> and <radialGradient> shading, soft rim light, a moody background that suits who they are. Show every detail of how they look: build, age, face, hair, clothes, marks. Clothed; no nudity, no gore. No text or letters, no <image>, no <use>, no <style>, no <script>, no external links, no animation. Under 16000 characters. Reply with ONLY the SVG.`;
+  try{const svg=await paintSVG(prompt);await S.db.doc("art/"+id).set({kind:"npc",name,svg,looks,at:Date.now(),by:S.uid||""})}catch(e){if(force)toast("The painting didn't come out. Try again.")}}
+function scenePics(sid){return Object.entries(S.art||{}).filter(([k,a])=>a.kind==="scene"&&a.scene===sid).map(([id,a])=>({id,...a})).sort((a,b)=>a.at-b.at)}
+async function paintScene(sid,moment){const sc=S.scenes[sid];if(!S.sample||!S.db||!sc)return;
+  const heroes=heroesIn(sid).map(id=>{const c=S.chars[id]||{};return`${c.name}: ${genderNote(c)} ${speciesOf(c)} ${c.class}, ${String(c.appearance||"").slice(0,220)}`});
+  const npcs=npcsHere(sid).filter(n=>!n.hidden).slice(0,6).map(n=>`${npcLabel(n.name)}: ${(npcLooks(n)||n.about||"").slice(0,180)}`);
+  const prompt=`You are a fantasy illustrator who paints with SVG. Paint a wide illustration of one moment in a Dungeons & Dragons campaign.
+Place: ${sc.name}. ${sc.description||""} Time of day: ${todOf(sceneTime(sid))}.
+${moment?"The moment to paint: "+moment:"The heroes have just arrived: show the place itself, its mood and light, with the heroes small in it."}
+What just happened: ${String(sc.scene||"").slice(0,500)}
+People who may be in it (include only those who fit the moment, true to how they look): heroes ${JSON.stringify(heroes)}; others ${JSON.stringify(npcs)}.
+Campaign tone: ${S.game?.tone||"heroic"}.
+Rules: one <svg> with viewBox="0 0 480 270" and no width or height. Painterly and atmospheric: layered shapes, gradients for sky, light and shadow, depth with foreground, middle and background, figures as clear silhouettes with telling details. Clothed; no nudity, nothing sexual, no gore beyond a little blood. No text or letters, no <image>, no <use>, no <style>, no <script>, no external links, no animation. Under 20000 characters. Reply with ONLY the SVG.`;
+  const caption=String(moment||`Arriving at ${sc.name}`).slice(0,160);
+  try{const svg=await paintSVG(prompt);const id=`pic~${slug(sid)}~${Date.now()}`;await S.db.doc("art/"+id).set({kind:"scene",scene:sid,svg,caption,gt:sceneTime(sid),at:Date.now(),by:S.uid||""});
+    await postTalk({kind:"pic",art:id,text:caption,scene:sid})}catch(e){}}
+function maybeMomentPic(sid,moment){if(!moment||!S.sample)return;const last=scenePics(sid).slice(-1)[0];if(last&&Date.now()-last.at<15*60000)return;if(painting)return;painting=true;paintScene(sid,String(moment).slice(0,200)).finally(()=>{painting=false})}
+/* whoever keeps the world also paints: first the place the heroes are in, then the people they've met */
+async function artTick(){if(painting||S.busy||!S.sample||!S.db||!S.artLoaded||S.game?.status!=="playing")return;
+  const sids=[...new Set(Object.values(S.game?.heroScene||{}))].filter(id=>S.scenes[id]);
+  const sid=sids.find(id=>!scenePics(id).length&&!paintTried.has("s:"+id));
+  if(sid){painting=true;paintTried.add("s:"+sid);try{await paintScene(sid,"")}finally{painting=false}return}
+  for(const id of sids)for(const n of npcsHere(id)){const key="npc~"+slug(n.name);if(S.art?.[key]||!npcLooks(n)||paintTried.has(key))continue;painting=true;paintTried.add(key);try{await paintNpc(n.name)}finally{painting=false}return}}
+function renderScenePic(vid){const box=$("scenePic");if(!box)return;const pics=scenePics(vid);if(!pics.length){box.hidden=true;box.replaceChildren();return}
+  S.picIdx=S.picIdx||{};let i=S.picIdx[vid];if(i==null||i>=pics.length)i=pics.length-1;const p=pics[i];const src=svgURL(p.svg);box.hidden=false;
+  const go=d=>{S.picIdx[vid]=Math.max(0,Math.min(pics.length-1,i+d));renderScenePic(vid)};
+  box.replaceChildren(h("img",{src,alt:p.caption||"",onclick:()=>showArt(src,p.caption)}),h("figcaption",{},h("span",{text:p.caption||""}),pics.length>1?h("span",{style:"display:flex;gap:4px;align-items:center;flex:none"},h("button",{type:"button",class:"ghost",disabled:i===0||null,onclick:()=>go(-1)},"‹"),`${i+1}/${pics.length}`,h("button",{type:"button",class:"ghost",disabled:i===pics.length-1||null,onclick:()=>go(1)},"›")):null))}
+
 /* ---- procedural furniture (drawn at 32px units) ---- */
 const P_={wood:"#7a4b26",woodL:"#a26a3a",woodD:"#4a2c14",iron:"#3a3a40",gold:"#e2b33c",cloth:"#7d2a2a",white:"#e9e3d4"};
 function furn(ctx,kind,x,y,nb,seed){const r=rng(seed);ctx.save();ctx.translate(x,y);ctx.lineWidth=1.2;
@@ -1079,7 +1149,7 @@ function drawScene(cv,sc,vid,opt={}){if(opt.map)sc={...sc,map:opt.map,name:(sc.n
   toks.sort((a,b)=>a.y-b.y);for(const t of toks){const px=t.x*C,gy=t.y*C,py=gy-(t.perch?11:0);ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(px+16,gy+28,10,3.5,0,0,7);ctx.fill();
     if(t.perch){ctx.save();ctx.setLineDash([2,2]);ctx.strokeStyle="rgba(242,193,78,.8)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+16,gy+27);ctx.lineTo(px+16,py+27);ctx.stroke();ctx.restore();ctx.fillStyle="#f2c14e";ctx.beginPath();ctx.moveTo(px+27,py+1);ctx.lineTo(px+32,py+9);ctx.lineTo(px+22,py+9);ctx.closePath();ctx.fill()}
     if(t.hidden){ctx.globalAlpha=.55}
-    if(t.kind==="npc"){ctx.strokeStyle=t.n.hostile?"#ff4d3d":"#f2c14e";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();tile(ctx,npcSprite(t.n),px,py);ctx.globalAlpha=1}
+    if(t.kind==="npc"){ctx.strokeStyle=t.n.hostile?"#ff4d3d":"#f2c14e";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();{const dl=npcDoll(t.n);if(dl)drawDoll(ctx,dl,px,py);else tile(ctx,npcSprite(t.n),px,py)}ctx.globalAlpha=1}
     else{const c=S.chars[t.id]||{};ctx.strokeStyle=c.color||"#888";ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();if(t.id===S.uid){ctx.setLineDash([3,3]);ctx.strokeStyle="#fff";ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(px+16,py+28,14.5,6,0,0,7);ctx.stroke();ctx.setLineDash([])}
       ctx.globalAlpha=c.hp<=0||t.hidden?.5:1;drawDoll(ctx,dollOf(t.id),px,py,32);ctx.globalAlpha=1;if(dark||todOf(sceneTime(vid))==="night")lights.push([px+16,py+16,2.6,"#ffe2a8"])}}
   /* light */
@@ -1237,15 +1307,15 @@ function renderMap(){syncMapView();const g=S.game||{},sc=viewScene()||{},vid=vie
     const canAct=live&&vid===myScene()&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!holdOf(vid,S.uid);const btn=(l,fn)=>h("button",{type:"button",class:"gen",onclick:fn},l);
     if(!t){const f=featureAt(vid,sel,x,y);if(!f){cap.replaceChildren();return}
       cap.replaceChildren(...[h("b",{text:f.name}),f.about?h("span",{text:" · "+f.about}):null,f.leads&&f.known?h("span",{class:"att",text:" · leads to "+roomLabel(vid,roomKey(vid,f.leads))}):null,live?null:h("span",{class:"att",text:" · as you remember it"}),canAct&&f.kind!=="wall"?h("span",{class:"capacts"},btn("Look closer",()=>useOnMap("do","",`I take a closer look at the ${f.name.toLowerCase()}`)),btn("Go to it",()=>useOnMap("do","",`I go over to the ${f.name.toLowerCase()}`))):null].filter(Boolean));return}
-    const per=t.perch?` · ${t.perch}`:"";if(t.kind==="npc"){const mem=S.npcmem[slug(t.n.name)];cap.replaceChildren(...[h("b",{text:npcLabel(t.n.name)||"Stranger"}),`${t.n.about?" · "+t.n.about:""}${per} · ${t.n.hostile?"hostile":(mem?.attitude||t.n.attitude||"")}`,canAct?h("span",{class:"capacts"},btn("Talk to "+(aliasOf(t.n.name)||(/^(a|an|the|young|old) /i.test(t.n.name||"")?"them":(t.n.name||"them").split(" ")[0])).split(" ")[0],()=>useOnMap("say",t.n.name,"")),btn("Look at",()=>useOnMap("do",t.n.name,`I study ${t.n.name} for a moment`))):null].filter(Boolean))}
+    const per=t.perch?` · ${t.perch}`:"";if(t.kind==="npc"){const mem=S.npcmem[slug(t.n.name)];cap.replaceChildren(...[npcFace(t.n.name),h("b",{text:npcLabel(t.n.name)||"Stranger"}),`${t.n.about?" · "+t.n.about:""}${per} · ${t.n.hostile?"hostile":(mem?.attitude||t.n.attitude||"")}`,canAct?h("span",{class:"capacts"},btn("Talk to "+(aliasOf(t.n.name)||(/^(a|an|the|young|old) /i.test(t.n.name||"")?"them":(t.n.name||"them").split(" ")[0])).split(" ")[0],()=>useOnMap("say",t.n.name,"")),btn("Look at",()=>useOnMap("do",t.n.name,`I study ${t.n.name} for a moment`))):null].filter(Boolean))}
     else{const c=S.chars[t.id];cap.replaceChildren(h("b",{text:c?.name||"A hero"}),`${t.id===S.uid?" (you)":""}${per}${t.hidden?" · hidden":""} · HP ${c?.hp}/${c?.hpMax}`)}});
   const note=live?null:memNote?h("div",{class:"spots"},`${roomLabel(vid,sel)} as you last saw it · ${clockLabel(memNote.t||0)}. People may have moved since.`):h("div",{class:"roomshut"},h("b",{text:roomLabel(vid,sel)}),h("span",{text:"You haven't been in here. The door is shut."}));
   $("map").replaceChildren(...[tabs,live||memNote?cv:null,live||memNote?cap:null,note].filter(Boolean));
   const has=new Set(rows.join("").split("").map(ch=>GLYPH[ch]).filter(Boolean));const feat=[["bar","bar"],["table","tables"],["fire","fire"],["torch","torches"],["door","doors"],["chest","treasure"],["trap","hazards"],["water","water"],["stairsdown","stairs"],["altar","altar"],["tree","trees"]].filter(([k])=>has.has(k)).map(([,l])=>l);
   $("legend").replaceChildren(h("span",{},h("i",{style:"background:transparent;border:2px solid #f2c14e;border-radius:50%"}),"NPC"),h("span",{},h("i",{style:"background:transparent;border:2px solid #ff4d3d;border-radius:50%"}),"Hostile"),h("span",{},h("i",{style:"background:transparent;border:2px dashed var(--fg);border-radius:50%"}),"You"),h("span",{text:"Tap people and things to see what they are"}),...(feat.length?[h("span",{text:"Here: "+feat.join(", ")})]:[]));
-  $("locTitle").textContent=sc.name||"Unknown lands";$("locDesc").textContent=sc.description||"";$("timeTag").textContent=todOf(sceneTime(vid));
+  renderScenePic(vid);$("locTitle").textContent=sc.name||"Unknown lands";$("locDesc").textContent=sc.description||"";$("timeTag").textContent=todOf(sceneTime(vid));
   const np=npcsHere(vid);$("npcs").replaceChildren(...(np.length?np.map(n=>{const mem=S.npcmem[slug(n.name)];const att=mem?.attitude||n.attitude;
-    return h("div",{class:"npc"},h("span",{class:"dot",style:`background:var(--${n.hostile?"danger":"gold"})`}),h("b",{text:npcLabel(n.name)||"Stranger"}),n.about?h("span",{class:"att",text:n.about}):null,n.hp&&n.hp!=="unhurt"?h("span",{class:"att",text:n.hp}):null,att?h("span",{class:"att",text:att}):null)}):[h("div",{class:"empty",text:"Nobody but the heroes."})]));
+    return h("div",{class:"npc"},npcFace(n.name),h("b",{text:npcLabel(n.name)||"Stranger"}),n.about?h("span",{class:"att",text:n.about}):null,n.hp&&n.hp!=="unhurt"?h("span",{class:"att",text:n.hp}):null,att?h("span",{class:"att",text:att}):null)}):[h("div",{class:"empty",text:"Nobody but the heroes."})]));
   const q=myNotes("quest").sort((a,b)=>(a.status==="active"?0:1)-(b.status==="active"?0:1)||a.at-b.at).map(n=>({title:n.title,status:n.status||"active",note:n.text}));$("quests").replaceChildren(...(q.length?q.map(x=>h("div",{class:"quest "+(x.status||"active")},h("span",{class:"status"+(x.status==="done"?" ready":""),text:x.status||"active"}),h("span",{},h("span",{class:"qt",style:"font-weight:700",text:x.title||"A quest"}),x.note?" · "+x.note:""))):[h("div",{class:"empty",text:"No quests yet."})]));if(S.mapView==="world")renderWorld()}
 
 /* my sheet */
@@ -1345,7 +1415,8 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
     if(m.kind==="dmq"||m.kind==="dmqp")return dmLine(m);
     if(m.kind==="check")return h("div",{class:"line sys"},m.text);
     if(m.kind==="ooc")return h("div",{class:"line ooc"},h("span",{}),h("div",{},h("b",{text:heroName(m.hero)}),` (ooc): ${m.text}`));
-    if(m.kind==="npc")return h("div",{class:"line"+(m.speaker==="Narrator"?" narrator":"")},h("span",{class:"nd",style:`background:var(--${m.speaker==="Narrator"?"muted":"gold"})`}),h("div",{},h("span",{class:"who",text:npcLabel(m.speaker)||"Someone"}),Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length?h("span",{class:"att",text:m.heard.length<=1?" · only you":" · private"}):null,m.action?h("div",{class:"act",text:m.action}):null,m.text?h("div",{text:m.text}):null));
+    if(m.kind==="pic"){const a=S.art?.[m.art];if(!a?.svg)return h("div",{class:"divider",text:"🖼 "+(m.text||"A picture")});const src=svgURL(a.svg);return h("div",{class:"line pic"},h("span",{}),h("figure",{class:"scenepic"},h("img",{src,alt:m.text||"",loading:"lazy",onclick:()=>showArt(src,m.text)}),h("figcaption",{text:m.text||""})))}
+    if(m.kind==="npc")return h("div",{class:"line"+(m.speaker==="Narrator"?" narrator":"")},m.speaker==="Narrator"?h("span",{class:"nd",style:"background:var(--muted)"}):npcFace(m.speaker),h("div",{},h("span",{class:"who",text:npcLabel(m.speaker)||"Someone"}),Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length?h("span",{class:"att",text:m.heard.length<=1?" · only you":" · private"}):null,m.action?h("div",{class:"act",text:m.action}):null,m.text?h("div",{text:m.text}):null));
     const c=S.chars[m.hero];const priv=Array.isArray(m.heard)&&m.heard.length<heroesIn(msgScene(m)).length;return h("div",{class:"line"},c?face(m.hero,"face sm"):sigil(c?.color,c?.name),h("div",{},h("span",{class:"who",text:c?.name||"Someone"}),m.to?h("span",{class:"att",text:" to "+npcLabel(m.to)}):null,m.vol==="whisper"?h("span",{class:"att",text:" · whispering"}):m.vol==="shout"?h("span",{class:"att",text:" · shouting"}):m.vol==="quiet"?h("span",{class:"att",text:" · quietly"}):null,m.auto?h("span",{class:"att",title:"Their player was away, so the DM played them",text:" · played by the DM"}):null,priv?h("span",{class:"att",title:"Only heroes within earshot see this",text:" · "+(m.heard.length<=1?"only you":"private")}):null,h("div",{class:m.kind==="do"?"act":"",text:m.kind==="do"?m.text:`“${m.text}”`})))}
   if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();renderHolds();if(!reading){if(!S.recap)renderRecap();maybeRecap()}
   const busy=Object.entries(S.talkBusy).filter(([k,t])=>Date.now()-t<60000&&k.startsWith(vid+"|")).map(([k])=>k.split("|")[1]);$("talkBusy").textContent=busy.length?busy.join(", ")+" thinking…":""}
@@ -1453,7 +1524,8 @@ ${earTxt}
 ${holdsTxt?"ASLEEP OR BUSY RIGHT NOW: "+holdsTxt+". They are out of the action until they wake.":""}
 ${listenTxt}${(()=>{const o=S.checks.filter(c=>c.status==="pending"&&c.source==="talk"&&c.scene===sid);return o.length?"\nUNRESOLVED ROLLS: "+o.map(c=>`${heroName(c.hero)}'s ${c.label||c.skill||"roll"} (${c.reason||"an attempt"})`).join("; ")+" "+(o.length>1?"are":"is")+" still being rolled. Do not narrate how those attempts turn out, do not ask for another roll for the same thing, and do not move the scene past that moment; other people can talk and act around it.":""})()}
 
-Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty","looks":"how they look, under 250 characters: set it when an NPC first appears without one, or when their look changes (wet, bloodied, changed clothes); else empty"}],"moves":[],"rooms":[],"discovered":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null,"minutes":2,"away":[],"returns":[],"named":[],"leaves":[],"intimacy":[]}
+Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty","looks":"how they look, under 250 characters: set it when an NPC first appears without one, or when their look changes (wet, bloodied, changed clothes); else empty"}],"moves":[],"rooms":[],"discovered":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null,"minutes":2,"away":[],"returns":[],"named":[],"leaves":[],"intimacy":[],"picture":""}
+picture: one sentence describing a striking moment worth a painting (a fight breaking out, a big reveal, a monster appearing, a breathtaking view, a dramatic arrival or escape), written as what the picture shows; use it rarely, only for moments the players will remember; never for intimate or sexual moments; else "".
 intimacy: [{"heroes":["<hero id>"],"with":"partner's name","npc":"the NPC partner's listed name, or empty","npcCanConceive":true}] when a hero has just had sex in the story (the scene closed in-world) and the story never said they took precautions; list every hero involved; else []. For an NPC partner, npcCanConceive is true only if she could become pregnant by this partner and wouldn't, true to who she is, have quietly taken her own precautions (moon tea, a charm, a midwife's draught).
 leaves: [{"name":"NPC name","to":"where they go"}] for NPCs who walk out of this scene to another place (back to whoever sent them, home, to fetch someone elsewhere); they stop being here.
 named: [{"npc":"listed name","name":"real name","heroes":["<hero id>"]}].
@@ -1490,6 +1562,7 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
     for(const n of (Array.isArray(r?.returns)?r.returns:[]).slice(0,4))await endErrand(sid,String(n));
     for(const it of (Array.isArray(r?.intimacy)?r.intimacy:[]).slice(0,3))for(const hid of (Array.isArray(it?.heroes)?it.heroes:[]).slice(0,4)){const c=S.chars[hid];if(!c||genderOf(c)!=="Female"||c.pregnant||c.fateAsk)continue;
       const partner=String(it.with||((it.heroes||[]).filter(x=>x!==hid).map(heroName)[0])||"").slice(0,60);try{await S.db.doc("characters/"+hid).update({fateAsk:{at:Date.now(),with:partner,scene:sid,gt:sceneTime(sid)}})}catch(e){}}
+    if(r?.picture)maybeMomentPic(sid,r.picture);
     for(const lv of (Array.isArray(r?.leaves)?r.leaves:[]).slice(0,4))if(lv?.name)await npcLeaves(sid,String(lv.name),lv.to);
     for(const x of (Array.isArray(r?.named)?r.named:[]).slice(0,3)){const nn=npcs.find(n=>slug(n.name)===slug(x?.npc||""));if(!nn||!x.name||slug(x.name)===slug(nn.name))continue;const hs=(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:[S.uid]).filter(id=>S.chars[id]);if(!hs.includes(S.uid))hs.push(S.uid);
       await addNote("alias",hs,{from:nn.name,text:String(x.name).slice(0,60),scene:sid})}
@@ -2465,6 +2538,8 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
     if(S.checks.some(c=>c.status==="pending"&&c.hero===S.uid&&!before.has(c.id)))toast("The DM asks you for a roll. See your hero panel.",3500);
     if(onTable()){renderMyChecks();renderWaiting();renderHost();renderTalk()}autoCheck()},()=>{});
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
+  db.collection("art").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.art=o;S.artLoaded=true;if(onTable())renderTable()},()=>{});
+  setInterval(()=>{try{if(S.db&&isEngine())artTick()}catch(e){}},20000);
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});
   db.collection("holds").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid||!x.hero)return;(o[x.sid]=o[x.sid]||{})[x.hero]=x});S.holds=o;if(onTable())renderTable()},()=>{});
   db.collection("pos").onSnapshot(snap=>{const o={},rm={},ck={},er={},gn={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;if(x.kind==="r"){(rm[x.sid]=rm[x.sid]||{})[slug(x.name||"")]=x;return}if(x.kind==="c"){ck[x.sid]={base:x.base,add:x.add};return}if(x.kind==="k")return;if(x.kind==="g"){(gn[x.sid]=gn[x.sid]||{})[slug(x.id||"")]=x;return}if(x.kind==="e"){(er[x.sid]=er[x.sid]||{})[slug(x.id||"")]=x;return}const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;S.rooms=rm;const clockMoved=JSON.stringify(ck)!==JSON.stringify(S.clock);S.clock=ck;S.errands=er;S.gone=gn;if(onTable()){if(clockMoved)renderTable();else{renderMap();renderTalk()}}},()=>{});

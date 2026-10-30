@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.12.0
+- Painted NPC portraits: once an NPC has a description, the page keeping the world paints them (one at a time) and keeps it. Tap any NPC face to see it large, with Repaint.
+- NPC figures on the map are now built from the same parts as hero figures, using their description (species, gender, hair, beard, role clothing); monsters keep their tiles.
+- Faces in the chat: NPC lines show their portrait or figure.
+- Scene pictures: a painting when the heroes arrive somewhere new, and for striking moments the DM picks (at most one per scene every 15 minutes, never intimate scenes). They appear in the chat and above the scene map, with earlier ones browsable.
+- New `art` collection (players can write).
+
 ## 1.11.1
 - NPCs can become pregnant too: after an intimate scene with a hero, if the DM judges she could conceive and wouldn't have taken her own precautions, the page rolls a secret d20 (18+). The DM keeps it hidden from players, she learns of it after a few weeks, and decides in character whether and when to tell.
 - NPC memory rewrites keep this.
