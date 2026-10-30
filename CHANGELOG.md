@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.0
+- Pregnancy as a player's choice: after an intimate scene with no precautions in the story, the player of a female hero (who isn't already pregnant) privately picks No chance or Chance. Chance rolls a d20, 18+ means pregnant. Only she sees the card and result.
+- The DM knows quietly: signs show gradually after a few weeks of game time, and the telling is left to her player.
+- Saving a character sheet keeps these fields.
+
 ## 1.10.4
 - Rolls are required: while you owe a roll, Say/Do is locked until you roll. The skip option is gone.
 - The host can cancel a roll the DM asked for by mistake, from the host bar.
