@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.1
+- While you're on your way to another scene, you can't keep acting (or Waiting) in the place you left, which used to play out a second copy of where you were heading.
+- New "Join them now" button: step into the scene you're heading to right away, at their time.
+- Short hops (up to an hour ahead of the people there) arrive straight away instead of waiting for their clock.
+
 ## 1.8.0
 - Errands between scenes: an NPC sent from one scene to another (to fetch someone where the other hero is) is known to be there. While they're busy there, the scene they left knows not to bring them back yet, and Wait doesn't skip ahead for them.
 - The DM in the scene they visit knows they're on an errand and sends them back when their business is done (or when someone sends them back). They leave that scene, and the scene they came from gets them back a few minutes later.

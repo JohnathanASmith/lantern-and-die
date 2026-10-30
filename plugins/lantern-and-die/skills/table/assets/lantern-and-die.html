@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.8.0">
+<meta name="lantern-and-die-version" content="1.8.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.8.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.8.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1309,9 +1309,9 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   const reading=!!S.pastView;const vid=S.pastView||live,sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?(reading?"reading back ":"at ")+sc.name:"";
   const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),isPresent(id)?"":" (away)"]);const opts=[...mates.map(m=>m[0]),...npcsHere(mine).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
   $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...mates.map(([n,a])=>h("option",{value:n,text:"To "+n+a})),...npcsHere(mine).map(n=>n.name).filter(Boolean).map(n=>h("option",{value:n,text:"To "+npcLabel(n)})));if(opts.includes(cur))$("talkTo").value=cur;
-  const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held;
+  const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=!!S.game?.waiting?.[S.uid];const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
-  $("talkHint").textContent=reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
+  $("talkHint").textContent=enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
   if(!msgs.length)feed.replaceChildren(h("div",{class:"empty"},S.game?.status==="playing"?"Say something to the people around you. Pick Do for actions like searching, sneaking, cooking or leaving.":"Talk opens once the campaign begins."));
   else{const out=[];let lastStub=null;
@@ -2053,9 +2053,16 @@ function incomingView(sc,sid){const inc=Array.isArray(sc.incoming)?sc.incoming:[
 function waitingView(){const w=S.game?.waiting?.[S.uid];if(!w)return null;
   return h("div",{class:"journey"},h("b",{text:`You've reached ${w.name||S.scenes[w.target]?.name||"your destination"}`}),
     h("div",{class:"att",text:`You arrive at ${clockLabel(w.at)}. The people there are at ${clockLabel(sceneTime(w.target))} and catching up. You'll walk in when their clock reaches your arrival, or sooner if they skip ahead.`}),
-    h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",onclick:()=>{S.view=w.target;renderTable()}},"Watch them"),h("button",{type:"button",class:"ghost",disabled:pendingFor(myScene(),"cancelwait")||null,onclick:cancelWait},"Change plans")))}
+    h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"primary",disabled:pendingFor(myScene(),"joinnow")||null,onclick:joinNow},"Join them now"),h("button",{type:"button",onclick:()=>{S.view=w.target;renderTable()}},"Watch them"),h("button",{type:"button",class:"ghost",disabled:pendingFor(myScene(),"cancelwait")||null,onclick:cancelWait},"Change plans")))}
 async function skipAhead(sid){if(!S.db)return;try{await S.db.collection("updates").add({scene:sid,kind:"skip",plan:String(S.skipPlan||"").slice(0,300),by:S.uid,status:"pending",at:Date.now(),reason:"skip ahead"});S.skipPlan=""}catch(e){toast("Couldn't skip ahead.")}}
+async function joinNow(){if(!S.db)return;try{await S.db.collection("updates").add({scene:myScene(),kind:"joinnow",hero:S.uid,by:S.uid,status:"pending",at:Date.now(),reason:"join now"})}catch(e){toast("Couldn't join right now.")}}
 async function cancelWait(){if(!S.db)return;try{await S.db.collection("updates").add({scene:myScene(),kind:"cancelwait",hero:S.uid,by:S.uid,status:"pending",at:Date.now(),reason:"change plans"})}catch(e){toast("Couldn't change plans.")}}
+/* arrive now: the traveller steps into the other scene at that scene's time (their own clock simply rejoins the group's) */
+async function processJoinNow(u){if(!S.db||S.busy)return;S.busy=true;try{const hid=u.hero,g=S.game||{};const w=g.waiting?.[hid];if(!w||!S.scenes[w.target]){await S.db.doc("updates/"+u.id).update({status:"done"});return}
+    const waiting={...(g.waiting||{})};delete waiting[hid];const heroScene={...(g.heroScene||{}),[hid]:w.target};
+    await S.db.doc("scenes/"+w.target).update({incoming:(S.scenes[w.target].incoming||[]).filter(x=>x.hero!==hid)});
+    await S.db.doc("game/state").update({waiting,heroScene});await postTalk({kind:"sys",text:`${heroName(hid)} arrives · ${clockLabel(sceneTime(w.target))}`,scene:w.target,gt:sceneTime(w.target)});
+    await S.db.doc("updates/"+u.id).update({status:"done"})}catch(e){try{await S.db.doc("updates/"+u.id).update({status:"failed"})}catch(_){}}finally{S.busy=false;autoCheck()}}
 async function processCancelWait(u){if(!S.db||S.busy)return;S.busy=true;try{const hid=u.hero,g=S.game||{};const w=g.waiting?.[hid];const waiting={...(g.waiting||{})};delete waiting[hid];
     if(w&&S.scenes[w.target])await S.db.doc("scenes/"+w.target).update({incoming:(S.scenes[w.target].incoming||[]).filter(x=>x.hero!==hid)});
     await S.db.doc("game/state").update({waiting});if(w&&S.scenes[w.target])await postTalk({kind:"sys",text:`${heroName(hid)} changes plans and won't be arriving after all`,scene:w.target,gt:sceneTime(w.target)});
@@ -2257,7 +2264,7 @@ async function applySceneResult(sid,r,{combat}){if(!r||typeof r!=="object")throw
   const heroScene={...(g.heroScene||{})};for(const[id,c]of Object.entries(S.chars))if(c.ready&&!heroScene[id])heroScene[id]=sceneOf(id);
   const targets={},moved=new Set();
   for(const mv of Array.isArray(r.moves)?r.moves:[]){if(!mv||!S.chars[mv.hero]||!mv.to)continue;const tid=sceneIdFor(mv.to);if(tid===sid)continue;
-    {const ts=S.scenes[tid];if(ts&&heroesIn(tid).length&&Number.isFinite(ts.time)&&t1-ts.time>30){pendingArr.push({hero:String(mv.hero),tid,at:t1,name:ts.name});continue}}
+    {const ts=S.scenes[tid];if(ts&&heroesIn(tid).length&&Number.isFinite(ts.time)&&t1-ts.time>60){pendingArr.push({hero:String(mv.hero),tid,at:t1,name:ts.name});continue}}
     let t=targets[tid]||(S.scenes[tid]?{...S.scenes[tid]}:null);
     if(!t)t={name:String(mv.to).slice(0,80),description:String(mv.description||"").slice(0,300),map:cleanMap(mv.map),tokens:{},npcs:cleanNpcs(mv.npcs),mode:"free",scene:String(mv.narration||"").slice(0,4000),prompt:"",outcomes:[],phase:"actions",seq:0,createdAt:now,lastUpdateAt:now};
     else{if(mv.narration)t.scene=String(mv.narration).slice(0,4000);if(Array.isArray(mv.npcs)&&mv.npcs.length)t.npcs=cleanNpcs(mv.npcs);const m2=cleanMap(mv.map);if(m2&&!t.map)t.map=m2}
@@ -2348,7 +2355,7 @@ function autoCheck(){if(!S.isOwner||!S.db)return;const g=S.game;if(!g||g.status!
       if(s.phase==="rolls")go=!S.checks.some(c=>c.source==="dm"&&c.scene===s.id&&c.seq===seq&&c.status==="pending");
       else{const a=S.actions[ae.id];go=ae.kind==="npc"||(a&&a.scene===s.id&&a.seq===seq)||!alive(S.chars[ae.id])}
       const key=`${seq}|${s.phase}|${s.turn}`;if(go&&lastAuto[s.id]!==key){lastAuto[s.id]=key;resolveCombat(s.id);return}}
-    const p=S.updates.filter(u=>u.status==="pending").sort((a,b)=>a.at-b.at)[0];if(p&&S.scenes[p.scene]){if(p.kind==="travel")processTravel(p);else if(p.kind==="leg")processLeg(p);else if(p.kind==="skip")processSkip(p);else if(p.kind==="wake")processWake(p);else if(p.kind==="cancelwait")processCancelWait(p);else processUpdates(p.scene)}else if(p&&S.scenesLoaded)S.db.doc("updates/"+p.id).update({status:"failed"}).catch(()=>{})},1500)}
+    const p=S.updates.filter(u=>u.status==="pending").sort((a,b)=>a.at-b.at)[0];if(p&&S.scenes[p.scene]){if(p.kind==="travel")processTravel(p);else if(p.kind==="leg")processLeg(p);else if(p.kind==="skip")processSkip(p);else if(p.kind==="wake")processWake(p);else if(p.kind==="cancelwait")processCancelWait(p);else if(p.kind==="joinnow")processJoinNow(p);else processUpdates(p.scene)}else if(p&&S.scenesLoaded)S.db.doc("updates/"+p.id).update({status:"failed"}).catch(()=>{})},1500)}
 
 /* keep talk and chat pinned to the newest line unless the reader scrolled up */
 for(const id of ["feed","chatFeed"])$(id).addEventListener("scroll",e=>{const f=e.target;if(f.clientHeight>0)S.stick[id]=f.scrollHeight-f.scrollTop-f.clientHeight<40});
