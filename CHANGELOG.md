@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.0
+- "DM plays for me" checkbox next to Send. It turns on by itself when a player has been away for 3 minutes and stays on after they return, until they untick it or press Take over. Players can tick it themselves while at the table. While it's on the DM voices that hero between their own lines and rolls for them; they can still say or do things.
+- Earshot preview: the To list shows whether each person hears you (or sees it, for Do), is too far, in another room or asleep, and a line under the input lists who will and won't. It follows Say/Do, Talk/Whisper/Shout, quiet actions and walking over to someone. Hidden listeners are never shown.
+
 ## 1.13.1
 - Character sheet and player card show the new figure when there's no portrait.
 - The Pixel hero tab is now an editor for the new figure: body, skin, hair colour, head, ears, hair, beard, shirt, dress, armour or coat, belt, cloak, legs, feet, headwear, weapon, shield, with colours. Choices sit on top of what your description gives; Match my description again clears them.

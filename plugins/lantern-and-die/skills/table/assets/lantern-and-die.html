@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.13.1">
+<meta name="lantern-and-die-version" content="1.14.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -304,6 +304,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .face img{width:100%;height:100%;object-fit:cover;object-position:50% 15%}
 .face.npix img{image-rendering:pixelated;object-fit:contain;transform:scale(1.25) translateY(6%)}
 .face.tap{cursor:zoom-in}
+.autobar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin:6px 0;padding:8px 12px;border:1px solid var(--accent);border-radius:var(--r);background:var(--raised)}
+.autoplay{display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--muted);white-space:nowrap}
+.earline{font-size:.85rem;color:var(--muted);margin:2px 0 4px}
+.earline b{color:var(--fg);font-weight:600}
 .face.lpcf img{image-rendering:pixelated;object-fit:cover}
 .artcredits{margin:24px 0 8px;max-width:900px}
 .artcredits a{margin-left:4px}
@@ -353,7 +357,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.13.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -438,6 +442,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div class="feed" id="feed" aria-live="polite"></div>
     <div class="label" id="talkBusy"></div>
     <div id="holdTalk"></div>
+    <div id="autoBar" class="autobar" hidden></div>
     <form class="talkform" id="talkForm">
       <div class="talkctl">
         <select id="talkKind" aria-label="How you speak"><option value="say">Say</option><option value="do">Do</option><option value="ask">Ask the DM</option></select>
@@ -447,7 +452,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       <label class="tog" id="askShareRow" hidden style="display:flex;gap:6px;align-items:center;font-size:.9rem"><input type="checkbox" id="askShare"> Share the question and answer with the table</label>
       <textarea id="talkInput" rows="2" maxlength="500" placeholder="&quot;We're not here for trouble. Who runs this town?&quot;" aria-label="What you say or do"></textarea>
       <div class="ideas" id="ideasBox"></div>
-      <div class="actbar"><span class="label" id="talkHint">say or do anything · the world answers right away</span><span style="display:flex;gap:8px"><button type="button" id="waitBtn" class="ghost" title="Let time pass until something's due">Wait</button><button type="button" id="ideasBtn" class="ghost">Ideas</button><button class="primary" type="submit" id="talkSend">Send</button></span></div>
+      <div class="actbar"><span class="label" id="talkHint">say or do anything · the world answers right away</span><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="tog autoplay" title="The DM plays your hero until you untick this. It turns on by itself when you step away."><input type="checkbox" id="autoPlay"> DM plays for me</label><button type="button" id="waitBtn" class="ghost" title="Let time pass until something's due">Wait</button><button type="button" id="ideasBtn" class="ghost">Ideas</button><button class="primary" type="submit" id="talkSend">Send</button></span></div>
     </form>
   </section>
   <section class="panel" data-panel="me" aria-labelledby="meTitle">
@@ -1517,10 +1522,13 @@ $("talkPast").addEventListener("change",e=>{const v=e.target.value||null;S.pastV
 function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastView&&!past.some(([id])=>id===S.pastView))S.pastView=null;
   const tp=$("talkPast");tp.hidden=!past.length;tp.replaceChildren(h("option",{value:"",text:"Now"}),...past.map(([id,n])=>h("option",{value:id,text:"Earlier: "+n,selected:id===S.pastView})));
   const reading=!!S.pastView;const vid=S.pastView||live,sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?(reading?"reading back ":"at ")+sc.name:"";
-  const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),isPresent(id)?"":" (away)"]);const opts=[...mates.map(m=>m[0]),...npcsHere(mine).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
+  const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),!dmPlays(id)?"":isPresent(id)?" (DM playing)":" (away)"]);const opts=[...mates.map(m=>m[0]),...npcsHere(mine).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
   $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...mates.map(([n,a])=>h("option",{value:n,text:"To "+n+a})),...npcsHere(mine).map(n=>n.name).filter(Boolean).map(n=>h("option",{value:n,text:"To "+npcLabel(n)})));if(opts.includes(cur))$("talkTo").value=cur;
   const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=(()=>{const w=S.game?.waiting?.[S.uid];if(!w||w.target===mine)return false;return(S.scenes[w.target]?.incoming||[]).some(x=>x.hero===S.uid)})();const owes=!combat?S.checks.find(c=>c.status==="pending"&&c.hero===S.uid&&c.scene===mine&&c.source==="talk"):null;const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute&&!owes;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
+  {const me=S.chars[S.uid];const on=!!me?.autoplay;$("autoPlay").checked=on;$("autoPlay").disabled=!me?.inPlay||watching;const ab=$("autoBar");ab.hidden=!on||watching;
+   if(on&&!watching)ab.replaceChildren(h("span",{},h("b",{text:`The DM is playing ${heroName(S.uid)} for you.`})," You can still say or do things yourself."),h("button",{type:"button",class:"primary",onclick:()=>setAutoplay(false)},"Take over"))}
+  try{updateEar()}catch(e){}
   $("talkHint").textContent=owes&&!watching?`the DM asked you for a ${owes.label||owes.skill||owes.ability||"check"} roll · roll it below to carry on`:enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
   if(!msgs.length)feed.replaceChildren(h("div",{class:"empty"},S.game?.status==="playing"?"Say something to the people around you. Pick Do for actions like searching, sneaking, cooking or leaving.":"Talk opens once the campaign begins."));
@@ -1546,6 +1554,8 @@ async function waitAWhile(){const sid=myScene();if(!sid||!S.chars[S.uid]?.ready|
   const who=errandsIn(sid).filter(e=>!visitingAt(e.id,sid)&&e.due<=now+mins).map(e=>e.id);
   await guardedSend({sid,kind:"do",to:"",text:`I wait${who.length?" for "+who.join(" and "):""}, about ${mins<60?mins+" minutes":spanLabel(mins)}.`,vol:"open",wait:mins})}
 $("waitBtn").addEventListener("click",waitAWhile);
+async function setAutoplay(on){if(!S.db||!S.uid)return;try{await S.db.doc("characters/"+S.uid).update({autoplay:!!on});toast(on?"The DM will play your hero until you untick it.":"You're playing your hero again.")}catch(e){toast("Couldn't change that")}}
+$("autoPlay").addEventListener("change",e=>setAutoplay(e.target.checked));
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
   const text=`I try to get close enough to hear ${who.join(" and ")||"them"}${sp?.spot?" on the "+sp.spot:""} without being noticed.`;const line=await sayLine(sid,"do","",text,"whisper");
   npcRespond({line,listen:{heroes:m.heard||[],npcs:m.nh||[],spot:sp?.spot||"",x:sp?.x,y:sp?.y}})}
@@ -1569,7 +1579,7 @@ async function guardedSend(p,force){const sid=p.sid;const since=Date.now();
     S.pendingSend=null;renderPending()}
   const line=await sayLine(sid,p.kind,p.to,p.text,p.vol);if(p.wait){npcRespond({line,waitMins:p.wait});return}
   /* talking to a friend who is here and playing: they answer for themselves; nearby NPCs may still react */
-  const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===p.to);const toMate=mate&&p.kind==="say"&&isPresent(mate)?mate:null;
+  const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===p.to);const toMate=mate&&p.kind==="say"&&!dmPlays(mate)?mate:null;
   if(S.scenes[sid]?.mode!=="combat")npcRespond({line,toMate})}
 function renderPending(){let bar=document.getElementById("pendBar");const P=S.pendingSend;if(!P){bar?.remove();return}
   if(!bar){bar=h("div",{id:"pendBar",class:"journey",style:"margin:6px 0"});$("talkForm").before(bar)}
@@ -1695,7 +1705,7 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
     for(const it of (Array.isArray(r?.intimacy)?r.intimacy:[]).slice(0,3)){if(!it?.npc||it.npcCanConceive!==true)continue;const nid=slug(String(it.npc));const m=S.npcmem[nid]||{name:String(it.npc).slice(0,60),notes:[]};if(m.pregnant)continue;
       /* nobody plays the NPC, so the dice decide, in secret: d20, 18+ */
       if(rnd(20)>=18){const pg={since:sceneTime(sid),with:(it.heroes||[]).map(heroName).join(" and ").slice(0,80),at:Date.now()};try{await S.db.doc("npcmem/"+nid).update({pregnant:pg})}catch(e){try{await S.db.doc("npcmem/"+nid).set({...m,name:m.name||String(it.npc).slice(0,60),pregnant:pg,at:Date.now()})}catch(_){}}S.npcmem[nid]={...(S.npcmem[nid]||m),pregnant:pg}}}
-    if(r?.check&&r.check.hero&&S.chars[r.check.hero]){const id=await makeCheck(r.check,"talk",sid,0,tHeard||undefined);if(id&&r.check.hero!==S.uid){if(!isPresent(r.check.hero))setTimeout(()=>autoRollAway(id),400);else toast(`${heroName(r.check.hero)} needs to roll ${r.check.skill||r.check.ability||"a check"}.`,3000)}}
+    if(r?.check&&r.check.hero&&S.chars[r.check.hero]){const id=await makeCheck(r.check,"talk",sid,0,tHeard||undefined);if(id&&dmPlays(r.check.hero))setTimeout(()=>autoRollAway(id),400);else if(id&&r.check.hero!==S.uid){toast(`${heroName(r.check.hero)} needs to roll ${r.check.skill||r.check.ability||"a check"}.`,3000)}}
     const jr=r?.journey;if(jr&&jr.to&&!pendingFor(sid,"travel")){const hs=Array.isArray(jr.heroes)&&jr.heroes.length?jr.heroes:[S.uid];await startJourneyRequest(sid,[...new Set([...hs,...(hs.includes(S.uid)?awayHeroes(sid):[])])],String(jr.to),jr.pace)}
     if(!(jr&&jr.to)&&r?.sceneUpdate&&r.sceneUpdate.reason&&!(la&&Number(la.minutes)>=30&&/sleep|rest|night|hours|dawn|morning|until/i.test(String(r.sceneUpdate.reason))&&!/hp|gold|silver|item|xp|damage|heal|quest/i.test(String(r.sceneUpdate.reason)))){try{await S.db.collection("updates").add({scene:sid,reason:String(r.sceneUpdate.reason).slice(0,240),by:S.uid,status:"pending",at:Date.now()})}catch(e){}}}
   catch(e){toast(sampleErr(e))}
@@ -1765,6 +1775,27 @@ async function undoLastTurn(sid){if(!S.db||!S.isOwner||!sid)return;const lock=aw
     await postTalk({kind:"sys",text:"The host rewound the scene to just before the last move",scene:sid,gt:Number.isFinite(u.scene?.time)?u.scene.time:sceneTime(sid),at:t-1});toast("Rewound to before the last player action.")}
   catch(e){toast("Couldn't undo that.")}finally{S.busy=false;await releaseLock(sid,lock);renderHost()}}
 let undoConfirm=false;
+/* a preview of who hears a line before it's sent; it never mentions anyone hidden */
+function earPreview(sid,kind,to,vol,text){if(kind==="ask")return{note:"Only the DM sees this"+($("askShare")?.checked?", and the answer is shared with the table":""),tags:{}};
+  const P=posOf(sid),me=P.heroes[S.uid];if(!me)return null;const tags={};
+  const visibleNpcs=Object.entries(P.npcs).filter(([,p])=>!p.hidden).map(([n])=>n);const mates=heroesIn(sid).filter(id=>id!==S.uid);
+  let from=me,walk=false;if(to&&P.npcs[to]&&!P.npcs[to].hidden){const t=P.npcs[to];const r0=kind==="do"?(vol==="whisper"?1:RANGE.see):RANGE[vol]??4;if(!(near(me,t,r0)&&sameArea(sid,me,t))){from={x:t.x,y:t.y,spot:t.spot,perch:t.perch};walk=true}}
+  if(kind==="do"&&(vol==="whisper"||me.hidden)){const low=String(text||"").toLowerCase();const named=mates.filter(id=>heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase()));
+    const yes=[...named.map(heroName),...(to&&!named.length&&P.npcs[to]&&!P.npcs[to].hidden?[to]:[])];for(const id of mates)tags[heroName(id)]=named.includes(id)?"in on it":"won't notice";for(const n of visibleNpcs)tags[n]=yes.includes(n)?"in on it":"won't notice";
+    return{yes,no:[],note:me.hidden?"You're hidden: only who you name or aim it at knows":"A quiet action: only who you name or aim it at knows",tags,walk}}
+  const r=kind==="do"?"see":(vol||"talk");const e=earshot(sid,{...from,spot:from.spot||"",perch:from.perch||""},r);
+  const why=p=>!p?"not here":(p.spot||"")!==(from.spot||"")||!sameArea(sid,from,p)?"other room":"too far";
+  const yes=[],no=[];for(const id of mates){const p=P.heroes[id],n=heroName(id);if(e.heard.includes(id)&&holdOf(sid,id)?.kind!=="sleep"){yes.push(n);tags[n]=kind==="do"?"sees it":"hears you"}else{const w=holdOf(sid,id)?.kind==="sleep"?"asleep":why(p);no.push(`${n} (${w})`);tags[n]=w}}
+  for(const n of visibleNpcs){const lbl=npcLabel(n);if(e.nh.includes(n)){yes.push(lbl);tags[n]=kind==="do"?"sees it":"hears you"}else{const w=why(P.npcs[n]);no.push(`${lbl} (${w})`);tags[n]=w}}
+  if(walk&&to)tags[to]=(kind==="do"?"sees it":"hears you")+" (you'll walk over)";
+  return{yes,no,tags,walk,note:vol==="shout"&&kind==="say"?"Shouting carries everywhere here":""}}
+function updateEar(){let el=document.getElementById("talkEar");if(!el){el=h("div",{id:"talkEar",class:"earline","aria-live":"polite"});$("talkInput").after(el)}
+  const sid=myScene(),kind=$("talkKind").value,to=$("talkTo").value,vol=$("talkVol").value;const pv=!sid||!S.scenes[sid]||S.pastView||viewId()!==sid||!S.chars[S.uid]?.ready||S.scenes[sid]?.mode==="combat"?null:earPreview(sid,kind,to,vol,$("talkInput").value);
+  for(const o of $("talkTo").options){if(!o.dataset.base)o.dataset.base=o.textContent;const t=pv?.tags?.[o.value];o.textContent=o.dataset.base+(o.value&&t?` · ${t}`:"")}
+  if(!pv){el.replaceChildren();return}
+  el.replaceChildren(...[pv.note?h("div",{text:pv.note}):null,pv.yes&&(pv.yes.length||pv.no?.length)?h("div",{},h("span",{text:kind==="do"?"Seen by: ":"Heard by: "}),h("b",{text:pv.yes.length?pv.yes.join(", "):"nobody but you"}),pv.no?.length?` · Not: ${pv.no.join(", ")}`:"",pv.walk?" · you'll walk over first":""):null].filter(Boolean))}
+for(const id of ["talkKind","talkTo","talkVol","askShare"])$(id)?.addEventListener("change",()=>{try{updateEar()}catch(e){}});
+$("talkInput").addEventListener("input",()=>{if($("talkKind").value==="do")try{updateEar()}catch(e){}});
 async function sayLine(sid,kind,to,text,vol){await takeUndoSnapshot(sid);if(to&&posOf(sid).npcs[to])await approach(sid,to);const r=kind==="do"?(vol==="whisper"?"whisper":"see"):(vol||"talk");let e=earshot(sid,{hero:S.uid},r);
   /* a quiet action or anything done while hidden is secret: nobody notices it unless the DM says they do (only the person it's aimed at is in on it) */
   const meP=posOf(sid).heroes[S.uid];if(kind==="do"&&(vol==="whisper"||meP?.hidden)){const low=String(text).toLowerCase();const mates=heroesIn(sid).filter(id=>id!==S.uid&&(heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase())));e={heard:[S.uid,...mates],nh:to&&!mates.length&&posOf(sid).npcs[to]?[to]:[]}}
@@ -2029,10 +2060,12 @@ S.clock={};S.errands={};
 /* the scene clock moves with play: players add minutes in a pos doc on top of the stored scene time; the next DM update folds it in */
 /* is this hero's player at the table right now? unknown = assume yes, so the DM never takes over by mistake */
 function isPresent(id){if(id===S.uid)return true;if(!S.online)return true;const p=S.online[id];if(!p)return false;return p.active||Date.now()-(p.since||0)<180000}
-function awayHeroes(sid){return heroesIn(sid).filter(id=>id!==S.uid&&!isPresent(id)&&holdOf(sid,id)?.kind!=="sleep"&&alive(S.chars[id]))}
+/* the DM plays a hero when their player is away, or when the player ticked "DM plays for me" (it stays ticked until they untick it) */
+function dmPlays(id){return !isPresent(id)||!!S.chars[id]?.autoplay}
+function awayHeroes(sid){return heroesIn(sid).filter(id=>id!==S.uid&&dmPlays(id)&&holdOf(sid,id)?.kind!=="sleep"&&alive(S.chars[id]))}
 function playedAs(id,n=6){return S.talk.filter(m=>m.hero===id&&!m.auto&&(m.kind==="say"||m.kind==="do")).sort((a,b)=>b.at-a.at).slice(0,n).map(m=>(m.kind==="do"?"*":"")+String(m.text).slice(0,140)).reverse()}
 function partyNote(sid){const others=heroesIn(sid).filter(id=>id!==S.uid);if(!others.length)return"";const away=awayHeroes(sid);
-  return `\nPLAYER HEROES: ${others.map(id=>`${heroName(id)} (${id}) is ${away.includes(id)?"AWAY (their player is not at the table)":"played live by their player"}`).join("; ")}. Never speak or act for a hero whose player is present: describe only what the world does and leave their words and choices to them.${away.length?` For AWAY heroes you may voice and move them as a loyal party member would: follow the group, help, answer when spoken to, react in a line, true to their personality and to how their player plays them (examples below). Keep it small and in character; never make big choices for them (spending their coin, romance, risky deeds, sacrifices, splitting from the party, decisions about their own story). Use their exact name as "speaker" for their lines. HOW THEIR PLAYERS PLAY THEM: ${JSON.stringify(Object.fromEntries(away.map(id=>{const c=S.chars[id]||{};return[heroName(id),{personality:c.personality||"",recent:playedAs(id)}]})))}`:""}`}
+  return `\nPLAYER HEROES: ${others.map(id=>`${heroName(id)} (${id}) is ${away.includes(id)?(isPresent(id)?"AWAY (their player asked the DM to play them for now)":"AWAY (their player is not at the table)"):"played live by their player"}`).join("; ")}. Never speak or act for a hero whose player is present: describe only what the world does and leave their words and choices to them.${away.length?` For AWAY heroes you may voice and move them as a loyal party member would: follow the group, help, answer when spoken to, react in a line, true to their personality and to how their player plays them (examples below). Keep it small and in character; never make big choices for them (spending their coin, romance, risky deeds, sacrifices, splitting from the party, decisions about their own story). Use their exact name as "speaker" for their lines. HOW THEIR PLAYERS PLAY THEM: ${JSON.stringify(Object.fromEntries(away.map(id=>{const c=S.chars[id]||{};return[heroName(id),{personality:c.personality||"",recent:playedAs(id)}]})))}`:""}`}
 function sceneTime(sid){const sc=S.scenes?.[sid];const base=Number.isFinite(sc?.time)?sc.time:gameTime();const c=S.clock?.[sid];return base+(c&&c.base===base?Math.max(0,+c.add||0):0)}
 async function tickClock(sid,mins){mins=Math.round(+mins||0);if(!S.db||!sid||mins<=0)return;const sc=S.scenes[sid];if(!sc)return;const base=Number.isFinite(sc.time)?sc.time:gameTime();const c=S.clock[sid];const add=(c&&c.base===base?+c.add||0:0)+Math.min(mins,240);
   S.clock[sid]={base,add};try{await S.db.doc("pos/"+`${sid}~c~clock`).set({sid,kind:"c",base,add,at:Date.now()})}catch(e){}}
@@ -2611,8 +2644,10 @@ async function migrate(){if(migrating)return;migrating=true;const g=S.game;const
 function isEngine(){if(S.isOwner)return true;if(!S.online||!S.uid)return false;const o=S.online;const fresh=p=>p.active||Date.now()-(p.since||0)<180000;
   if(Object.values(o).some(p=>p.host&&fresh(p)))return false;const ids=new Set([S.uid]);for(const[id,p]of Object.entries(o))if(!p.host&&fresh(p))ids.add(id);return[...ids].sort()[0]===S.uid}
 const leftRoll=new Set();
+const autoOnSet=new Set();
 function autoCheck(){if(!S.db||!isEngine())return;
-  for(const k of S.checks)if(k.status==="pending"&&k.source==="talk"&&k.hero!==S.uid&&!leftRoll.has(k.id)&&!isPresent(k.hero)&&Date.now()-(k.at||0)>60000){leftRoll.add(k.id);autoRollAway(k.id)}const g=S.game;if(!g||g.status!=="playing"||!S.scenesLoaded)return;
+  if(S.online&&S.game?.status==="playing")for(const[id,c]of Object.entries(S.chars))if(c.inPlay&&id!==S.uid&&!c.autoplay&&!isPresent(id)&&!autoOnSet.has(id)){autoOnSet.add(id);S.db.doc("characters/"+id).update({autoplay:true}).catch(()=>{})}
+  for(const k of S.checks)if(k.status==="pending"&&k.source==="talk"&&!leftRoll.has(k.id)&&dmPlays(k.hero)&&Date.now()-(k.at||0)>60000){leftRoll.add(k.id);autoRollAway(k.id)}const g=S.game;if(!g||g.status!=="playing"||!S.scenesLoaded)return;
   if(S.isOwner&&!g.heroScene&&!Object.keys(S.scenes).length){migrate();return}
   const unseated=Object.entries(S.chars).filter(([id,c])=>c.ready&&!(g.heroScene||{})[id]&&primaryScene()).map(([id])=>id);
   if(S.isOwner&&unseated.length&&!S.busy){const hs={...(g.heroScene||{})};for(const id of unseated)hs[id]=primaryScene();S.db.doc("game/state").update({heroScene:hs}).catch(()=>{});for(const id of unseated)S.db.doc("characters/"+id).update({inPlay:true}).catch(()=>{});return}
