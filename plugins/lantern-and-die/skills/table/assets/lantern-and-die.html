@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.8.2">
+<meta name="lantern-and-die-version" content="1.8.3">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.8.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.8.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1447,7 +1447,9 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
     for(const d of (Array.isArray(r?.discovered)?r.discovered:[]).slice(0,4)){if(!d||!Number.isFinite(+d.x))continue;const hs=(Array.isArray(d.heroes)?d.heroes:[S.uid]).filter(id=>S.chars[id]);if(!hs.length)continue;try{await S.db.collection("notes").add({kind:"exit",heroes:hs,scene:sid,room:String(d.room||""),x:Math.round(+d.x),y:Math.round(+d.y),text:"",at:Date.now(),by:S.uid||""})}catch(e){}}
     for(const mv of (Array.isArray(r?.moves)?r.moves:[]).slice(0,6)){if(!mv)continue;const who=String(mv.who||"");if(S.chars[who]&&posOf(sid).heroes[who])await setPos(sid,{hero:who},mv);else{const nn=npcs.find(n=>slug(n.name)===slug(who));if(nn)await setPos(sid,{npc:nn.name},mv)}}
     const away=awayHeroes(sid);
-    for(const rp of (Array.isArray(r?.replies)?r.replies:[]).slice(0,3)){const line=String(rp.line||"").slice(0,700),act=String(rp.action||"").slice(0,200);if(!line&&!act)continue;const spk=String(rp.speaker||"Someone").slice(0,60);
+    for(const rp of (Array.isArray(r?.replies)?r.replies:[]).slice(0,3)){const line=String(rp.line||"").slice(0,700),act=String(rp.action||"").slice(0,200);if(!line&&!act)continue;let spk=String(rp.speaker||"Someone").slice(0,60);
+      /* the DM used a learned name ("Tamsin") instead of the listed id ("Young woman in a grey shawl"): map it back so it stays one person */
+      if(spk!=="Narrator"&&!npcs.some(n=>slug(n.name)===slug(spk))){const al=S.notes.find(x=>x.kind==="alias"&&slug(x.text||"")===slug(spk)&&npcs.some(n=>slug(n.name)===slug(x.from||"")));if(al)spk=npcs.find(n=>slug(n.name)===slug(al.from)).name}
       const hid=Object.keys(S.chars).find(id=>slug(heroName(id))===slug(spk)||slug(String(heroName(id)).split(" ")[0])===slug(spk));
       if(hid){if(!away.includes(hid))continue;const v=line?"talk":"open";const e=earshot(sid,{hero:hid},line?"talk":"see");const heard=[...new Set([...e.heard,S.uid])];
         await postTalk({kind:line?"say":"do",hero:hid,auto:true,text:line||act,to:"",vol:v,scene:sid,heard,nh:e.nh,stub:String(rp.othersSee||"").slice(0,200)});continue}

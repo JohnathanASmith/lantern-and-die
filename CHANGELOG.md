@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.3
+- If the DM voices an NPC by the name a hero learned (Tamsin) instead of the listed name, the line is filed under the same person, so one NPC never splits into two.
+
 ## 1.8.2
 - A hero who moves on to another scene no longer keeps a stale "on the way" status that could lock their Talk box.
 
