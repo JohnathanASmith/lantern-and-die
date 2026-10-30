@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.7">
+<meta name="lantern-and-die-version" content="1.14.8">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.7"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.8"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1738,7 +1738,7 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
       try{await S.db.doc("pos/"+`${sid}~r~${slug(rm.name).slice(0,60)}`).set({sid,kind:"r",name:String(rm.name).slice(0,40),rows:m.rows.map(x=>x.slice(0,12)).slice(0,8),theme:m.theme||"",features:cleanFeatures(rm.features),from:fr,at:Date.now()})}catch(e){}}
     for(const d of (Array.isArray(r?.discovered)?r.discovered:[]).slice(0,4)){if(!d||!Number.isFinite(+d.x))continue;const hs=(Array.isArray(d.heroes)?d.heroes:[ME]).filter(id=>S.chars[id]);if(!hs.length)continue;try{await S.db.collection("notes").add({kind:"exit",heroes:hs,scene:sid,room:String(d.room||""),x:Math.round(+d.x),y:Math.round(+d.y),text:"",at:Date.now(),by:ME||""})}catch(e){}}
     if(!(Array.isArray(r?.moves)&&r.moves.length)&&Array.isArray(r?.replies)){const said=r.replies.map(x=>`${x.line||""} ${x.action||""}`).join(" ");
-      if(MOVE_WORDS.test(said))try{const mv2=await S.sample.json(`You track where everyone stands on a D&D scene map. This just happened:\n${said.slice(0,1200)}\nMap rows (x left to right from 0, y top to bottom from 0): ${JSON.stringify(parseMap(sc.map))}\nWhere everyone was: ${whereAll}\nIf the text moved anyone (someone stepped away, hung back, went ahead, followed, crossed the room, hid), give their new places; people told to stay or hold keep their place while the others move on, and companions who go along with someone move too. Keep people who did not move out of the list. Reply with ONLY JSON: {"moves":[{"who":"<hero id> or NPC name","x":0,"y":0,"spot":"","perch":"","hidden":false}]}`,{...aiOpts("talk","default"),cache:false});if(Array.isArray(mv2?.moves))r.moves=mv2.moves}catch(e){}}
+      if(MOVE_WORDS.test(said))try{const mv2=await S.sample.json(`You track where everyone stands on a D&D scene map. This just happened:\n${said.slice(0,1200)}\nMap rows (x left to right from 0, y top to bottom from 0): ${JSON.stringify(parseMap(sc.map))}\nWhere everyone was: ${whereAll}\nIf the text moved anyone (someone stepped away, hung back, went ahead, followed, crossed the room, hid), give their new places; people told to stay or hold keep their place while the others move on, and companions who go along with someone move too. Keep people who did not move out of the list. "spot" is ONLY for a separate room behind a door that already exists (${Object.values(roomsOf(sid)).map(r=>r.name).join(", ")||"none here"}); otherwise leave it empty and just give x,y on the main map. Never put a description in "spot". Reply with ONLY JSON: {"moves":[{"who":"<hero id> or NPC name","x":0,"y":0,"spot":"","perch":"","hidden":false}]}`,{...aiOpts("talk","default"),cache:false});if(Array.isArray(mv2?.moves))r.moves=mv2.moves}catch(e){}}
     for(const mv of (Array.isArray(r?.moves)?r.moves:[]).slice(0,6)){if(!mv)continue;const who=String(mv.who||"");if(S.chars[who]&&posOf(sid).heroes[who])await setPosRaw(sid,{hero:who},mv);else{const nn=npcs.find(n=>slug(n.name)===slug(who));if(nn)await setPosRaw(sid,{npc:nn.name},mv)}}
     const away=awayHeroes(sid);
     for(const rp of (Array.isArray(r?.replies)?r.replies:[]).slice(0,3)){const line=String(rp.line||"").slice(0,700),act=String(rp.action||"").slice(0,200);if(!line&&!act)continue;let spk=String(rp.speaker||"Someone").slice(0,60);
@@ -1981,7 +1981,7 @@ function roomsBrief(sid){return Object.values(roomsOf(sid)).map(r=>({name:r.name
 function exitsUnexplained(sid){const out=[];const add=(room,map,feats)=>{const rows=parseMap(map);rows.forEach((row,y)=>[...row].forEach((ch,x)=>{const k=GLYPH[ch];if(!EXIT_KINDS.has(k)||k==="trap")return;if(!feats.some(f=>f.x===x&&f.y===y&&f.leads))out.push(`${room||"main room"} ${x},${y} ${FEAT_NAMES[k]}`)}))};
   const sc=S.scenes[sid]||{};add("",linkedMap(sid,"",sc.map),exitFeatures(sid,""));for(const r of Object.values(roomsOf(sid)))add(r.name,r.map,r.map?.features||[]);return out.slice(0,12)}
 function roomKey(sid,name){name=String(name||"").trim();if(!name)return"";const rs=roomsOf(sid),k=slug(name);if(rs[k])return rs[k].name;
-  const word=(name.toLowerCase().match(/[a-z]{5,}/)||[])[0];if(word){const hit=Object.values(rs).find(r=>r.name.toLowerCase().includes(word));if(hit)return hit.name}return name}
+  const word=(name.toLowerCase().match(/[a-z]{5,}/)||[])[0];if(word){const hit=Object.values(rs).find(r=>r.name.toLowerCase().includes(word));if(hit)return hit.name}return""}
 function splitSpot(sid,spot){spot=String(spot||"").trim();if(!spot)return{spot:"",perch:""};if(roomsOf(sid)[slug(spot)]||!PERCH_RE.test(spot))return{spot:roomKey(sid,spot),perch:""};return{spot:"",perch:spot}}
 function defaultRoomMap(sc){const t=sceneTheme(sc);return{theme:["tavern","inn","house","shop","library"].includes(t)?"house":t,rows:["########","#......#","#......#","#......#","###D####"]}}
 function roomMapOf(sid,room){const sc=S.scenes[sid]||{};if(!room)return sc.map;return roomsOf(sid)[slug(room)]?.map||defaultRoomMap(sc)}

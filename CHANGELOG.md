@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.8
+- Fix: when the DM described where someone stood ("her cockle beds", "following Legrey's bootprints") the game treated that as a separate room, so people standing side by side couldn't hear each other. Only real rooms behind a door count as separate now; anything else is the open area. The movement check also tells the DM this.
+
 ## 1.14.7
 - Timed DM-played turns (and the countdown bar) only run when every hero in the scene is DM-played. While anyone plays live, DM-played heroes act like engaged companions instead: they always answer when spoken to and often chime in about what was just said or done, but never start things on their own between the live player's lines.
 
