@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.2">
+<meta name="lantern-and-die-version" content="1.14.3">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1568,7 +1568,7 @@ const AUTO_QUIET=40000,AUTO_STREAK=8;let autoTurnBusy=false;
 function autoStreak(sid){let n=0;for(const m of S.talk.filter(m=>msgScene(m)===sid).sort((a,b)=>b.at-a.at)){if(m.kind==="sys"&&m.autoresume)break;if((m.kind==="say"||m.kind==="do")&&m.hero){if(!m.auto)break;if(m.autoturn)n++}}return n}
 function autoCandidates(sid){return heroesIn(sid).filter(id=>dmPlays(id)&&alive(S.chars[id])&&holdOf(sid,id)?.kind!=="sleep"&&!S.game?.waiting?.[id])}
 async function autoTurnTick(){if(autoTurnBusy||S.busy||npcBusy||!S.sample||!S.db||S.game?.status!=="playing"||!isEngine())return;
-  for(const sid of [...new Set(Object.values(S.game?.heroScene||{}))]){const sc=S.scenes[sid];if(!sc||sc.mode==="combat"||isJourney(sc))continue;
+  for(const sid of [...new Set(Object.values(S.game?.heroScene||{}))]){const sc=S.scenes[sid];if(!sc||sc.mode==="combat")continue;if(isJourney(sc)&&pendingFor(sid,"leg"))continue;
     const cands=autoCandidates(sid);if(!cands.length||!heroesIn(sid).some(id=>isPresent(id)))continue;
     const last=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="pic"&&m.kind!=="sys").reduce((t,m)=>Math.max(t,m.at||0),0);if(Date.now()-last<AUTO_QUIET)continue;
     if(S.checks.some(c=>c.status==="pending"&&c.scene===sid)||S.updates.some(u=>u.status==="pending"&&u.scene===sid)||await heldByOther(sid))continue;
@@ -1582,7 +1582,7 @@ async function autoTurn(sid,actor){const sc=S.scenes[sid]||{},c=S.chars[actor]||
 Personality: ${c.personality||""}. Appearance: ${String(c.appearance||"").slice(0,300)}. Backstory: ${String(c.backstory||"").slice(0,300)}.
 How their player plays them: ${JSON.stringify(playedAs(actor))}
 Quests they know: ${JSON.stringify(notesFor(actor,"quest").map(q=>q.title+": "+String(q.text||"").slice(0,160)))}
-Place: ${sc.name}. ${String(sc.scene||sc.description||"").slice(0,500)}
+Place: ${sc.name}. ${String(sc.scene||sc.description||"").slice(0,500)}${isJourney(sc)?"\nON THE ROAD: the party is travelling. Talk, look around, react to what the road shows or help the others, but never decide to push on, make camp or turn back; the other heroes or their players choose that.":""}
 People here: ${people||"nobody else"}
 What they've seen and heard lately:
 ${seen}
@@ -1596,7 +1596,7 @@ Reply with ONLY JSON: {"kind":"say|do|wait","to":"exact name of who they address
   await npcRespond({line,actor,...(mate&&kind==="say"&&!dmPlays(mate)?{toMate:mate}:{})})}
 setInterval(()=>{try{autoTurnTick()}catch(e){}},5000);
 /* what the next DM-played turn looks like from here: who, and when */
-function autoEta(sid){const sc=S.scenes[sid];if(!sc||sc.mode==="combat"||isJourney(sc)||S.game?.status!=="playing")return null;const cands=autoCandidates(sid);if(!cands.length)return null;
+function autoEta(sid){const sc=S.scenes[sid];if(!sc||S.game?.status!=="playing")return null;const cands=autoCandidates(sid);if(!cands.length)return null;if(sc.mode==="combat")return{hold:"it's combat, so heroes act on their turns"};if(isJourney(sc)&&pendingFor(sid,"leg"))return{hold:"the party is on the move"};
   if(!heroesIn(sid).some(id=>isPresent(id)))return null;if(autoStreak(sid)>=AUTO_STREAK)return{paused:true};
   if(S.checks.some(c=>c.status==="pending"&&c.scene===sid))return{hold:"waiting on a roll"};if(S.updates.some(u=>u.status==="pending"&&u.scene===sid))return{hold:"the DM is updating the world"};
   const last=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="pic"&&m.kind!=="sys").reduce((t,m)=>Math.max(t,m.at||0),0);const lastBy=id=>S.talk.filter(m=>msgScene(m)===sid&&m.hero===id).reduce((t,m)=>Math.max(t,m.at||0),0);

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.3
+- DM-played heroes now take turns on the road too (journeys were skipped before, so the countdown bar never showed there). On the road they talk, look around and help, but never push on, camp or turn back.
+- The countdown bar explains when DM play is held for combat or while the party is moving.
+
 ## 1.14.2
 - A progress bar above Say/Do counts down to the next DM-played turn (who and how many seconds), shows when the DM is answering, and says when DM play is waiting on a roll or paused.
 - Pictures and system notes no longer reset the quiet timer; DM-play checks every 5 seconds.
