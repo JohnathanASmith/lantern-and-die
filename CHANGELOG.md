@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.4
+- Rolls are required: while you owe a roll, Say/Do is locked until you roll. The skip option is gone.
+- The host can cancel a roll the DM asked for by mistake, from the host bar.
+- While a roll is waiting, the DM is told not to resolve that attempt or move the scene past it; others can still talk.
+- If a player leaves (away for over a minute after the 3-minute grace) while owing a roll, the game rolls for them.
+
 ## 1.10.3
 - NPCs now have a remembered look (under 250 characters), set when they first appear and updated when it changes (mud, blood, new clothes). It follows them between scenes and is sent with every conversation and world update, so NPCs stay consistent and notice each other's looks.
 

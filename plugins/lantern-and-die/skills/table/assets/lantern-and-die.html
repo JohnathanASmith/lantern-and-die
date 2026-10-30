@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.10.3">
+<meta name="lantern-and-die-version" content="1.10.4">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.10.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.10.4"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1319,9 +1319,9 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   const reading=!!S.pastView;const vid=S.pastView||live,sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?(reading?"reading back ":"at ")+sc.name:"";
   const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),isPresent(id)?"":" (away)"]);const opts=[...mates.map(m=>m[0]),...npcsHere(mine).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
   $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...mates.map(([n,a])=>h("option",{value:n,text:"To "+n+a})),...npcsHere(mine).map(n=>n.name).filter(Boolean).map(n=>h("option",{value:n,text:"To "+npcLabel(n)})));if(opts.includes(cur))$("talkTo").value=cur;
-  const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=(()=>{const w=S.game?.waiting?.[S.uid];if(!w||w.target===mine)return false;return(S.scenes[w.target]?.incoming||[]).some(x=>x.hero===S.uid)})();const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute;
+  const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=(()=>{const w=S.game?.waiting?.[S.uid];if(!w||w.target===mine)return false;return(S.scenes[w.target]?.incoming||[]).some(x=>x.hero===S.uid)})();const owes=!combat?S.checks.find(c=>c.status==="pending"&&c.hero===S.uid&&c.scene===mine&&c.source==="talk"):null;const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute&&!owes;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
-  $("talkHint").textContent=enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
+  $("talkHint").textContent=owes&&!watching?`the DM asked you for a ${owes.label||owes.skill||owes.ability||"check"} roll · roll it below to carry on`:enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
   if(!msgs.length)feed.replaceChildren(h("div",{class:"empty"},S.game?.status==="playing"?"Say something to the people around you. Pick Do for actions like searching, sneaking, cooking or leaving.":"Talk opens once the campaign begins."));
   else{const out=[];let lastStub=null;
@@ -1373,9 +1373,8 @@ async function guardedSend(p,force){const sid=p.sid;const since=Date.now();
 function renderPending(){let bar=document.getElementById("pendBar");const P=S.pendingSend;if(!P){bar?.remove();return}
   if(!bar){bar=h("div",{id:"pendBar",class:"journey",style:"margin:6px 0"});$("talkForm").before(bar)}
   const quote=h("div",{class:"att",text:`Yours: ${P.kind==="do"?"":"“"}${P.text}${P.kind==="do"?"":"”"}`});
-  if(P.state==="roll"){const k=P.check;bar.replaceChildren(h("b",{text:`Your ${k.label||k.skill||k.ability||"roll"} is still waiting`}),h("div",{class:"att",text:`${k.reason||"The DM asked for a roll"}. The story is paused on it, so roll before you move on, or skip it and the attempt simply doesn't happen.`}),quote,
+  if(P.state==="roll"){const k=P.check;bar.replaceChildren(h("b",{text:`Your ${k.label||k.skill||k.ability||"roll"} is still waiting`}),h("div",{class:"att",text:`${k.reason||"The DM asked for a roll"}. Roll it first; your line is kept so you can send it after.`}),quote,
     h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"primary",onclick:()=>{$("talkInput").value=P.text;$("talkKind").value=P.kind;S.pendingSend=null;renderPending();rollCheck(k)}},"Roll it first"),
-      h("button",{type:"button",onclick:async()=>{const q=S.pendingSend;S.pendingSend=null;renderPending();try{await S.db.doc("checks/"+k.id).update({status:"skipped",rolledAt:Date.now()})}catch(e){}guardedSend({...q,rollOk:true})}},"Skip the roll and send"),
       h("button",{type:"button",class:"ghost",onclick:()=>{$("talkInput").value=P.text;S.pendingSend=null;renderPending()}},"Take it back")));return}
   if(P.state==="waiting"){bar.replaceChildren(h("div",{},h("span",{class:"spin"})," The DM is answering someone else first. Your line goes next."),quote,h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"ghost",onclick:()=>{$("talkInput").value=P.text;S.pendingSend=null;renderPending()}},"Take it back")));return}
   bar.replaceChildren(h("b",{text:"While you waited, this happened:"}),...P.fresh.map(m=>h("div",{class:"att",text:`${m.hero?heroName(m.hero):npcLabel(m.speaker)}: ${String(m.text||m.action||"").slice(0,160)}`})),quote,h("div",{},"Still send it?"),
@@ -1443,7 +1442,7 @@ ${recent}
 ${trig}${mateTxt}
 ${earTxt}
 ${holdsTxt?"ASLEEP OR BUSY RIGHT NOW: "+holdsTxt+". They are out of the action until they wake.":""}
-${listenTxt}
+${listenTxt}${(()=>{const o=S.checks.filter(c=>c.status==="pending"&&c.source==="talk"&&c.scene===sid);return o.length?"\nUNRESOLVED ROLLS: "+o.map(c=>`${heroName(c.hero)}'s ${c.label||c.skill||"roll"} (${c.reason||"an attempt"})`).join("; ")+" "+(o.length>1?"are":"is")+" still being rolled. Do not narrate how those attempts turn out, do not ask for another roll for the same thing, and do not move the scene past that moment; other people can talk and act around it.":""})()}
 
 Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty","looks":"how they look, under 250 characters: set it when an NPC first appears without one, or when their look changes (wet, bloodied, changed clothes); else empty"}],"moves":[],"rooms":[],"discovered":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null,"minutes":2,"away":[],"returns":[],"named":[],"leaves":[]}
 leaves: [{"name":"NPC name","to":"where they go"}] for NPCs who walk out of this scene to another place (back to whoever sent them, home, to fetch someone elsewhere); they stop being here.
@@ -2165,6 +2164,7 @@ function renderHost(){const a=$("hostArea");if(!S.isOwner){a.replaceChildren();r
   else{status=pend?`${pend} world update${pend>1?"s":""} waiting`:"world is up to date";btn="Update the scene now";act=()=>processUpdates(vid,true)}
   const working=S.busy||sc.resolving;
   a.replaceChildren(h("div",{class:"hostbar"},h("span",{class:"label"},working?h("span",{class:"spin"}):null,` host · ${sc.name||"scene"} · ${working?"the DM is working…":status}`),
+    ...S.checks.filter(c=>c.status==="pending"&&c.source==="talk").map(k=>h("button",{type:"button",class:"ghost",title:"For a roll the DM asked for by mistake",onclick:async()=>{try{await S.db.doc("checks/"+k.id).update({status:"cancelled",rolledAt:Date.now()});await postTalk({kind:"sys",text:`The host cancelled ${heroName(k.hero)}'s ${k.label||k.skill||"roll"}`,scene:k.scene})}catch(e){toast("Couldn't cancel that roll")}}},`Cancel ${heroName(k.hero)}'s ${k.skill||k.ability||"roll"}`)),
     h("select",{class:"tonepick","aria-label":"Dice",title:"How often the DM calls for rolls",onchange:async e=>{try{await S.db.doc("game/state").update({dice:e.target.value});toast("Dice: "+DICE[e.target.value])}catch(err){toast("Couldn't change that")}}},Object.entries(DICE).map(([v,t])=>h("option",{value:v,text:"Dice: "+t,selected:v===(g.dice||"standard")}))),
     h("select",{class:"tonepick","aria-label":"Campaign tone",title:"Campaign tone",onchange:async e=>{try{await S.db.doc("game/state").update({tone:e.target.value});toast("Tone: "+e.target.value)}catch(err){toast("Couldn't change the tone")}}},Object.keys(TONES).map(t=>h("option",{text:t,selected:t===(g.tone||"Heroic & fun")}))),
     sc.mode!=="combat"?h("button",{type:"button",onclick:()=>rest("short",vid)},"Short rest"):null,sc.mode!=="combat"?h("button",{type:"button",onclick:()=>rest("long",vid)},"Long rest"):null,
@@ -2401,7 +2401,9 @@ async function migrate(){if(migrating)return;migrating=true;const g=S.game;const
 /* the DM's bookkeeping runs on the host's page; when the host is away, the present player with the lowest id takes over so the world keeps up */
 function isEngine(){if(S.isOwner)return true;if(!S.online||!S.uid)return false;const o=S.online;const fresh=p=>p.active||Date.now()-(p.since||0)<180000;
   if(Object.values(o).some(p=>p.host&&fresh(p)))return false;const ids=new Set([S.uid]);for(const[id,p]of Object.entries(o))if(!p.host&&fresh(p))ids.add(id);return[...ids].sort()[0]===S.uid}
-function autoCheck(){if(!S.db||!isEngine())return;const g=S.game;if(!g||g.status!=="playing"||!S.scenesLoaded)return;
+const leftRoll=new Set();
+function autoCheck(){if(!S.db||!isEngine())return;
+  for(const k of S.checks)if(k.status==="pending"&&k.source==="talk"&&k.hero!==S.uid&&!leftRoll.has(k.id)&&!isPresent(k.hero)&&Date.now()-(k.at||0)>60000){leftRoll.add(k.id);autoRollAway(k.id)}const g=S.game;if(!g||g.status!=="playing"||!S.scenesLoaded)return;
   if(S.isOwner&&!g.heroScene&&!Object.keys(S.scenes).length){migrate();return}
   const unseated=Object.entries(S.chars).filter(([id,c])=>c.ready&&!(g.heroScene||{})[id]&&primaryScene()).map(([id])=>id);
   if(S.isOwner&&unseated.length&&!S.busy){const hs={...(g.heroScene||{})};for(const id of unseated)hs[id]=primaryScene();S.db.doc("game/state").update({heroScene:hs}).catch(()=>{});for(const id of unseated)S.db.doc("characters/"+id).update({inPlay:true}).catch(()=>{});return}
@@ -2429,7 +2431,7 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
   if(user){S.uid=await user.id();S.isOwner=await user.isOwner();S.canWrite=await user.can("data.write")}
   if(room&&S.uid&&typeof room.onPeers==="function"){S.online={};const pub=()=>{try{room.presence({hero:S.uid,active:!document.hidden,host:!!S.isOwner})?.catch?.(()=>{})}catch(e){}};pub();document.addEventListener("visibilitychange",pub);
     try{room.onPeers(ch=>{const o={};for(const p of ch.peers||[]){const id=p.by||p.presence?.hero;if(!id||!p.presence?.hero)continue;const act=p.presence.active!==false;const cur=o[id];o[id]={active:act||!!cur?.active,host:!!(p.presence.host||cur?.host),since:Math.max(cur?.since||0,p.updatedAt||Date.now())}}S.online=o;if(!S.isOwner)setTimeout(autoCheck,500)},()=>{})}catch(e){}
-    if(!S.isOwner)setInterval(()=>{try{autoCheck()}catch(e){}},30000)}
+    setInterval(()=>{try{autoCheck()}catch(e){}},30000)}
   if(!db||!S.uid){notice("Open this table while signed in to claude.ai to join the game. You can still sketch a hero here.");route();return}
   if(S.canWrite===false)notice("You're viewing this table. To play, ask the host to share it with you as a Contributor.");
   const rerender=()=>{if(onTable())renderTable();else renderSceneBar()};
@@ -2446,7 +2448,7 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
   db.collection("talk").orderBy("at","desc").limit(200).onSnapshot(snap=>{S.raw.talk=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));S.talk=cur(S.raw.talk);if(onTable()){renderTalk();renderSceneBar()}},()=>{});
   db.collection("checks").orderBy("at","desc").limit(60).onSnapshot(snap=>{const before=new Set(S.checks.filter(c=>c.status==="pending"&&c.hero===S.uid).map(c=>c.id));S.raw.checks=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));S.checks=cur(S.raw.checks);
     if(S.checks.some(c=>c.status==="pending"&&c.hero===S.uid&&!before.has(c.id)))toast("The DM asks you for a roll. See your hero panel.",3500);
-    if(onTable()){renderMyChecks();renderWaiting();renderHost()}autoCheck()},()=>{});
+    if(onTable()){renderMyChecks();renderWaiting();renderHost();renderTalk()}autoCheck()},()=>{});
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});
   db.collection("holds").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid||!x.hero)return;(o[x.sid]=o[x.sid]||{})[x.hero]=x});S.holds=o;if(onTable())renderTable()},()=>{});
