@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.10">
+<meta name="lantern-and-die-version" content="1.7.11">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.10"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.11"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1352,7 +1352,18 @@ $("talkForm").addEventListener("submit",async e=>{e.preventDefault();const text=
 $("ideasBtn").addEventListener("click",getIdeas);
 $("talkInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("talkForm").requestSubmit()}});
 let npcBusy=false,npcQueued=null;
-async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}
+/* one DM reply at a time per scene, across every player's screen, so two people acting at once get one story, not two */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function sceneLock(sid){if(!S.db||!sid)return null;const ref=S.db.doc("pos/"+`${sid}~k~dm`);const nonce=Math.random().toString(36).slice(2);const t0=Date.now();let waited=false;
+  while(Date.now()-t0<90000){let cur=null;try{const g=await ref.get();cur=g.exists?g.data():null}catch(e){return null}
+    if(cur&&cur.by!==S.uid&&cur.at&&Date.now()-cur.at<60000){if(!waited){waited=true;setBusy(sid,"The DM",true)}await sleep(1200);continue}
+    try{await ref.set({sid,kind:"k",by:S.uid,nonce,at:Date.now()})}catch(e){return null}await sleep(350);
+    try{const g=await ref.get();if(g.exists&&g.data().nonce===nonce){if(waited){setBusy(sid,"The DM",false);await sleep(1200)}else await sleep(300);return nonce}}catch(e){return null}}
+  return null}
+async function releaseLock(sid,nonce){if(!nonce||!S.db)return;const ref=S.db.doc("pos/"+`${sid}~k~dm`);try{const g=await ref.get();if(g.exists&&g.data().nonce===nonce)await ref.set({sid,kind:"k",by:"",nonce:"",at:0})}catch(e){}}
+async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}if(npcBusy){npcQueued=trigger;return}
+  const lsid=trigger.check?.scene||myScene();const lock=await sceneLock(lsid);try{return await npcRespondCore(trigger)}finally{await releaseLock(lsid,lock)}}
+async function npcRespondCore(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}
   if(npcBusy){npcQueued=trigger;return}npcBusy=true;const sid=trigger.check?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=sc.npcs||[];const P=posOf(sid);
   const tHeard=Array.isArray(trigger.line?.heard)?trigger.line.heard:Array.isArray(trigger.check?.heard)?trigger.check.heard:null,tNh=trigger.line?.nh||null;
   const who=trigger.line?.kind==="do"?"Narrator":(trigger.line?.to||npcs[0]?.name||"Narrator");setBusy(sid,who,true);
@@ -2338,7 +2349,7 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});
   db.collection("holds").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid||!x.hero)return;(o[x.sid]=o[x.sid]||{})[x.hero]=x});S.holds=o;if(onTable())renderTable()},()=>{});
-  db.collection("pos").onSnapshot(snap=>{const o={},rm={},ck={},er={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;if(x.kind==="r"){(rm[x.sid]=rm[x.sid]||{})[slug(x.name||"")]=x;return}if(x.kind==="c"){ck[x.sid]={base:x.base,add:x.add};return}if(x.kind==="e"){(er[x.sid]=er[x.sid]||{})[slug(x.id||"")]=x;return}const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;S.rooms=rm;const clockMoved=JSON.stringify(ck)!==JSON.stringify(S.clock);S.clock=ck;S.errands=er;if(onTable()){if(clockMoved)renderTable();else{renderMap();renderTalk()}}},()=>{});
+  db.collection("pos").onSnapshot(snap=>{const o={},rm={},ck={},er={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;if(x.kind==="r"){(rm[x.sid]=rm[x.sid]||{})[slug(x.name||"")]=x;return}if(x.kind==="c"){ck[x.sid]={base:x.base,add:x.add};return}if(x.kind==="k")return;if(x.kind==="e"){(er[x.sid]=er[x.sid]||{})[slug(x.id||"")]=x;return}const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;S.rooms=rm;const clockMoved=JSON.stringify(ck)!==JSON.stringify(S.clock);S.clock=ck;S.errands=er;if(onTable()){if(clockMoved)renderTable();else{renderMap();renderTalk()}}},()=>{});
   db.collection("notes").onSnapshot(snap=>{S.notes=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(n=>!S.game?.resetAt||(n.at||0)>=S.game.resetAt);S.notesLoaded=true;if(onTable()){renderLog();renderMap();renderMe()}maybeRecap()},()=>{});
   db.collection("npcmem").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.npcmem=o;if(onTable())renderMap()},()=>{});
   db.collection("data/users/"+S.uid).onSnapshot(snap=>{S.raw.myQA=snap.docs.filter(d=>d.exists&&d.data().type==="dmqa").map(d=>({id:d.id,...d.data()}));S.myQA=cur(S.raw.myQA);if(S.lastSeenAt===null){const sd=snap.docs.find(d=>d.exists&&d.id==="seen");S.lastSeenAt=sd?(sd.data().at||0):0;maybeRecap()}S.retired=snap.docs.filter(d=>d.exists&&d.data().type==="retired").map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.at-a.at);if(onTable())renderTalk();else if(S.step==="import")renderCreator()},()=>{});

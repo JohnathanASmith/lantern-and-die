@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.11
+- One DM reply at a time per scene across all players: if two people act at the same moment, the second waits a few seconds and the DM answers with the first result in view, so the story can't split into two versions.
+
 ## 1.7.10
 - NPCs answer at the hero's own volume: a reply to a whisper or a quiet action is whispered back, so people nearby (and other heroes) no longer overhear one side of a sneaky exchange.
 
