@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.8
+- Talking to a friend's hero no longer silences the world: NPCs in earshot can still react (a goodbye when someone leaves, a reply to a plan that involves them), while the DM never answers for the friend.
+- Someone a hero was just talking with may react when that hero says they're leaving.
+
 ## 1.7.7
 - When an NPC answers a hero privately, anyone who could hear the hero's own words (an eavesdropper close by) hears the answer too, instead of only one side of the conversation. Private narration (what a hero alone notices) stays private.
 

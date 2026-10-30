@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.7">
+<meta name="lantern-and-die-version" content="1.7.8">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.7"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.8"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1346,8 +1346,9 @@ $("talkForm").addEventListener("submit",async e=>{e.preventDefault();const text=
   if(kind==="ooc"){await postTalk({kind,hero:S.uid,to,text:text.slice(0,500),scene:sid});return}
   const line=await sayLine(sid,kind,to,text,vol);
   /* talking to a friend who is here and playing: that's between the two of you, the DM stays out of it */
-  const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===to);if(mate&&kind==="say"&&isPresent(mate))return;
-  if(S.scenes[sid]?.mode!=="combat")npcRespond({line})});
+  /* talking to a friend who is here and playing: they answer for themselves; nearby NPCs may still react */
+  const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===to);const toMate=mate&&kind==="say"&&isPresent(mate)?mate:null;
+  if(S.scenes[sid]?.mode!=="combat")npcRespond({line,toMate})});
 $("ideasBtn").addEventListener("click",getIdeas);
 $("talkInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("talkForm").requestSubmit()}});
 let npcBusy=false,npcQueued=null;
@@ -1362,11 +1363,12 @@ async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this pag
   const others=activeScenes().filter(s=>s.id!==sid).map(s=>`${s.name} (${heroesIn(s.id).map(heroName).join(", ")})`).join("; ")||"none";
   const trig=trigger.check?`CHECK RESULT: ${heroName(trigger.check.hero)} (${trigger.check.hero}) rolled ${trigger.check.label} = ${trigger.check.result.total} vs DC ${trigger.check.dc}: ${trigger.check.result.success?"SUCCESS":"FAILURE"} (${trigger.check.reason}). Narrate or voice the outcome of exactly that. Do not ask for this check again.`
     :`NEW: ${heroName(S.uid)} (${S.uid}) ${trigger.line.kind==="do"?(trigger.line.vol==="quiet"?"quietly does":"does"):trigger.line.vol==="whisper"?"whispers":trigger.line.vol==="shout"?"shouts":"says"}${trigger.line.to?" to "+trigger.line.to:""}: ${trigger.line.text}`;
+  const mateTxt=trigger.toMate?`\nTHIS LINE IS FOR ${heroName(trigger.toMate)} (${trigger.toMate}), another player's hero whose player is here and will answer for themselves: never speak or act for them. Reply only if an NPC within earshot would naturally react, chime in, or is affected by it (someone leaving, a plan that involves them, a remark about them); otherwise return "replies": [].`:"";
   const earTxt=tHeard?`Within earshot of this: heroes ${tHeard.map(id=>heroName(id)+" ("+id+")").join(", ")}; NPCs ${(tNh||[]).join(", ")||"none"}. Only NPCs within earshot may answer or react, unless the hero went to them.`:"Everyone here can hear this.";
   const holdsTxt=heroesIn(sid).filter(id=>holdOf(sid,id)).map(id=>`${heroName(id)} (${id}) is ${holdText(sid,id)}`).join("; ");
   const listenTxt=trigger.listen?`LISTENING IN: ${heroName(S.uid)} wants to overhear ${[...trigger.listen.heroes.map(heroName),...trigger.listen.npcs].join(", ")}${trigger.listen.spot?" on the "+trigger.listen.spot:""}. If they could be noticed, ask for a Stealth check (DC from the setting, usually 10-15). On success, or if there's nothing to sneak past, move them within earshot with "moves" (same spot, a nearby x,y) and narrate privately (audience "private") what they can now hear. On failure the people there notice them.`:"";
   const prompt=`You are the Dungeon Master running a live D&D 5e scene, voicing the NPCs and narrating. Stay in character. Give each NPC a distinct voice, wants and fears. Keep replies short (1-3 sentences per speaker) so play flows.
-WHO ANSWERS: usually exactly ONE NPC replies, the one the hero addressed, or else the one the words or action most concern. Another NPC chimes in only when they would naturally interrupt (at most one extra, and not every time). The others stay quiet. Never repeat a warning, hint or line already said in the recent conversation; move things forward with something new.
+WHO ANSWERS: usually exactly ONE NPC replies, the one the hero addressed, or else the one the words or action most concern. Another NPC chimes in only when they would naturally interrupt (at most one extra, and not every time). The others stay quiet, except that someone a hero was just talking with may react when that hero announces they are leaving or splitting off. Never repeat a warning, hint or line already said in the recent conversation; move things forward with something new.
 DO ACTIONS: when the hero DOES something (reads, searches, picks up, examines, sneaks, cooks, casts, leaves, travels), the first reply is from "Narrator" and states the concrete result: what they see, find or achieve. If they read something, give its exact words. If they search, say what is there. If they leave for another place, narrate them going. If the outcome is uncertain, ask for the check instead and narrate only the attempt. An NPC may then react briefly, or not at all.
 ROMANCE: the heroes are adults and romance between them is part of the story. Play the lead-up with warmth and real detail: flirting, banter, kisses, touch, undressing, tension. When a scene turns fully sexual, close it the way a novel does, inside the story and never with an out-of-character remark (never say \"I'll fade to black\" or mention what you will or won't describe): cut to after, with a wry, in-world beat (the latch holds, the kettle shrieks, later they come out looking pleased with themselves), then move the story on. Each player decides only for their own hero; describe another hero's reactions as an open question for that player.
 ${toneRule()}
@@ -1393,7 +1395,7 @@ Things on the maps here (secret "leads" = where a door or stair goes; players on
 What ${heroName(S.uid)} knows of the quests: ${JSON.stringify(notesFor(S.uid,"quest").map(q=>q.title+" ("+(q.status||"active")+")"))}
 Recent conversation here that ${heroName(S.uid)} saw or heard (other private talk may have happened out of their earshot):
 ${recent}
-${trig}
+${trig}${mateTxt}
 ${earTxt}
 ${holdsTxt?"ASLEEP OR BUSY RIGHT NOW: "+holdsTxt+". They are out of the action until they wake.":""}
 ${listenTxt}
