@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.8.1">
+<meta name="lantern-and-die-version" content="1.8.2">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.8.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.8.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1309,7 +1309,7 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   const reading=!!S.pastView;const vid=S.pastView||live,sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?(reading?"reading back ":"at ")+sc.name:"";
   const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),isPresent(id)?"":" (away)"]);const opts=[...mates.map(m=>m[0]),...npcsHere(mine).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
   $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...mates.map(([n,a])=>h("option",{value:n,text:"To "+n+a})),...npcsHere(mine).map(n=>n.name).filter(Boolean).map(n=>h("option",{value:n,text:"To "+npcLabel(n)})));if(opts.includes(cur))$("talkTo").value=cur;
-  const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=!!S.game?.waiting?.[S.uid];const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute;
+  const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=!!(S.game?.waiting?.[S.uid]&&S.game.waiting[S.uid].target!==mine);const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
   $("talkHint").textContent=enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
@@ -2287,7 +2287,7 @@ async function applySceneResult(sid,r,{combat}){if(!r||typeof r!=="object")throw
       if(init[i].kind==="hero")step();let guard=0;while(init[i].kind==="npc"&&guard++<n)step();turn=i;if(wrapped)cr++}}
   if(mode!=="combat"){init=[];turn=0}
   Object.assign(next,{mode,initiative:init,turn,combatRound:cr,phase:"actions",seq:(sc.seq||0)+(combat?1:0),resolving:false,rest:null,lastUpdateAt:now,updatedAt:now,lastHereAt:t1,time:t1});
-  const waiting={...(g.waiting||{})};for(const hid of Object.keys(waiting))if(!S.chars[hid])delete waiting[hid];
+  const waiting={...(g.waiting||{})};for(const hid of Object.keys(waiting))if(!S.chars[hid]||moved.has(hid)||(heroScene[hid]&&heroScene[hid]===waiting[hid]?.target))delete waiting[hid];
   const remainHere=Object.entries(heroScene).filter(([hid,x])=>x===sid&&S.chars[hid]?.ready).length;
   const inc=Array.isArray(sc.incoming)?sc.incoming:[];const due=inc.filter(x=>!remainHere||x.at<=t1+30);
   if(due.length){next.incoming=inc.filter(x=>!due.includes(x));if(!remainHere)next.time=Math.max(next.time||t1,...due.map(x=>x.at));for(const x of due)if(S.chars[x.hero]){heroScene[x.hero]=sid;delete waiting[x.hero]}}

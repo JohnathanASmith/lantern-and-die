@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.2
+- A hero who moves on to another scene no longer keeps a stale "on the way" status that could lock their Talk box.
+
 ## 1.8.1
 - While you're on your way to another scene, you can't keep acting (or Waiting) in the place you left, which used to play out a second copy of where you were heading.
 - New "Join them now" button: step into the scene you're heading to right away, at their time.
