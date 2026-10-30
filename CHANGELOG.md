@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.12
+- World updates and journey legs take the same one-at-a-time turn as talk, so a scene update can't contradict an NPC reply happening at the same moment.
+- Wait moves the clock only when its turn comes, so two Waits don't stack up time before either is answered.
+- The DM is told to stay consistent with answers other heroes got moments earlier.
+
 ## 1.7.11
 - One DM reply at a time per scene across all players: if two people act at the same moment, the second waits a few seconds and the DM answers with the first result in view, so the story can't split into two versions.
 

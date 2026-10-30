@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.11">
+<meta name="lantern-and-die-version" content="1.7.12">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.11"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.12"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1332,7 +1332,7 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   const busy=Object.entries(S.talkBusy).filter(([k,t])=>Date.now()-t<60000&&k.startsWith(vid+"|")).map(([k])=>k.split("|")[1]);$("talkBusy").textContent=busy.length?busy.join(", ")+" thinking…":""}
 async function waitAWhile(){const sid=myScene();if(!sid||!S.chars[S.uid]?.ready||S.game?.status!=="playing"||holdOf(sid,S.uid)||npcBusy)return;const now=sceneTime(sid);
   const due=errandsIn(sid).map(e=>e.due).filter(t=>t>now).sort((a,b)=>a-b)[0];const mins=due?Math.min(120,Math.max(5,due-now)):15;
-  await tickClock(sid,mins);const who=errandsIn(sid).filter(e=>e.due<=now+mins).map(e=>e.id);
+  const who=errandsIn(sid).filter(e=>e.due<=now+mins).map(e=>e.id);
   const line=await sayLine(sid,"do","",`I wait${who.length?" for "+who.join(" and "):""}, about ${mins<60?mins+" minutes":spanLabel(mins)}.`,"open");npcRespond({line,waitMins:mins})}
 $("waitBtn").addEventListener("click",waitAWhile);
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
@@ -1356,7 +1356,7 @@ let npcBusy=false,npcQueued=null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function sceneLock(sid){if(!S.db||!sid)return null;const ref=S.db.doc("pos/"+`${sid}~k~dm`);const nonce=Math.random().toString(36).slice(2);const t0=Date.now();let waited=false;
   while(Date.now()-t0<90000){let cur=null;try{const g=await ref.get();cur=g.exists?g.data():null}catch(e){return null}
-    if(cur&&cur.by!==S.uid&&cur.at&&Date.now()-cur.at<60000){if(!waited){waited=true;setBusy(sid,"The DM",true)}await sleep(1200);continue}
+    if(cur&&cur.by!==S.uid&&cur.at&&Date.now()-cur.at<120000){if(!waited){waited=true;setBusy(sid,"The DM",true)}await sleep(1200);continue}
     try{await ref.set({sid,kind:"k",by:S.uid,nonce,at:Date.now()})}catch(e){return null}await sleep(350);
     try{const g=await ref.get();if(g.exists&&g.data().nonce===nonce){if(waited){setBusy(sid,"The DM",false);await sleep(1200)}else await sleep(300);return nonce}}catch(e){return null}}
   return null}
@@ -1364,7 +1364,7 @@ async function releaseLock(sid,nonce){if(!nonce||!S.db)return;const ref=S.db.doc
 async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}if(npcBusy){npcQueued=trigger;return}
   const lsid=trigger.check?.scene||myScene();const lock=await sceneLock(lsid);try{return await npcRespondCore(trigger)}finally{await releaseLock(lsid,lock)}}
 async function npcRespondCore(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}
-  if(npcBusy){npcQueued=trigger;return}npcBusy=true;const sid=trigger.check?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=sc.npcs||[];const P=posOf(sid);
+  if(npcBusy){npcQueued=trigger;return}npcBusy=true;if(trigger.waitMins)await tickClock(trigger.check?.scene||myScene(),trigger.waitMins);const sid=trigger.check?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=sc.npcs||[];const P=posOf(sid);
   const tHeard=Array.isArray(trigger.line?.heard)?trigger.line.heard:Array.isArray(trigger.check?.heard)?trigger.check.heard:null,tNh=trigger.line?.nh||null;
   const who=trigger.line?.kind==="do"?"Narrator":(trigger.line?.to||npcs[0]?.name||"Narrator");setBusy(sid,who,true);
   const g=S.game||{};const recent=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&canSee(m)).sort((a,b)=>a.at-b.at).slice(-18).map(m=>fmtLine(m,false,sceneTime(sid))+heardLabel(m)).join("\n");
@@ -1404,6 +1404,7 @@ Heroes present: ${JSON.stringify(heroesHere)}${partyNote(sid)}
 Where everyone is (x,y on the scene map; spot = private nook): ${whereAll}
 Things on the maps here (secret "leads" = where a door or stair goes; players only know it once discovered, so never reveal it before they find out): main room ${JSON.stringify(exitFeatures(sid,""))}; rooms ${JSON.stringify(roomsBrief(sid).map(r=>({name:r.name,enteredFrom:r.enteredFrom,features:r.features})))}
 What ${heroName(S.uid)} knows of the quests: ${JSON.stringify(notesFor(S.uid,"quest").map(q=>q.title+" ("+(q.status||"active")+")"))}
+If other heroes spoke or acted moments ago and were already answered (see below), stay consistent with those answers: they happened.
 Recent conversation here that ${heroName(S.uid)} saw or heard (other private talk may have happened out of their earshot):
 ${recent}
 ${trig}${mateTxt}
@@ -1969,7 +1970,8 @@ Reply with ONLY JSON: {"totalMinutes":180,"narration":"1-2 short paragraphs sett
     await S.db.doc("updates/"+u.id).update({status:"done"})}
   catch(e){toast(sampleErr(e));try{await S.db.doc("updates/"+u.id).update({status:"failed"})}catch(_){}}
   finally{S.busy=false;setBusy(sid,"The DM",false);renderHost();autoCheck()}}
-async function processLeg(u){if(!S.sample||!S.db||S.busy)return;const sid=u.scene,sc=S.scenes[sid];if(!isJourney(sc)){try{await S.db.doc("updates/"+u.id).update({status:"failed"})}catch(e){}return}
+async function processLeg(u){if(!S.sample||!S.db||S.busy)return;const lock=await sceneLock(u.scene);try{return await processLegCore(u)}finally{await releaseLock(u.scene,lock)}}
+async function processLegCore(u){if(!S.sample||!S.db||S.busy)return;const sid=u.scene,sc=S.scenes[sid];if(!isJourney(sc)){try{await S.db.doc("updates/"+u.id).update({status:"failed"})}catch(e){}return}
   S.busy=true;renderHost();setBusy(sid,"The DM",true);try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}
   let t={...sc.travel};if(u.intent==="turnback"){t={...t,from:t.to,fromId:t.toId,to:t.from,toId:t.fromId,route:[...(t.route||[])].reverse(),doneMin:Math.max(0,(t.totalMin||0)-(t.doneMin||0))};try{await S.db.doc("scenes/"+sid).update({travel:t})}catch(e){}}
   const party=heroesIn(sid);const t0=sceneTime(sid),left=Math.max(0,(t.totalMin||0)-(t.doneMin||0));
@@ -2138,7 +2140,8 @@ Add "title" and put "name" inside "scene".`;
     await S.db.doc("game/state").set({status:"playing",tone,title:String(r.title||"A New Adventure").slice(0,80),day:1,time:(Number.isFinite(+r.startTime)?Math.max(0,Math.min(23,Math.round(+r.startTime))):19)*60,timeOfDay:todOf((Number.isFinite(+r.startTime)?Math.max(0,Math.min(23,Math.round(+r.startTime))):19)*60),quests:Array.isArray(r.quests)?r.quests.slice(0,12):[],heroScene:Object.fromEntries(ids.map(id=>[id,sid])),world:ensureScenePlaces(mergeWorld({places:[],links:[]},r.world),sid,{[sid]:{name,description:String(r.scene?.description||"")}}),log:[{day:1,scene:name,text:String(r.chronicle||r.narration||"").slice(0,1200)}],updatedAt:now});
     await applyJournal(r,sid,(Number.isFinite(+r.startTime)?Math.round(+r.startTime):19)*60);for(const q of (Array.isArray(r.quests)?r.quests:[]).slice(0,6))if(q?.title)await addNote("quest",ids,{title:q.title,status:"active",text:q.note||"",scene:sid})}
   catch(e){toast(sampleErr(e))}finally{S.busy=false;renderHost()}}
-async function processUpdates(sid,force){if(!S.sample||!S.db||S.busy)return;const sc=S.scenes[sid];if(!sc)return;const pend=S.updates.filter(u=>u.status==="pending"&&u.scene===sid&&!u.kind);if(!pend.length&&!force)return;
+async function processUpdates(sid,force){if(!S.sample||!S.db||S.busy)return;const lock=await sceneLock(sid);try{return await processUpdatesCore(sid,force)}finally{await releaseLock(sid,lock)}}
+async function processUpdatesCore(sid,force){if(!S.sample||!S.db||S.busy)return;const sc=S.scenes[sid];if(!sc)return;const pend=S.updates.filter(u=>u.status==="pending"&&u.scene===sid&&!u.kind);if(!pend.length&&!force)return;
   S.busy=true;renderHost();setBusy(sid,"The DM",true);
   for(const u of pend){try{await S.db.doc("updates/"+u.id).update({status:"working"})}catch(e){}}
   const ids=heroesIn(sid);const g=S.game||{};
