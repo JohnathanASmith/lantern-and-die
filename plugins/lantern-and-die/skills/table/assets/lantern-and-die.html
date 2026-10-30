@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.8">
+<meta name="lantern-and-die-version" content="1.7.9">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.8"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.9"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1374,7 +1374,7 @@ ROMANCE: the heroes are adults and romance between them is part of the story. Pl
 ${toneRule()}
 NPCs only know what they plausibly would, can lie, bargain, refuse, warm up or get angry, and remember what heroes said and did. Attitudes are friendly, indifferent or hostile; good arguments and appeals to an NPC's goals improve them, insults and threats worsen them.
 Call for a check only when the outcome is uncertain and failure would be interesting (persuading, deceiving or intimidating someone who resists, reading motives with Insight, recalling lore, sneaking, picking a lock, haggling, performing, cooking for a critic, and so on). Ask for exactly one check from the right hero, using DC 5 very easy, 10 easy, 15 medium, 20 hard, 25 very hard, and stop the story at the attempt. Don't ask for checks for ordinary conversation.
-EARSHOT: people only know what they saw or heard. Each past line shows [heard by: ...]. An NPC never knows, repeats or reacts to something they did not hear, unless they learn it now. Whispers reach only the person addressed; normal talk reaches people within about 4 squares in the same spot; shouts reach everyone here. A "spot" is a private nook off the main room (a vestry stair, a back room, a booth with a curtain): people in different spots can't hear each other.
+EARSHOT: people only know what they saw or heard. Each past line shows [heard by: ...]. An NPC never knows, repeats or reacts to something they did not hear, unless they learn it now. Whispers reach only the person addressed; normal talk reaches people within about 4 squares in the same spot, and walls and shut doors stop it (people inside a building can't hear people outside); shouts reach everyone here. When heroes go into a building, up a stair or onto a landing, set "moves" so the map shows where they really are. A "spot" is a private nook off the main room (a vestry stair, a back room, a booth with a curtain): people in different spots can't hear each other.
 For each reply set "audience": "same" (the people who heard the hero's line, the default), "private" (only the acting hero, e.g. what they secretly find or notice; when an NPC answers privately, anyone who overheard the hero hears the answer too), or "room" (everyone in that spot can hear or see it). Set "othersSee" to one short line of what people out of earshot notice, or "" if nothing (sneaking unseen, reading a note to oneself).
 MOVES: when someone moves within this place, set "moves" with their new x,y. "spot" is a SEPARATE ROOM off the main room, behind a door (vestry, back room, cellar, upstairs bedroom): use an existing room name exactly if there is one (${Object.values(roomsOf(sid)).map(r=>r.name).join(", ")||"none yet"}), x,y are then on that room's own small map; "" means the main room. "perch" is a place INSIDE the main room that is up high or tucked away (the rafters, a balcony, behind the bar, under a table): keep spot "" and put x,y where it is on the main map. "hidden": true when they're hiding and nobody noticed. When someone enters a NEW separate room, add it to "rooms" with a small map.
 KNOWLEDGE: "learned" lists new facts heroes just picked up (a name, a place, a clue, a secret), each with the hero ids who saw or heard it. "people" lists a person a hero just met or learned something about, with a short note in their own eyes. "reveals" lists any new fact you just established about a hero's OWN past, family, blood or nature: check their backstory and what's already revealed about them first, and keep it consistent.
@@ -1455,7 +1455,15 @@ function posOf(sid){const sc=S.scenes[sid]||{},base=sc.posAt||0;const rows=parse
   return{heroes,npcs}}
 const sameSpot=(a,b)=>slug(a?.spot||"")===slug(b?.spot||"");
 const near=(a,b,r)=>!!(a&&b&&(r>=999||(sameSpot(a,b)&&Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))<=r)));
-function earshot(sid,from,vol){const P=posOf(sid);const o=from.hero?P.heroes[from.hero]:from.npc?P.npcs[from.npc]:from;const r=RANGE[vol]??4;
+/* walls and shut doors stop voices: split the main map into enclosed areas (a building's inside vs the walk outside) */
+const regionCache=new Map();
+function regionsOf(sid){const sc=S.scenes[sid]||{};const rows=parseMap(sc.map);const key=sid+"|"+rows.join("/");if(regionCache.has(key))return regionCache.get(key);
+  const H=rows.length,W=rows[0].length,id=rows.map(r=>Array(W).fill(-1)),solid=(x,y)=>{const c=rows[y]?.[x];return c==="#"||c==="D"};let n=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(solid(x,y)||id[y][x]>=0)continue;const q=[[x,y]];id[y][x]=n;while(q.length){const[a,b]=q.pop();for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const u=a+dx,v=b+dy;if(u<0||v<0||u>=W||v>=H||solid(u,v)||id[v][u]>=0)continue;id[v][u]=n;q.push([u,v])}}n++}
+  const at=(x,y)=>{if(y<0||y>=H||x<0||x>=W)return null;if(id[y][x]>=0)return new Set([id[y][x]]);const s=new Set();for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const v=id[y+dy]?.[x+dx];if(v!=null&&v>=0)s.add(v)}return s.size?s:null};
+  const out={at};regionCache.set(key,out);if(regionCache.size>40)regionCache.delete(regionCache.keys().next().value);return out}
+function sameArea(sid,a,b){if(!a||!b||(a.spot||"")!==""||(b.spot||"")!=="")return true;const R=regionsOf(sid);const A=R.at(a.x,a.y),B=R.at(b.x,b.y);if(!A||!B)return true;for(const v of A)if(B.has(v))return true;return false}
+function earshot(sid,from,vol){const P0=posOf(sid);const o0=from.hero?P0.heroes[from.hero]:from.npc?P0.npcs[from.npc]:from;const P=(RANGE[vol]??4)>=999?P0:{heroes:Object.fromEntries(Object.entries(P0.heroes).filter(([,p])=>sameArea(sid,o0,p))),npcs:Object.fromEntries(Object.entries(P0.npcs).filter(([,p])=>sameArea(sid,o0,p)))};const o=o0;const r=RANGE[vol]??4;
   const heard=Object.entries(P.heroes).filter(([id,p])=>near(o,p,r)&&(r>=999||id===from.hero||holdOf(sid,id)?.kind!=="sleep")).map(([id])=>id);if(from.hero&&!heard.includes(from.hero))heard.push(from.hero);
   const nh=Object.entries(P.npcs).filter(([,p])=>near(o,p,r)).map(([n])=>n);if(from.npc&&!nh.includes(from.npc))nh.push(from.npc);return{heard,nh}}
 const canSee=m=>!Array.isArray(m.heard)||m.heard.includes(S.uid)||m.hero===S.uid;

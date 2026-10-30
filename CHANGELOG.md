@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.9
+- Walls and shut doors stop voices: people inside a building on the map can't hear (or see) what's said and done outside it, and the reverse. Shouts still carry.
+- The DM is reminded to move heroes on the map when they go into a building, up a stair or onto a landing.
+
 ## 1.7.8
 - Talking to a friend's hero no longer silences the world: NPCs in earshot can still react (a goodbye when someone leaves, a reply to a plan that involves them), while the DM never answers for the friend.
 - Someone a hero was just talking with may react when that hero says they're leaving.
