@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.3
+- NPCs now have a remembered look (under 250 characters), set when they first appear and updated when it changes (mud, blood, new clothes). It follows them between scenes and is sent with every conversation and world update, so NPCs stay consistent and notice each other's looks.
+
 ## 1.10.2
 - The DM now sees each hero's appearance, gender and alignment in conversation and world updates, so NPCs react to how heroes look.
 - Conversation also gets level, HP, conditions, exhaustion, Heroic Inspiration, languages, known spells with slots left, class features, expertise and a short backstory.
