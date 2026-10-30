@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.6">
+<meta name="lantern-and-die-version" content="1.14.7">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.6"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.7"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1569,7 +1569,7 @@ function autoStreak(sid){let n=0;for(const m of S.talk.filter(m=>msgScene(m)===s
 function autoCandidates(sid){return heroesIn(sid).filter(id=>dmPlays(id)&&alive(S.chars[id])&&holdOf(sid,id)?.kind!=="sleep"&&!S.game?.waiting?.[id])}
 async function autoTurnTick(){if(autoTurnBusy||S.busy||npcBusy||!S.sample||!S.db||S.game?.status!=="playing"||!isEngine())return;
   for(const sid of [...new Set(Object.values(S.game?.heroScene||{}))]){const sc=S.scenes[sid];if(!sc||sc.mode==="combat")continue;if(isJourney(sc)&&pendingFor(sid,"leg"))continue;
-    const cands=autoCandidates(sid);if(!cands.length||!heroesIn(sid).some(id=>isPresent(id)))continue;
+    const cands=autoCandidates(sid);if(!cands.length||!heroesIn(sid).some(id=>isPresent(id)))continue;if(heroesIn(sid).some(id=>!dmPlays(id)))continue;
     const last=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="pic"&&m.kind!=="sys").reduce((t,m)=>Math.max(t,m.at||0),0);if(Date.now()-last<AUTO_QUIET)continue;
     if(S.checks.some(c=>c.status==="pending"&&c.scene===sid)||S.updates.some(u=>u.status==="pending"&&u.scene===sid)||await heldByOther(sid))continue;
     if(autoStreak(sid)>=AUTO_STREAK)continue;
@@ -1605,7 +1605,7 @@ Reply with ONLY JSON: {"kind":"say|do|wait${isJourney(sc)&&allDm?"|continue|camp
 setInterval(()=>{try{autoTurnTick()}catch(e){}},5000);
 /* what the next DM-played turn looks like from here: who, and when */
 function autoEta(sid){const sc=S.scenes[sid];if(!sc||S.game?.status!=="playing")return null;const cands=autoCandidates(sid);if(!cands.length)return null;if(sc.mode==="combat")return{hold:"it's combat, so heroes act on their turns"};if(isJourney(sc)&&pendingFor(sid,"leg"))return{hold:"the party is on the move"};
-  if(!heroesIn(sid).some(id=>isPresent(id)))return null;if(autoStreak(sid)>=AUTO_STREAK)return{paused:true};
+  if(!heroesIn(sid).some(id=>isPresent(id)))return null;if(heroesIn(sid).some(id=>!dmPlays(id)))return null;if(autoStreak(sid)>=AUTO_STREAK)return{paused:true};
   if(S.checks.some(c=>c.status==="pending"&&c.scene===sid))return{hold:"waiting on a roll"};if(S.updates.some(u=>u.status==="pending"&&u.scene===sid))return{hold:"the DM is updating the world"};
   const last=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="pic"&&m.kind!=="sys").reduce((t,m)=>Math.max(t,m.at||0),0);const lastBy=id=>S.talk.filter(m=>msgScene(m)===sid&&m.hero===id).reduce((t,m)=>Math.max(t,m.at||0),0);
   return{at:last+AUTO_QUIET,from:last,who:[...cands].sort((a,b)=>lastBy(a)-lastBy(b))[0]}}
@@ -2139,7 +2139,7 @@ function dmPlays(id){return !isPresent(id)||!!S.chars[id]?.autoplay}
 function awayHeroes(sid){return heroesIn(sid).filter(id=>id!==S.uid&&dmPlays(id)&&holdOf(sid,id)?.kind!=="sleep"&&alive(S.chars[id]))}
 function playedAs(id,n=6){return S.talk.filter(m=>m.hero===id&&!m.auto&&(m.kind==="say"||m.kind==="do")).sort((a,b)=>b.at-a.at).slice(0,n).map(m=>(m.kind==="do"?"*":"")+String(m.text).slice(0,140)).reverse()}
 function partyNote(sid){const others=heroesIn(sid).filter(id=>id!==S.uid);if(!others.length)return"";const away=awayHeroes(sid);
-  return `\nPLAYER HEROES: ${others.map(id=>`${heroName(id)} (${id}) is ${away.includes(id)?(isPresent(id)?"AWAY (their player asked the DM to play them for now)":"AWAY (their player is not at the table)"):"played live by their player"}`).join("; ")}. Never speak or act for a hero whose player is present: describe only what the world does and leave their words and choices to them.${away.length?` For AWAY heroes you may voice and move them as a loyal party member would: follow the group, help, answer when spoken to, react in a line, true to their personality and to how their player plays them (examples below). Keep it small and in character; never make big choices for them (spending their coin, romance, risky deeds, sacrifices, splitting from the party, decisions about their own story). Use their exact name as "speaker" for their lines. HOW THEIR PLAYERS PLAY THEM: ${JSON.stringify(Object.fromEntries(away.map(id=>{const c=S.chars[id]||{};return[heroName(id),{personality:c.personality||"",recent:playedAs(id)}]})))}`:""}`}
+  return `\nPLAYER HEROES: ${others.map(id=>`${heroName(id)} (${id}) is ${away.includes(id)?(isPresent(id)?"AWAY (their player asked the DM to play them for now)":"AWAY (their player is not at the table)"):"played live by their player"}`).join("; ")}. Never speak or act for a hero whose player is present: describe only what the world does and leave their words and choices to them.${away.length?` For AWAY heroes you may move them as a loyal party member would (follow the group, stay close) and voice them like an engaged companion who answers the live heroes: always answer when spoken to, and chime in with one short line when they have something useful, funny or in character to add about what was just said or done (often, but not in every reply). They react; they do not start new actions or conversations on their own between the live heroes' lines. Keep each line short and true to their personality and to how their player plays them (examples below). Keep it small and in character; never make big choices for them (spending their coin, romance, risky deeds, sacrifices, splitting from the party, decisions about their own story). Use their exact name as "speaker" for their lines. HOW THEIR PLAYERS PLAY THEM: ${JSON.stringify(Object.fromEntries(away.map(id=>{const c=S.chars[id]||{};return[heroName(id),{personality:c.personality||"",recent:playedAs(id)}]})))}`:""}`}
 function sceneTime(sid){const sc=S.scenes?.[sid];const base=Number.isFinite(sc?.time)?sc.time:gameTime();const c=S.clock?.[sid];return base+(c&&c.base===base?Math.max(0,+c.add||0):0)}
 async function tickClock(sid,mins){mins=Math.round(+mins||0);if(!S.db||!sid||mins<=0)return;const sc=S.scenes[sid];if(!sc)return;const base=Number.isFinite(sc.time)?sc.time:gameTime();const c=S.clock[sid];const add=(c&&c.base===base?+c.add||0:0)+Math.min(mins,240);
   S.clock[sid]={base,add};try{await S.db.doc("pos/"+`${sid}~c~clock`).set({sid,kind:"c",base,add,at:Date.now()})}catch(e){}}

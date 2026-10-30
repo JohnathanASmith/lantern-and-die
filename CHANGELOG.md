@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.7
+- Timed DM-played turns (and the countdown bar) only run when every hero in the scene is DM-played. While anyone plays live, DM-played heroes act like engaged companions instead: they always answer when spoken to and often chime in about what was just said or done, but never start things on their own between the live player's lines.
+
 ## 1.14.6
 - Companions keep up: when a hero walks somewhere, companions who were with them (within 3 steps) follow one step behind. Anyone told to hang back is left where they are.
 - The DM must report movement it narrates; if a reply moves people (hangs back, goes ahead, follows, hides) and no positions came with it, the page asks once for the new places.
