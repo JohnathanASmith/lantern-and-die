@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.13">
+<meta name="lantern-and-die-version" content="1.8.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.13"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.8.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1241,7 +1241,7 @@ function renderMap(){syncMapView();const g=S.game||{},sc=viewScene()||{},vid=vie
   const has=new Set(rows.join("").split("").map(ch=>GLYPH[ch]).filter(Boolean));const feat=[["bar","bar"],["table","tables"],["fire","fire"],["torch","torches"],["door","doors"],["chest","treasure"],["trap","hazards"],["water","water"],["stairsdown","stairs"],["altar","altar"],["tree","trees"]].filter(([k])=>has.has(k)).map(([,l])=>l);
   $("legend").replaceChildren(h("span",{},h("i",{style:"background:transparent;border:2px solid #f2c14e;border-radius:50%"}),"NPC"),h("span",{},h("i",{style:"background:transparent;border:2px solid #ff4d3d;border-radius:50%"}),"Hostile"),h("span",{},h("i",{style:"background:transparent;border:2px dashed var(--fg);border-radius:50%"}),"You"),h("span",{text:"Tap people and things to see what they are"}),...(feat.length?[h("span",{text:"Here: "+feat.join(", ")})]:[]));
   $("locTitle").textContent=sc.name||"Unknown lands";$("locDesc").textContent=sc.description||"";$("timeTag").textContent=todOf(sceneTime(vid));
-  const np=sc.npcs||[];$("npcs").replaceChildren(...(np.length?np.map(n=>{const mem=S.npcmem[slug(n.name)];const att=mem?.attitude||n.attitude;
+  const np=npcsHere(vid);$("npcs").replaceChildren(...(np.length?np.map(n=>{const mem=S.npcmem[slug(n.name)];const att=mem?.attitude||n.attitude;
     return h("div",{class:"npc"},h("span",{class:"dot",style:`background:var(--${n.hostile?"danger":"gold"})`}),h("b",{text:npcLabel(n.name)||"Stranger"}),n.about?h("span",{class:"att",text:n.about}):null,n.hp&&n.hp!=="unhurt"?h("span",{class:"att",text:n.hp}):null,att?h("span",{class:"att",text:att}):null)}):[h("div",{class:"empty",text:"Nobody but the heroes."})]));
   const q=myNotes("quest").sort((a,b)=>(a.status==="active"?0:1)-(b.status==="active"?0:1)||a.at-b.at).map(n=>({title:n.title,status:n.status||"active",note:n.text}));$("quests").replaceChildren(...(q.length?q.map(x=>h("div",{class:"quest "+(x.status||"active")},h("span",{class:"status"+(x.status==="done"?" ready":""),text:x.status||"active"}),h("span",{},h("span",{class:"qt",style:"font-weight:700",text:x.title||"A quest"}),x.note?" · "+x.note:""))):[h("div",{class:"empty",text:"No quests yet."})]));if(S.mapView==="world")renderWorld()}
 
@@ -1307,8 +1307,8 @@ $("talkPast").addEventListener("change",e=>{const v=e.target.value||null;S.pastV
 function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastView&&!past.some(([id])=>id===S.pastView))S.pastView=null;
   const tp=$("talkPast");tp.hidden=!past.length;tp.replaceChildren(h("option",{value:"",text:"Now"}),...past.map(([id,n])=>h("option",{value:id,text:"Earlier: "+n,selected:id===S.pastView})));
   const reading=!!S.pastView;const vid=S.pastView||live,sc=S.scenes[vid]||{},mine=myScene(),ms=S.scenes[mine]||{};$("talkWhere").textContent=sc.name?(reading?"reading back ":"at ")+sc.name:"";
-  const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),isPresent(id)?"":" (away)"]);const opts=[...mates.map(m=>m[0]),...(ms.npcs||[]).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
-  $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...mates.map(([n,a])=>h("option",{value:n,text:"To "+n+a})),...(ms.npcs||[]).map(n=>n.name).filter(Boolean).map(n=>h("option",{value:n,text:"To "+npcLabel(n)})));if(opts.includes(cur))$("talkTo").value=cur;
+  const watching=vid!==mine||reading;const mates=heroesIn(mine).filter(id=>id!==S.uid).map(id=>[heroName(id),isPresent(id)?"":" (away)"]);const opts=[...mates.map(m=>m[0]),...npcsHere(mine).map(n=>n.name).filter(Boolean)];const cur=$("talkTo").value;
+  $("talkTo").replaceChildren(h("option",{value:"",text:"Whoever's around"}),...mates.map(([n,a])=>h("option",{value:n,text:"To "+n+a})),...npcsHere(mine).map(n=>n.name).filter(Boolean).map(n=>h("option",{value:n,text:"To "+npcLabel(n)})));if(opts.includes(cur))$("talkTo").value=cur;
   const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
   $("talkHint").textContent=reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
@@ -1331,8 +1331,8 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   if(S.stick.feed)feed.scrollTop=feed.scrollHeight;renderIdeas();renderHolds();if(!reading){if(!S.recap)renderRecap();maybeRecap()}
   const busy=Object.entries(S.talkBusy).filter(([k,t])=>Date.now()-t<60000&&k.startsWith(vid+"|")).map(([k])=>k.split("|")[1]);$("talkBusy").textContent=busy.length?busy.join(", ")+" thinking…":""}
 async function waitAWhile(){const sid=myScene();if(!sid||!S.chars[S.uid]?.ready||S.game?.status!=="playing"||holdOf(sid,S.uid)||npcBusy)return;const now=sceneTime(sid);
-  const due=errandsIn(sid).map(e=>e.due).filter(t=>t>now).sort((a,b)=>a-b)[0];const mins=due?Math.min(120,Math.max(5,due-now)):15;
-  const who=errandsIn(sid).filter(e=>e.due<=now+mins).map(e=>e.id);
+  const due=errandsIn(sid).filter(e=>!visitingAt(e.id,sid)).map(e=>e.due).filter(t=>t>now).sort((a,b)=>a-b)[0];const mins=due?Math.min(120,Math.max(5,due-now)):15;
+  const who=errandsIn(sid).filter(e=>!visitingAt(e.id,sid)&&e.due<=now+mins).map(e=>e.id);
   await guardedSend({sid,kind:"do",to:"",text:`I wait${who.length?" for "+who.join(" and "):""}, about ${mins<60?mins+" minutes":spanLabel(mins)}.`,vol:"open",wait:mins})}
 $("waitBtn").addEventListener("click",waitAWhile);
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
@@ -1382,7 +1382,7 @@ async function releaseLock(sid,nonce){if(!nonce||!S.db)return;const ref=S.db.doc
 async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}if(npcBusy){npcQueued=trigger;return}
   const lsid=trigger.check?.scene||myScene();const lock=await sceneLock(lsid);try{return await npcRespondCore(trigger)}finally{await releaseLock(lsid,lock)}}
 async function npcRespondCore(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}
-  if(npcBusy){npcQueued=trigger;return}npcBusy=true;if(trigger.waitMins)await tickClock(trigger.check?.scene||myScene(),trigger.waitMins);const sid=trigger.check?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=sc.npcs||[];const P=posOf(sid);
+  if(npcBusy){npcQueued=trigger;return}npcBusy=true;if(trigger.waitMins)await tickClock(trigger.check?.scene||myScene(),trigger.waitMins);const sid=trigger.check?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=npcsHere(sid);const P=posOf(sid);
   const tHeard=Array.isArray(trigger.line?.heard)?trigger.line.heard:Array.isArray(trigger.check?.heard)?trigger.check.heard:null,tNh=trigger.line?.nh||null;
   const who=trigger.line?.kind==="do"?"Narrator":(trigger.line?.to||npcs[0]?.name||"Narrator");setBusy(sid,who,true);
   const g=S.game||{};const recent=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&canSee(m)).sort((a,b)=>a.at-b.at).slice(-18).map(m=>fmtLine(m,false,sceneTime(sid))+heardLabel(m)).join("\n");
@@ -1414,7 +1414,7 @@ COINS: when the acting hero pays, receives or finds coins, set "coins" to the ch
 Everything a hero does is part of the one campaign. Heroes may chase their own goals (open a shop, become a famous chef, follow a rival); play along and tie it into the story's threads, people and dangers.
 TRAVEL: if a hero sets off for a different place that takes more than about 30 minutes to reach, do NOT move them yourself. Give a short Narrator send-off (they gather their things and leave) and set "journey"; the trip then plays out on the road. Read the pace from their words (hurrying = fast, creeping or sneaking = slow, otherwise normal) and include other heroes only if they clearly said they are coming (heroes whose player is away follow the party automatically). Short hops (stepping outside, crossing the street, a few minutes across town) are not journeys: use sceneUpdate as usual.
 WORLD CHANGES: set "sceneUpdate" whenever this exchange changes the world beyond words: a hero leaves for or arrives at another place, gives, receives, buys, loses or uses an item or gold, takes damage or heals, gains a condition, a quest starts, advances or ends, a fight breaks out, meaningful time passes, or a hero deserves XP or Heroic Inspiration. Describe the change in one sentence. Otherwise null.
-Campaign: ${g.title||""}. Now: ${clockLabel(sceneTime(sid))}. Lines marked "(… ago)" happened that long ago: treat them as past, not the current conversation, and let people and places have moved on. This scene: ${sc.name||""}, ${sc.description||""}.${roadNote(sc)}${errandBrief(sid)} Latest scene description: ${String(sc.scene||"").slice(0,600)}
+Campaign: ${g.title||""}. Now: ${clockLabel(sceneTime(sid))}. Lines marked "(… ago)" happened that long ago: treat them as past, not the current conversation, and let people and places have moved on. This scene: ${sc.name||""}, ${sc.description||""}.${roadNote(sc)}${errandBrief(sid)}${visitorsBrief(sid)} Latest scene description: ${String(sc.scene||"").slice(0,600)}
 Other places where heroes are right now: ${others}
 World map the heroes know (places and routes): ${JSON.stringify(worldBrief())}. When a hero travels, use these routes and travel times, describe the way, and set sceneUpdate.
 NPCs present: ${JSON.stringify(mem)}
@@ -1430,7 +1430,8 @@ ${earTxt}
 ${holdsTxt?"ASLEEP OR BUSY RIGHT NOW: "+holdsTxt+". They are out of the action until they wake.":""}
 ${listenTxt}
 
-Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty"}],"moves":[],"rooms":[],"discovered":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null,"minutes":2,"away":[],"returns":[],"named":[]}
+Reply with ONLY JSON: {"replies":[{"speaker":"NPC name or Narrator","line":"spoken words, or narration for Narrator","action":"short stage direction, or empty","audience":"same|private|room","othersSee":"what people out of earshot notice, or empty"}],"npcUpdates":[{"name":"","attitude":"friendly|indifferent|hostile","remember":"one short fact worth remembering, or empty"}],"moves":[],"rooms":[],"discovered":[],"learned":[],"people":[],"reveals":[],"coins":null,"longAction":null,"wake":[],"check":null,"sceneUpdate":null,"journey":null,"minutes":2,"away":[],"returns":[],"named":[],"leaves":[]}
+leaves: [{"name":"NPC name","to":"where they go"}] for NPCs who walk out of this scene to another place (back to whoever sent them, home, to fetch someone elsewhere); they stop being here.
 named: [{"npc":"listed name","name":"real name","heroes":["<hero id>"]}].
 away: [{"name":"NPC name","doing":"what they're off doing, a few words","minutes":20}]. returns: ["NPC name"].
 longAction: {"minutes":480,"kind":"sleep|busy","label":"a few words, e.g. on the rafter above the hearth"} or null. wake: ["<hero id>"].
@@ -1461,6 +1462,7 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
     for(const w of (Array.isArray(r?.wake)?r.wake:[]).slice(0,4))if(holdOf(sid,w))await clearHold(sid,w,"wakes up");
     const la=r?.longAction;if(la&&typeof la==="object"&&Number(la.minutes)>=30&&!holdOf(sid,S.uid))await setHold(sid,S.uid,la.minutes,la.label,la.kind==="sleep"?"sleep":"busy");
     for(const n of (Array.isArray(r?.returns)?r.returns:[]).slice(0,4))await endErrand(sid,String(n));
+    for(const lv of (Array.isArray(r?.leaves)?r.leaves:[]).slice(0,4))if(lv?.name)await npcLeaves(sid,String(lv.name),lv.to);
     for(const x of (Array.isArray(r?.named)?r.named:[]).slice(0,3)){const nn=npcs.find(n=>slug(n.name)===slug(x?.npc||""));if(!nn||!x.name||slug(x.name)===slug(nn.name))continue;const hs=(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:[S.uid]).filter(id=>S.chars[id]);if(!hs.includes(S.uid))hs.push(S.uid);
       await addNote("alias",hs,{from:nn.name,text:String(x.name).slice(0,60),scene:sid})}
     if(!(la&&Number(la.minutes)>=30))await tickClock(sid,trigger.waitMins?0:Math.max(1,Math.min(30,Math.round(Number(r?.minutes)||2))));
@@ -1481,7 +1483,7 @@ const posKey=(sid,kind,id)=>`${sid}~${kind}~${slug(id).slice(0,60)}`;
 function posOf(sid){const sc=S.scenes[sid]||{},base=sc.posAt||0;const rows=parseMap(sc.map),W=rows[0].length,H=rows.length;const ov=S.pos[sid]||{h:{},n:{}};
   const norm=(x,y,spot,perch,hidden)=>{const sp=perch!=null&&perch!==""?{spot:roomKey(sid,spot),perch:String(perch)}:splitSpot(sid,spot);return{x:+x||0,y:+y||0,spot:sp.spot,perch:sp.perch,hidden:!!hidden}};
   const heroes={};heroesIn(sid).forEach((id,i)=>{const t=(sc.tokens||{})[id];let o=Array.isArray(t)?norm(t[0],t[1],t[2],t[3]):{x:1+(i%Math.max(1,W-2)),y:Math.max(1,H-2),spot:"",perch:"",hidden:false};const q=ov.h[slug(id)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);heroes[id]=o});
-  const npcs={};(sc.npcs||[]).forEach(n=>{let o=norm(n.x,n.y,n.spot,n.perch,n.hidden);const q=ov.n[slug(n.name)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);npcs[n.name]=o});
+  const npcs={};npcsHere(sid).forEach(n=>{let o=norm(n.x,n.y,n.spot,n.perch,n.hidden);const q=ov.n[slug(n.name)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);npcs[n.name]=o});
   return{heroes,npcs}}
 const sameSpot=(a,b)=>slug(a?.spot||"")===slug(b?.spot||"");
 const near=(a,b,r)=>!!(a&&b&&(r>=999||(sameSpot(a,b)&&Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))<=r)));
@@ -1781,10 +1783,22 @@ function sceneTime(sid){const sc=S.scenes?.[sid];const base=Number.isFinite(sc?.
 async function tickClock(sid,mins){mins=Math.round(+mins||0);if(!S.db||!sid||mins<=0)return;const sc=S.scenes[sid];if(!sc)return;const base=Number.isFinite(sc.time)?sc.time:gameTime();const c=S.clock[sid];const add=(c&&c.base===base?+c.add||0:0)+Math.min(mins,240);
   S.clock[sid]={base,add};try{await S.db.doc("pos/"+`${sid}~c~clock`).set({sid,kind:"c",base,add,at:Date.now()})}catch(e){}}
 const errandsIn=sid=>Object.values(S.errands[sid]||{});
+/* NPCs who walked off to another scene: "gone" markers hide them where they left until the DM's next scene pass drops them */
+S.gone={};
+function goneFrom(sid,name){const g=S.gone[sid]?.[slug(name||"")];return!!(g&&(g.at||0)>(S.scenes[sid]?.posAt||0))}
+const npcsHere=sid=>(S.scenes[sid]?.npcs||[]).filter(n=>!goneFrom(sid,n.name));
+/* where an NPC on an errand from one scene is right now, if they turned up in another */
+function visitingAt(name,fromSid){for(const s of activeScenes()){if(s.id===fromSid)continue;if(npcsHere(s.id).some(n=>slug(n.name)===slug(name)))return s.id}return null}
+function errandOf(name,notSid){for(const[sid,es]of Object.entries(S.errands||{})){if(sid===notSid)continue;const e=es[slug(name)];if(e)return{...e,from:sid}}return null}
+function visitorsBrief(sid){const v=npcsHere(sid).map(n=>[n.name,errandOf(n.name,sid)]).filter(([,e])=>e&&S.scenes[e.from]);if(!v.length)return"";
+  return "\nVISITORS ON AN ERRAND: "+v.map(([n,e])=>`${n} came here from "${S.scenes[e.from].name}" (${e.doing||"an errand"}); when their business here is done, or someone sends them back, they head back: list them in "leaves" with "to": "${S.scenes[e.from].name}"`).join("; ")+"."}
+async function npcLeaves(sid,name,toName){if(!S.db||!name)return;const n=npcsHere(sid).find(x=>slug(x.name)===slug(name));if(!n)return;
+  try{await S.db.doc("pos/"+`${sid}~g~${slug(n.name).slice(0,60)}`).set({sid,kind:"g",id:n.name,to:String(toName||"").slice(0,80),at:Date.now()})}catch(e){}
+  const e=errandOf(n.name,sid);if(e&&S.scenes[e.from]){const due=sceneTime(e.from)+5;try{await S.db.doc("pos/"+posKey(e.from,"e",e.id)).update({due,doing:String(e.doing||"")+" (on the way back)"})}catch(err){}}}
 async function sendOnErrand(sid,name,doing,mins){if(!S.db||!name)return;const due=sceneTime(sid)+Math.max(1,Math.min(600,Math.round(+mins||15)));try{await S.db.doc("pos/"+posKey(sid,"e",name)).set({sid,kind:"e",id:String(name).slice(0,60),doing:String(doing||"").slice(0,160),due,at:Date.now()})}catch(e){}}
 async function endErrand(sid,name){if(!S.db||!name)return;const e=Object.values(S.errands[sid]||{}).find(x=>slug(x.id)===slug(name));if(!e)return;try{await S.db.doc("pos/"+posKey(sid,"e",e.id)).delete()}catch(err){}}
 function errandBrief(sid){const now=sceneTime(sid);const es=errandsIn(sid);if(!es.length)return"";
-  return "\nAWAY OR BUSY ELSEWHERE: "+es.map(e=>`${e.id}: ${e.doing||"off on an errand"}, back about ${clockLabel(e.due)}${e.due<=now?" (DUE NOW: bring them back into the scene in this reply, with whatever they did or learned, and list them in \"returns\")":""}`).join("; ")+"."}
+  return "\nAWAY OR BUSY ELSEWHERE: "+es.map(e=>{const at=visitingAt(e.id,sid);if(at)return`${e.id}: ${e.doing||"off on an errand"}, and right now at "${S.scenes[at]?.name}" with ${heroesIn(at).map(heroName).join(" and ")||"others"}; they come back after they leave there (not before)`;return`${e.id}: ${e.doing||"off on an errand"}, back about ${clockLabel(e.due)}${e.due<=now?" (DUE NOW: bring them back into the scene in this reply, with whatever they did or learned, and list them in \"returns\")":""}`}).join("; ")+"."}
 function todOf(t){const hr=Math.floor((t%1440)/60);return hr>=5&&hr<8?"dawn":hr>=8&&hr<18?"day":hr>=18&&hr<21?"dusk":"night"}
 function clockLabel(t){const d=Math.floor(t/1440)+1,hr=Math.floor((t%1440)/60),h12=((hr+11)%12)+1,tod=todOf(t);const part=tod==="day"?(hr<12?"morning":hr<15?"afternoon":"late afternoon"):tod==="dusk"?"evening":tod;return`Day ${d} · ${h12} ${hr<12?"am":"pm"} (${part})`}
 function spanLabel(m){if(m<60)return"a few minutes";if(m<1440){const x=Math.round(m/60);return x+" hour"+(x>1?"s":"")}const d=Math.round(m/1440);return d+" day"+(d>1?"s":"")}
@@ -2168,7 +2182,8 @@ WORLD UPDATE for the scene "${sc.name}". Now: ${clockLabel(sceneTime(sid))}. The
 ${heroesIn(sid).some(id=>holdOf(sid,id))?`ASLEEP OR BUSY: ${heroesIn(sid).filter(id=>holdOf(sid,id)).map(id=>heroName(id)+" is "+holdText(sid,id)).join("; ")}. Other heroes here are still playing at ${clockLabel(sceneTime(sid))}: keep minutesPassed to what THEY did (30 at most); the page moves the clock when everyone rests.
 `:""}${(()=>{const a=awayHeroes(sid);return a.length?`AWAY PLAYERS: ${a.map(heroName).join(", ")} ${a.length>1?"are":"is"} away from the table; when the party moves on (moves or journeys), bring them along like a party member would.
 `:""})()}The clock has already moved with each exchange of play; it is now ${clockLabel(sceneTime(sid))}. Set minutesPassed only for extra time beyond that (usually 0).${errandBrief(sid)}
-NPC names in this scene are ids: keep them exactly as listed even when heroes have learned a real name (that is tracked separately).
+${(()=>{const g=Object.values(S.gone[sid]||{}).filter(x=>(x.at||0)>(sc.posAt||0));return g.length?`LEFT THIS SCENE: ${g.map(x=>x.id+(x.to?" (went to "+x.to+")":"")).join(", ")}: leave them out of scene.npcs.
+`:""})()}${visitorsBrief(sid)?visitorsBrief(sid).trim()+"\n":""}NPC names in this scene are ids: keep them exactly as listed even when heroes have learned a real name (that is tracked separately).
 What changed, as flagged during play: ${pend.length?pend.map(u=>u.reason).join(" | "):"(host asked for a general update)"}
 CAMPAIGN: ${JSON.stringify({title:g.title,day:g.day,timeOfDay:g.timeOfDay,quests:g.quests,world:worldBrief(),recentChronicle:(g.log||[]).slice(-5).map(l=>l.text)})}
 THIS SCENE: ${JSON.stringify({name:sc.name,description:sc.description,map:sc.map,features:sc.features||[],rooms:roomsBrief(sid),unexplainedExits:exitsUnexplained(sid),tokens:sc.tokens,npcs:sc.npcs,lastNarration:String(sc.scene||"").slice(0,800)})}
@@ -2370,7 +2385,7 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});
   db.collection("holds").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid||!x.hero)return;(o[x.sid]=o[x.sid]||{})[x.hero]=x});S.holds=o;if(onTable())renderTable()},()=>{});
-  db.collection("pos").onSnapshot(snap=>{const o={},rm={},ck={},er={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;if(x.kind==="r"){(rm[x.sid]=rm[x.sid]||{})[slug(x.name||"")]=x;return}if(x.kind==="c"){ck[x.sid]={base:x.base,add:x.add};return}if(x.kind==="k")return;if(x.kind==="e"){(er[x.sid]=er[x.sid]||{})[slug(x.id||"")]=x;return}const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;S.rooms=rm;const clockMoved=JSON.stringify(ck)!==JSON.stringify(S.clock);S.clock=ck;S.errands=er;if(onTable()){if(clockMoved)renderTable();else{renderMap();renderTalk()}}},()=>{});
+  db.collection("pos").onSnapshot(snap=>{const o={},rm={},ck={},er={},gn={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(!x?.sid)return;if(x.kind==="r"){(rm[x.sid]=rm[x.sid]||{})[slug(x.name||"")]=x;return}if(x.kind==="c"){ck[x.sid]={base:x.base,add:x.add};return}if(x.kind==="k")return;if(x.kind==="g"){(gn[x.sid]=gn[x.sid]||{})[slug(x.id||"")]=x;return}if(x.kind==="e"){(er[x.sid]=er[x.sid]||{})[slug(x.id||"")]=x;return}const b=o[x.sid]||(o[x.sid]={h:{},n:{}});b[x.kind==="n"?"n":"h"][slug(x.id)]=x});S.pos=o;S.rooms=rm;const clockMoved=JSON.stringify(ck)!==JSON.stringify(S.clock);S.clock=ck;S.errands=er;S.gone=gn;if(onTable()){if(clockMoved)renderTable();else{renderMap();renderTalk()}}},()=>{});
   db.collection("notes").onSnapshot(snap=>{S.notes=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(n=>!S.game?.resetAt||(n.at||0)>=S.game.resetAt);S.notesLoaded=true;if(onTable()){renderLog();renderMap();renderMe()}maybeRecap()},()=>{});
   db.collection("npcmem").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.npcmem=o;if(onTable())renderMap()},()=>{});
   db.collection("data/users/"+S.uid).onSnapshot(snap=>{S.raw.myQA=snap.docs.filter(d=>d.exists&&d.data().type==="dmqa").map(d=>({id:d.id,...d.data()}));S.myQA=cur(S.raw.myQA);if(S.lastSeenAt===null){const sd=snap.docs.find(d=>d.exists&&d.id==="seen");S.lastSeenAt=sd?(sd.data().at||0):0;maybeRecap()}S.retired=snap.docs.filter(d=>d.exists&&d.data().type==="retired").map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.at-a.at);if(onTable())renderTalk();else if(S.step==="import")renderCreator()},()=>{});

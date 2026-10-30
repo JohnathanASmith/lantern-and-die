@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.0
+- Errands between scenes: an NPC sent from one scene to another (to fetch someone where the other hero is) is known to be there. While they're busy there, the scene they left knows not to bring them back yet, and Wait doesn't skip ahead for them.
+- The DM in the scene they visit knows they're on an errand and sends them back when their business is done (or when someone sends them back). They leave that scene, and the scene they came from gets them back a few minutes later.
+
 ## 1.7.13
 - If you hit Send (or Wait) while the DM is answering someone else, your line is held, not posted. When it's your turn and something new happened in the meantime, you see what happened and choose: Send it, Change it, or Drop it. If nothing changed, it just goes.
 
