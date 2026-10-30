@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.13
+- If you hit Send (or Wait) while the DM is answering someone else, your line is held, not posted. When it's your turn and something new happened in the meantime, you see what happened and choose: Send it, Change it, or Drop it. If nothing changed, it just goes.
+
 ## 1.7.12
 - World updates and journey legs take the same one-at-a-time turn as talk, so a scene update can't contradict an NPC reply happening at the same moment.
 - Wait moves the clock only when its turn comes, so two Waits don't stack up time before either is answered.

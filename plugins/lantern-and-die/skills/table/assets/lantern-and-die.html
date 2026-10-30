@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.12">
+<meta name="lantern-and-die-version" content="1.7.13">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.12"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.13"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1333,7 +1333,7 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
 async function waitAWhile(){const sid=myScene();if(!sid||!S.chars[S.uid]?.ready||S.game?.status!=="playing"||holdOf(sid,S.uid)||npcBusy)return;const now=sceneTime(sid);
   const due=errandsIn(sid).map(e=>e.due).filter(t=>t>now).sort((a,b)=>a-b)[0];const mins=due?Math.min(120,Math.max(5,due-now)):15;
   const who=errandsIn(sid).filter(e=>e.due<=now+mins).map(e=>e.id);
-  const line=await sayLine(sid,"do","",`I wait${who.length?" for "+who.join(" and "):""}, about ${mins<60?mins+" minutes":spanLabel(mins)}.`,"open");npcRespond({line,waitMins:mins})}
+  await guardedSend({sid,kind:"do",to:"",text:`I wait${who.length?" for "+who.join(" and "):""}, about ${mins<60?mins+" minutes":spanLabel(mins)}.`,vol:"open",wait:mins})}
 $("waitBtn").addEventListener("click",waitAWhile);
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
   const text=`I try to get close enough to hear ${who.join(" and ")||"them"}${sp?.spot?" on the "+sp.spot:""} without being noticed.`;const line=await sayLine(sid,"do","",text,"whisper");
@@ -1344,11 +1344,29 @@ $("talkForm").addEventListener("submit",async e=>{e.preventDefault();const text=
   if(!me?.ready){toast("Finish your hero first.");return}if(S.game?.status!=="playing"){toast("Talk opens once the campaign begins.");return}
   const kind=$("talkKind").value,to=$("talkTo").value,sid=myScene(),vol=$("talkVol").value||"talk";$("talkInput").value="";S.ideas=null;renderIdeas();if(kind==="ask"){askDM(text,$("askShare").checked,sid);return}
   if(kind==="ooc"){await postTalk({kind,hero:S.uid,to,text:text.slice(0,500),scene:sid});return}
-  const line=await sayLine(sid,kind,to,text,vol);
-  /* talking to a friend who is here and playing: that's between the two of you, the DM stays out of it */
+  await guardedSend({sid,kind,to,text,vol})});
+/* if someone else was being answered while you hit Send, the scene may have changed: show what happened and let you decide */
+S.pendingSend=null;
+async function heldByOther(sid){if(!S.db)return false;try{const g=await S.db.doc("pos/"+`${sid}~k~dm`).get();const c=g.exists?g.data():null;return!!(c&&c.by&&c.by!==S.uid&&c.at&&Date.now()-c.at<120000)}catch(e){return false}}
+async function guardedSend(p,force){const sid=p.sid;const since=Date.now();
+  if(!force&&S.scenes[sid]?.mode!=="combat"&&await heldByOther(sid)){S.pendingSend={...p,state:"waiting"};renderPending();const t0=Date.now();
+    while(Date.now()-t0<120000&&await heldByOther(sid))await sleep(1000);await sleep(1500);
+    if(!S.pendingSend||S.pendingSend.sid!==sid){return}
+    const fresh=S.talk.filter(m=>msgScene(m)===sid&&m.at>since-5000&&m.hero!==S.uid&&canSee(m)&&m.kind!=="sys");
+    if(fresh.length){S.pendingSend={...p,state:"ask",fresh:fresh.slice(-3)};renderPending();return}
+    S.pendingSend=null;renderPending()}
+  const line=await sayLine(sid,p.kind,p.to,p.text,p.vol);if(p.wait){npcRespond({line,waitMins:p.wait});return}
   /* talking to a friend who is here and playing: they answer for themselves; nearby NPCs may still react */
-  const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===to);const toMate=mate&&kind==="say"&&isPresent(mate)?mate:null;
-  if(S.scenes[sid]?.mode!=="combat")npcRespond({line,toMate})});
+  const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===p.to);const toMate=mate&&p.kind==="say"&&isPresent(mate)?mate:null;
+  if(S.scenes[sid]?.mode!=="combat")npcRespond({line,toMate})}
+function renderPending(){let bar=document.getElementById("pendBar");const P=S.pendingSend;if(!P){bar?.remove();return}
+  if(!bar){bar=h("div",{id:"pendBar",class:"journey",style:"margin:6px 0"});$("talkForm").before(bar)}
+  const quote=h("div",{class:"att",text:`Yours: ${P.kind==="do"?"":"“"}${P.text}${P.kind==="do"?"":"”"}`});
+  if(P.state==="waiting"){bar.replaceChildren(h("div",{},h("span",{class:"spin"})," The DM is answering someone else first. Your line goes next."),quote,h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"ghost",onclick:()=>{$("talkInput").value=P.text;S.pendingSend=null;renderPending()}},"Take it back")));return}
+  bar.replaceChildren(h("b",{text:"While you waited, this happened:"}),...P.fresh.map(m=>h("div",{class:"att",text:`${m.hero?heroName(m.hero):npcLabel(m.speaker)}: ${String(m.text||m.action||"").slice(0,160)}`})),quote,h("div",{},"Still send it?"),
+    h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",class:"primary",onclick:()=>{const q=S.pendingSend;S.pendingSend=null;renderPending();guardedSend(q,true)}},"Send it"),
+      h("button",{type:"button",onclick:()=>{$("talkInput").value=P.text;$("talkKind").value=P.kind;S.pendingSend=null;renderPending();$("talkInput").focus()}},"Change it"),
+      h("button",{type:"button",class:"ghost",onclick:()=>{S.pendingSend=null;renderPending()}},"Drop it")))}
 $("ideasBtn").addEventListener("click",getIdeas);
 $("talkInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("talkForm").requestSubmit()}});
 let npcBusy=false,npcQueued=null;
