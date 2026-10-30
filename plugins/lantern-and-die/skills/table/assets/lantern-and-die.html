@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.8.4">
+<meta name="lantern-and-die-version" content="1.9.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.8.4"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.9.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1290,7 +1290,7 @@ async function rerollInspired(k){const r=doRoll(k);await selfUpdate({inspiration
 async function finalizeCheck(k,r){delete S.pendingRoll[k.id];if(!S.db)return;
   try{await S.db.doc("checks/"+k.id).update({status:"rolled",result:{dice:r.dice,pick:r.pick,mod:r.mod,total:r.total,success:r.success,inspired:!!r.inspired},rolledAt:Date.now()})}catch(e){toast("Couldn't record your roll.");return}
   renderMyChecks();
-  if(k.source==="talk"){await postTalk({kind:"check",hero:S.uid,text:`${heroName(S.uid)} · ${r.label}: ${r.total} vs DC ${k.dc} · ${r.success?"success":"failure"}`,scene:k.scene,...(Array.isArray(k.heard)?{heard:k.heard,nh:[],stub:""}:{})});npcRespond({check:{...k,result:r}})}}
+  if(k.source==="talk"){await takeUndoSnapshot(k.scene);await postTalk({kind:"check",hero:S.uid,text:`${heroName(S.uid)} · ${r.label}: ${r.total} vs DC ${k.dc} · ${r.success?"success":"failure"}`,scene:k.scene,...(Array.isArray(k.heard)?{heard:k.heard,nh:[],stub:""}:{})});npcRespond({check:{...k,result:r}})}}
 async function makeCheck(req,source,sceneId,seq,heard){if(!S.db||!S.chars[req.hero])return null;const kind=["skill","ability","save","tool","attack"].includes(req.kind)?req.kind:"ability";
   const k={hero:String(req.hero),kind,skill:SKILLS[req.skill]?req.skill:"",ability:AB.includes(req.ability)?req.ability:"",tool:String(req.tool||"").slice(0,40),dc:Math.max(1,Math.min(40,Math.round(Number(req.dc)||15))),reason:String(req.reason||"").slice(0,160),adv:["adv","dis"].includes(req.adv)?req.adv:"none",source,scene:sceneId,seq:seq||0,status:"pending",at:Date.now()};if(Array.isArray(heard))k.heard=[...new Set([...heard,String(req.hero)])];
   k.label=checkMod(S.chars[k.hero],k).label;
@@ -1513,7 +1513,36 @@ async function approach(sid,npcName){const P=posOf(sid),me=P.heroes[S.uid],n=P.n
 const whereText=p=>p?.spot?`on the ${p.spot.replace(/^the /i,"")}`:"across the room";
 function stubFor(sid,kind,vol,to){const me=posOf(sid).heroes[S.uid],nm=heroName(S.uid);if(kind==="do")return vol==="whisper"?"":`${nm} is busy ${whereText(me)}.`;
   return vol==="whisper"?`${nm} whispers${to?" to "+to:""}.`:`${nm} talks${to?" with "+to:""} ${whereText(me)}.`}
-async function sayLine(sid,kind,to,text,vol){if(to&&posOf(sid).npcs[to])await approach(sid,to);const r=kind==="do"?(vol==="whisper"?"whisper":"see"):(vol||"talk");let e=earshot(sid,{hero:S.uid},r);
+/* ================= UNDO: the host can roll a scene back to just before the last player action ================= */
+async function takeUndoSnapshot(sid){if(!S.db||!sid||!S.scenes[sid])return;try{const heroes=heroesIn(sid);const g=S.game||{};
+  const posR=await S.db.collection("pos").where("sid","==",sid).get();const pos={};for(const d of posR.docs){if(!d.exists)continue;const x=d.data();if(x.sid===sid&&x.kind!=="k")pos[d.id]=x}
+  const notes={};for(const n of S.notes)if(["quest","person","alias","reveal"].includes(n.kind)&&(n.heroes||[]).some(h=>heroes.includes(h))){const{id,...rest}=n;notes[id]=rest}
+  const checks={};for(const c of S.checks)if(c.scene===sid&&c.status==="pending"){const{id,...rest}=c;checks[id]=rest}
+  const chars={};for(const id of heroes)if(S.chars[id])chars[id]=S.chars[id];
+  const doc={sid,at:Date.now(),by:S.uid||"",scene:S.scenes[sid],game:{quests:g.quests||[],log:g.log||[],heroScene:Object.fromEntries(heroes.map(id=>[id,sid])),waiting:Object.fromEntries(heroes.map(id=>[id,g.waiting?.[id]||null]))},chars,notes,checks,pos};
+  if(JSON.stringify(doc).length>240000)doc.notes={};await S.db.doc("undo/"+slug(sid).slice(0,80)).set(doc)}catch(e){}}
+async function undoLastTurn(sid){if(!S.db||!S.isOwner||!sid)return;const lock=await sceneLock(sid);S.busy=true;renderHost();
+  try{const g0=await S.db.doc("undo/"+slug(sid).slice(0,80)).get();if(!g0.exists){toast("Nothing to undo in this scene yet.");return}const u=g0.data(),t=u.at;
+    const del=async(col,docs)=>{for(const d of docs)try{await S.db.doc(col+"/"+d.id).delete()}catch(e){}};
+    const talk=(await S.db.collection("talk").where("scene","==",sid).where("at",">=",t).get()).docs.filter(d=>d.exists&&d.data().scene===sid&&(d.data().at||0)>=t);await del("talk",talk);
+    const chk=(await S.db.collection("checks").where("scene","==",sid).where("at",">=",t).get()).docs.filter(d=>d.exists&&d.data().scene===sid&&(d.data().at||0)>=t);await del("checks",chk);
+    const upd=(await S.db.collection("updates").where("scene","==",sid).where("at",">=",t).get()).docs.filter(d=>d.exists&&d.data().scene===sid&&(d.data().at||0)>=t);await del("updates",upd);
+    const heroes=Object.keys(u.chars||{});const nts=(await S.db.collection("notes").where("at",">=",t).get()).docs.filter(d=>d.exists&&(d.data().at||0)>=t&&(d.data().heroes||[]).some(h=>heroes.includes(h)));
+    for(const d of nts){if(u.notes?.[d.id])continue;try{await S.db.doc("notes/"+d.id).delete()}catch(e){}}
+    for(const[id,n]of Object.entries(u.notes||{}))try{await S.db.doc("notes/"+id).set(n)}catch(e){}
+    for(const[id,c]of Object.entries(u.checks||{}))try{await S.db.doc("checks/"+id).set(c)}catch(e){}
+    const posNow=(await S.db.collection("pos").where("sid","==",sid).get()).docs.filter(d=>d.exists&&d.data().sid===sid&&d.data().kind!=="k");
+    for(const d of posNow)if(!u.pos?.[d.id])try{await S.db.doc("pos/"+d.id).delete()}catch(e){}
+    for(const[id,p]of Object.entries(u.pos||{}))try{await S.db.doc("pos/"+id).set(p)}catch(e){}
+    for(const[id,c]of Object.entries(u.chars||{}))try{await S.db.doc("characters/"+id).set(c)}catch(e){}
+    if(u.scene)await S.db.doc("scenes/"+sid).set(u.scene);
+    const g=S.game||{};const waiting={...(g.waiting||{})};for(const[id,w]of Object.entries(u.game?.waiting||{})){if(w)waiting[id]=w;else delete waiting[id]}
+    await S.db.doc("game/state").update({quests:u.game?.quests||g.quests||[],log:u.game?.log||g.log||[],heroScene:{...(g.heroScene||{}),...(u.game?.heroScene||{})},waiting});
+    await S.db.doc("undo/"+slug(sid).slice(0,80)).delete();
+    await postTalk({kind:"sys",text:"The host rewound the scene to just before the last move",scene:sid,gt:Number.isFinite(u.scene?.time)?u.scene.time:sceneTime(sid),at:t-1});toast("Rewound to before the last player action.")}
+  catch(e){toast("Couldn't undo that.")}finally{S.busy=false;await releaseLock(sid,lock);renderHost()}}
+let undoConfirm=false;
+async function sayLine(sid,kind,to,text,vol){await takeUndoSnapshot(sid);if(to&&posOf(sid).npcs[to])await approach(sid,to);const r=kind==="do"?(vol==="whisper"?"whisper":"see"):(vol||"talk");let e=earshot(sid,{hero:S.uid},r);
   /* a quiet action or anything done while hidden is secret: nobody notices it unless the DM says they do (only the person it's aimed at is in on it) */
   const meP=posOf(sid).heroes[S.uid];if(kind==="do"&&(vol==="whisper"||meP?.hidden)){const low=String(text).toLowerCase();const mates=heroesIn(sid).filter(id=>id!==S.uid&&(heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase())));e={heard:[S.uid,...mates],nh:to&&!mates.length&&posOf(sid).npcs[to]?[to]:[]}}
   const line={kind,hero:S.uid,to,text:text.slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):(vol||"talk"),heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to)};await postTalk(line);return line}
@@ -1938,7 +1967,7 @@ function renderWorld(){const box=$("worldBox");const w=world(),ns="http://www.w3
         null),canGo?plannerView(p,route):(isJourney(S.scenes[myScene()])&&sel!==me?h("div",{class:"att",text:"You're on the road. Continue your journey from the scene panel."}):null)))}
   box.replaceChildren(...kids)}
 async function travelTo(p,route){const sid=myScene();const via=route?route.map(st=>{const t=world().places.find(x=>x.id===st.to);return`${st.link.kind} to ${t?.name}`}).join(", then "):"";
-  const text=`I set out for ${p.name}${via?`, by ${via}`:""}.`;await postTalk({kind:"do",hero:S.uid,to:"",text,scene:sid});npcRespond({line:{kind:"do",to:"",text}});
+  const text=`I set out for ${p.name}${via?`, by ${via}`:""}.`;await takeUndoSnapshot(sid);await postTalk({kind:"do",hero:S.uid,to:"",text,scene:sid});npcRespond({line:{kind:"do",to:"",text}});
   S.mapView="scene";if(innerWidth<=1000)document.querySelector('#ptabs [data-p=talk]')?.click();renderMap();toast("Your hero sets out. Watch Talk for what happens on the way.",3000)}
 async function seedWorld(){if(seeding||!S.sample||!S.db||S.busy)return;seeding=true;S.busy=true;const g=S.game;
   const prompt=`You are the Dungeon Master of a D&D campaign. Draw the WORLD MAP as the heroes currently know it, from the campaign so far. Include every place the heroes are in or have been (scene names below, exact spelling), plus places they've heard of (from the narration, quests and conversation). Leave everything else unexplored.
@@ -2123,6 +2152,7 @@ function renderHost(){const a=$("hostArea");if(!S.isOwner){a.replaceChildren();r
   a.replaceChildren(h("div",{class:"hostbar"},h("span",{class:"label"},working?h("span",{class:"spin"}):null,` host · ${sc.name||"scene"} · ${working?"the DM is working…":status}`),
     h("select",{class:"tonepick","aria-label":"Campaign tone",title:"Campaign tone",onchange:async e=>{try{await S.db.doc("game/state").update({tone:e.target.value});toast("Tone: "+e.target.value)}catch(err){toast("Couldn't change the tone")}}},Object.keys(TONES).map(t=>h("option",{text:t,selected:t===(g.tone||"Heroic & fun")}))),
     sc.mode!=="combat"?h("button",{type:"button",onclick:()=>rest("short",vid)},"Short rest"):null,sc.mode!=="combat"?h("button",{type:"button",onclick:()=>rest("long",vid)},"Long rest"):null,
+    undoConfirm?h("span",{class:"confirm"},"Undo everything since the last player action here?",h("button",{type:"button",onclick:()=>{undoConfirm=false;undoLastTurn(vid)}},"Yes, undo"),h("button",{type:"button",class:"ghost",onclick:()=>{undoConfirm=false;renderHost()}},"Keep it")):h("button",{type:"button",class:"ghost",disabled:working||null,title:"Rewind this scene to just before the last thing a player said or did",onclick:()=>{undoConfirm=true;renderHost()}},"Undo last turn"),
     hostConfirm?h("span",{class:"confirm"},"End this campaign for everyone?",h("button",{type:"button",onclick:resetCampaign},"Yes, end it"),h("button",{type:"button",class:"ghost",onclick:()=>{hostConfirm=false;renderHost()}},"Keep playing")):h("button",{type:"button",class:"ghost",onclick:()=>{hostConfirm=true;renderHost()}},"End campaign"),
     h("button",{type:"button",class:"linkbtn",disabled:working,onclick:act},sc.mode==="combat"?"Stuck? Resolve this turn now":"Something's off? Re-sync this scene")),settingsPanel())}
 
