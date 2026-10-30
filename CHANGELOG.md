@@ -4,6 +4,7 @@
 - Companions keep up: when a hero walks somewhere, companions who were with them (within 3 steps) follow one step behind. Anyone told to hang back is left where they are.
 - The DM must report movement it narrates; if a reply moves people (hangs back, goes ahead, follows, hides) and no positions came with it, the page asks once for the new places.
 - Quiet actions by DM-played heroes are secret like a live player's: only the people named or aimed at know.
+- The "out of earshot" note for a DM-played hero's line now names that hero, not the page's own.
 
 ## 1.14.5
 - Fix: on journeys heroes had no place on the road map and were put at the map's edge, far from the companions walking with them, so earshot said NPCs couldn't hear. Heroes without a spot on the road now walk with the party, next to the companions.

@@ -1599,7 +1599,7 @@ Reply with ONLY JSON: {"kind":"say|do|wait${isJourney(sc)&&allDm?"|continue|camp
   if(to&&P.npcs[to])await approach(sid,to,actor);
   let e=earshot(sid,{hero:actor},kind==="do"?(vol==="whisper"?"whisper":"see"):vol);
   if(kind==="do"&&(vol==="whisper"||posOf(sid).heroes[actor]?.hidden)){const low=String(r.text).toLowerCase();const mates=heroesIn(sid).filter(id=>id!==actor&&(heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase())));e={heard:[actor,...mates],nh:to&&!mates.length&&posOf(sid).npcs[to]?[to]:[]}}
-  const line={kind,hero:actor,to,text:String(r.text).slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):vol,heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to),auto:true,autoturn:true};
+  const line={kind,hero:actor,to,text:String(r.text).slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):vol,heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to,actor),auto:true,autoturn:true};
   await postTalk(line);const mate=heroesIn(sid).find(id=>id!==actor&&heroName(id)===to);
   await npcRespond({line,actor,...(mate&&kind==="say"&&!dmPlays(mate)?{toMate:mate}:{})})}
 setInterval(()=>{try{autoTurnTick()}catch(e){}},5000);
@@ -1818,7 +1818,7 @@ async function approach(sid,npcName,who=S.uid){const P=posOf(sid),me=P.heroes[wh
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const x=n.x+dx,y=n.y+dy;if(!walkableAt(sc,x,y)||taken.has(x+","+y))continue;const d=Math.hypot(x-me.x,y-me.y);if(d<bd){bd=d;best={x,y}}}
   if(best)await setPos(sid,{hero:who},{...best,spot:""})}
 const whereText=p=>p?.spot?`on the ${p.spot.replace(/^the /i,"")}`:"across the room";
-function stubFor(sid,kind,vol,to){const me=posOf(sid).heroes[S.uid],nm=heroName(S.uid);if(kind==="do")return vol==="whisper"?"":`${nm} is busy ${whereText(me)}.`;
+function stubFor(sid,kind,vol,to,who=S.uid){const me=posOf(sid).heroes[who],nm=heroName(who);if(kind==="do")return vol==="whisper"?"":`${nm} is busy ${whereText(me)}.`;
   return vol==="whisper"?`${nm} whispers${to?" to "+to:""}.`:`${nm} talks${to?" with "+to:""} ${whereText(me)}.`}
 /* ================= UNDO: the host can roll a scene back to just before the last player action ================= */
 async function takeUndoSnapshot(sid){if(!S.db||!sid||!S.scenes[sid])return;try{const heroes=heroesIn(sid);const g=S.game||{};
