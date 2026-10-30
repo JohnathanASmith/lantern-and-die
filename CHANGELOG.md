@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.2
+- The DM now sees each hero's appearance, gender and alignment in conversation and world updates, so NPCs react to how heroes look.
+- Conversation also gets level, HP, conditions, exhaustion, Heroic Inspiration, languages, known spells with slots left, class features, expertise and a short backstory.
+
 ## 1.10.1
 - The DM's bookkeeping (moving heroes to new places, HP, items, quests) no longer waits for the host's screen: when the host is away, a player at the table runs it. Requires game, scenes, characters and actions to be writable by players (interact).
 - Sending a new line while you still owe a roll now asks you to roll it first or skip it, so the story can't leave rolls behind.
