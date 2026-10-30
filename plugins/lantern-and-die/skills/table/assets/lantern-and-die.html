@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.13.0">
+<meta name="lantern-and-die-version" content="1.13.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -343,11 +343,17 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .dp button{padding:.15rem 0;font-size:1.1rem;line-height:1}.dpv{text-align:center;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .filebtn{display:inline-block;border:1px solid var(--line);background:var(--raised);border-radius:8px;padding:.45rem .8rem;cursor:pointer;width:max-content}.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
 .filebtn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.lpced{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start}
+.lpcprev{width:128px;height:128px;image-rendering:pixelated;border-radius:8px;border:1px solid var(--line);background:var(--raised)}
+.lpcrows{display:grid;gap:4px;min-width:0}
+.lpcrow{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:6px;align-items:center}
+.lpcrow select{min-width:0}
+@media (max-width:480px){.lpced{grid-template-columns:1fr}.lpcprev{justify-self:center}}
 .pthumb{width:120px;border-radius:8px;border:1px solid var(--line)}
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.13.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.13.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1048,7 +1054,7 @@ function npcSprite(n){let s=String(n?.sprite||"").toLowerCase().replace(/\s+/g,"
 /* ===== LPC characters: layered pixel people from the Liberated Pixel Cup (credits under "Art credits") ===== */
 const LPC={ready:false,data:null,img:null,frames:new Map(),cache:new Map(),url:new Map()};
 async function lpcLoad(){try{const [j,img]=await Promise.all([fetch("lpc.json").then(r=>r.ok?r.json():null),new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src="lpc.png"})]);if(!j||!img)return;
-  LPC.data=j;LPC.img=img;LPC.ready=true;npcDollCache.clear();try{if(onTable())renderTable()}catch(e){}}catch(e){}}
+  LPC.data=j;LPC.img=img;LPC.ready=true;npcDollCache.clear();try{if(onTable())renderTable();else if(S.draft)renderCreator()}catch(e){}}catch(e){}}
 function lpcFrame(i){if(LPC.frames.has(i))return LPC.frames.get(i);const c=LPC.data.cols;const cv=document.createElement("canvas");cv.width=cv.height=64;const x=cv.getContext("2d",{willReadFrequently:true});x.drawImage(LPC.img,(i%c)*64,Math.floor(i/c)*64,64,64,0,0,64,64);const d=x.getImageData(0,0,64,64);LPC.frames.set(i,d);return d}
 const hexInt=v=>parseInt(String(v).replace("#",""),16);
 function lpcMap(material,base,target){const P=LPC.data.pal[material];if(!P||!target)return null;let b=base||P.base;if(b&&b.includes("."))b=b.split(".").pop();if(b===target)return null;const from=P.ramps[b],to=P.ramps[target];if(!from||!to)return null;const m=new Map();from.forEach((c,i)=>m.set(hexInt(c),hexInt(to[Math.min(i,to.length-1)])));return m}
@@ -1063,7 +1069,7 @@ function lpcCanvas(spec){const key=JSON.stringify(spec);if(LPC.cache.has(key))re
 function lpcURL(spec,scale=4,head){const key=JSON.stringify(spec)+scale+(head?"h":"");if(LPC.url.has(key))return LPC.url.get(key);const src=lpcCanvas(spec);const cv=document.createElement("canvas");const x=cv.getContext("2d");x.imageSmoothingEnabled=false;
   if(head){cv.width=cv.height=24*scale;x.drawImage(src,20,13,24,24,0,0,24*scale,24*scale)}else{cv.width=cv.height=64*scale;x.drawImage(src,0,0,64*scale,64*scale)}const u=cv.toDataURL();LPC.url.set(key,u);return u}
 /* draw on a 32px map cell: feet on the cell's bottom edge, head rising above it */
-function lpcDraw(ctx,spec,px,py){const src=lpcCanvas(spec);const k=(spec.small?0.78:0.98);const w=64*k;ctx.imageSmoothingEnabled=false;ctx.drawImage(src,px+16-w/2,py+31-w*0.97,w,w)}
+function lpcDraw(ctx,spec,px,py){const src=lpcCanvas(spec);const k=(spec.small?0.78:spec.tall?1.12:0.98);const w=64*k;ctx.imageSmoothingEnabled=false;ctx.drawImage(src,px+16-w/2,py+31-w*0.97,w,w)}
 const pickBy=(t,list)=>{for(const[re,v]of list)if(re.test(t))return v;return null};
 const LPC_CLOTH_WORDS=[[/\b(black|ebony|sable|jet)\b/,"black"],[/\b(charcoal|soot|dark (grey|gray))\b/,"charcoal"],[/\b(grey|gray|silver|ash)\b/,"gray"],[/\b(white|ivory|bone|undyed linen)\b/,"white"],[/\b(crimson|scarlet|red|blood-red)\b/,"red"],[/\b(maroon|burgundy|wine)\b/,"maroon"],[/\b(pink|rose)\b/,"rose"],[/\b(purple|violet|plum)\b/,"purple"],[/\b(lavender|lilac)\b/,"lavender"],[/\b(navy|indigo|midnight)\b/,"navy"],[/\b(blue|azure|cobalt)\b/,"blue"],[/\b(teal|turquoise)\b/,"teal"],[/\b(green|moss|emerald|olive|sage)\b/,"forest"],[/\b(yellow|gold|golden|mustard|saffron)\b/,"yellow"],[/\b(orange|amber)\b/,"orange"],[/\b(tan|sand|khaki|buff|beige|homespun)\b/,"tan"],[/\b(brown|russet|umber|mud|muddy)\b/,"brown"],[/\b(leather|hide)\b/,"leather"],[/\b(velvet)\b/,"maroon"]];
 function garmentColor(t,nouns){const re=new RegExp(`((?:\\b[\\w-]+\\b[ ,-]+){0,3})\\b(${nouns})s?\\b`,"g");let m;while((m=re.exec(t))){const c=pickBy(m[1],LPC_CLOTH_WORDS);if(c)return c}return null}
@@ -1071,7 +1077,7 @@ function lpcSpec(o){const t=` ${o.text||""} `.toLowerCase(),seed=o.seed||o.name|
   const fem=o.gender==="Female"||(o.gender!=="Male"&&/\b(she|her|woman|girl|lady|mother|wife|widow|daughter|maid|crone|nun|matron|landlady|alewife|fishwife|goodwife|lass)\b/.test(t)&&!/\b(he|his|him|man|boy|father|husband|lord)\b/.test(t));
   const child=/\b(child|kid|little boy|little girl|urchin|toddler|young boy|young girl)\b/.test(t)||o.sprite==="child";
   const big=sp==="Goliath"||(/orc/i.test(sp)&&!fem)||(!fem&&/\b(huge|hulking|massive|burly|brawny|giant|muscular|seven feet|ox of a)\b/.test(t));
-  const b=child?"child":big&&!fem?"muscular":fem?"female":"male";const small=/^(Gnome|Halfling|Dwarf)$/.test(sp)||/\b(gnome|halfling)\b/.test(t);
+  const armed=/\b(plate|splint|breastplate|chain mail|chain shirt|ring mail|scale mail|mail|hauberk|leather|studded|shirt|tunic|coat|robe|jerkin|surcoat|tabard)\b/.test(String(o.items||"").toLowerCase()+" "+t);const tall=sp==="Goliath"||big;const b=child?"child":big&&!fem&&!armed&&sp!=="Goliath"?"muscular":fem?"female":"male";const small=/^(Gnome|Halfling|Dwarf)$/.test(sp)||/\b(gnome|halfling)\b/.test(t);
   const old=/\b(old|elderly|aged|wrinkled|crone|grandmother|grandfather|white-haired|stooped|ancient)\b/.test(t);
   let head=child?"heads_human_child":fem?(old?"heads_human_female_elderly":"heads_human_female"):(old?"heads_human_male_elderly":/\b(gaunt|thin|bony|hollow-cheeked|lean|wiry)\b/.test(t)?"heads_human_male_gaunt":/\b(plump|fat|portly|stout|round|paunch|heavy-set|pot-bellied|jowl)/.test(t)?"heads_human_male_plump":"heads_human_male");
   if(sp==="Dragonborn"||/\b(lizardfolk|kobold)\b/.test(t))head=fem?"heads_lizard_female":"heads_lizard_male";else if(/orc/i.test(sp)||/\b(orc|half-orc)\b/.test(t))head=fem?"heads_orc_female":"heads_orc_male";else if(/\bgoblin\b/.test(t))head="heads_goblin";else if(/\btroll\b/.test(t))head="heads_troll";
@@ -1118,12 +1124,23 @@ function lpcSpec(o){const t=` ${o.text||""} `.toLowerCase(),seed=o.seed||o.name|
     const weap=pickBy(` ${o.weapons||""} ${o.npc?t:""} `.toLowerCase(),[[/\b(longsword|greatsword|great sword|broadsword)\b/,"weapon_sword_longsword"],[/\b(rapier)\b/,"weapon_sword_rapier"],[/\b(scimitar|sabre|saber|cutlass)\b/,"weapon_sword_saber"],[/\b(shortsword|short sword|sword)\b/,"weapon_sword_arming"],[/\b(dagger|knife|dirk|stiletto)\b/,"weapon_sword_dagger"],[/\b(battleaxe|greataxe|handaxe|axe|hatchet)\b/,"weapon_blunt_waraxe"],[/\b(mace|morningstar|flail|warhammer)\b/,"weapon_blunt_mace"],[/\b(club|cudgel|greatclub)\b/,"weapon_blunt_club"],[/\b(halberd|glaive|pike|poleaxe)\b/,"weapon_polearm_halberd"],[/\b(spear|javelin|trident|eel-hook|boathook|gaff)\b/,"weapon_polearm_spear"],[/\b(crossbow)\b/,"weapon_ranged_crossbow"],[/\b(longbow|shortbow|bow)\b/,"weapon_ranged_bow_normal"],[/\b(sling)\b/,"weapon_ranged_slingshot"],[/\b(quarterstaff|staff)\b/,o.npc&&/\b(gnarled|twisted|druid)\b/.test(t)?"weapon_magic_gnarled":"weapon_magic_simple"]]);
     if(weap)wear(weap,weap==="weapon_sword_arming"?"iron":"");
     if(/\bshield\b/.test(inv+(o.npc?t:"")))wear(/\b(round)\b[^.]{0,8}shield/.test(t)?"shield_round":"shield_kite",spick(["kite blue blue","kite gray gray","kite gray blue"],seed+"sh"))}
-  return{b,skin,hair,small,parts:[...parts,...W]}}
+  return{b,skin,hair,small,tall,parts:[...parts,...W]}}
 function heroLpc(id){const c=(id===S.uid&&S.draft&&!S.chars[id]?.inPlay?S.draft:S.chars[id])||{};let atk=[];try{atk=(derive(c).attacks||[]).map(a=>a.name)}catch(e){}
   const role=({Fighter:"guard",Paladin:"guard",Barbarian:"barbarian",Rogue:"rogue",Ranger:"outdoors",Wizard:"scholar",Sorcerer:"scholar",Warlock:"scholar",Cleric:"priest",Druid:"outdoors",Bard:"bard",Monk:"peasant"})[c.class]||"common";
-  return lpcSpec({name:c.name,seed:(c.name||"")+(c.species||"")+(c.class||""),gender:genderOf(c),species:speciesOf(c),speciesOpt:c.speciesOpt,text:c.appearance||"",role,items:JSON.stringify((c.inventory||[]).map(i=>i.name)),weapons:atk.join(" ")})}
+  return lpcApply(lpcSpec({name:c.name,seed:(c.name||"")+(c.species||"")+(c.class||""),gender:genderOf(c),species:speciesOf(c),speciesOpt:c.speciesOpt,text:c.appearance||"",role,items:JSON.stringify((c.inventory||[]).map(i=>i.name)),weapons:atk.join(" ")}),S.portraits?.[id]?.lpc)}
+/* a player's own choices sit on top of what the description gives: {b, skin, hair, slots:{slot:[item,colour] | null}} */
+function lpcApply(spec,ov){if(!ov||!LPC.data)return spec;const slots={},order=[];for(const[n,c]of spec.parts){const sl=n==="body"?"body":LPC.data.items[n]?.slot||n;if(!(sl in slots))order.push(sl);slots[sl]=[n,c]}
+  for(const[sl,v]of Object.entries(ov.slots||{})){if(!(sl in slots))order.push(sl);slots[sl]=v}
+  return{...spec,b:ov.b||spec.b,skin:ov.skin||spec.skin,hair:ov.hair||spec.hair,parts:order.map(sl=>slots[sl]).filter(v=>v&&v[0])}}
+/* humanoid monsters get LPC figures too: the right head, skin and build */
+const LPC_FOLK={goblin:{head:"heads_goblin",skin:"green",small:true,bald:true,w:"club"},hobgoblin:{head:"heads_orc_male",skin:"amber",role:"guard",w:"longsword"},orc:{head:"heads_orc_male",skin:"green",b:"muscular",w:"axe"},orc_warrior:{head:"heads_orc_male",skin:"green",b:"muscular",role:"guard",w:"axe"},orc_chief:{head:"heads_orc_male",skin:"green",b:"muscular",role:"guard",w:"halberd"},orc_shaman:{head:"heads_orc_male",skin:"pale_green",role:"scholar",w:"staff"},
+  gnoll:{head:"heads_wolf_male",skin:"fur_tan",bald:true,w:"spear"},kobold:{head:"heads_lizard_male",skin:"bronze",small:true,bald:true,w:"spear"},lizard:{head:"heads_lizard_male",skin:"green",bald:true,w:"spear"},naga:null,minotaur:{head:"heads_minotaur",skin:"fur_brown",b:"muscular",bald:true,w:"axe"},troll:{head:"heads_troll",skin:"pale_green",b:"muscular",bald:true,w:"club"},ogre:{head:"heads_human_male_plump",skin:"taupe",b:"muscular",w:"club"},ogre_mage:{head:"heads_orc_male",skin:"blue",b:"muscular",role:"scholar",w:"staff"}};
+function folkLpc(n,k){const f=LPC_FOLK[k];if(!f)return null;const looks=npcLooks(n);const text=`${n.name||""}. ${n.about||""}. ${looks}`;
+  const sp=lpcSpec({name:n.name,seed:n.name,text,npc:true,role:f.role||(n.hostile?"barbarian":"common"),weapons:f.w,gender:/(she|her|female|woman)/i.test(text)?"Female":"Male"});
+  const keepHair=/(hair|braid|mane|beard)/i.test(looks);const head=f.head.replace("_male",sp.b==="female"&&LPC.data.items[f.head.replace("_male","_female")]?"_female":"_male");
+  return{...sp,b:f.b&&sp.b!=="female"?f.b:sp.b==="child"?"male":sp.b,skin:f.skin,small:!!f.small,parts:sp.parts.filter(([p])=>!/^heads_|^head_ears/.test(p)&&!(f.bald&&!keepHair&&/^(hair_|beards_)/.test(p))).map(x=>x).concat([[head,""]])}}
 function npcLpc(n){const looks=npcLooks(n);return lpcSpec({name:n.name,seed:n.name,text:`${n.name||""}. ${n.about||""}. ${looks}`,npc:true,sprite:npcSprite(n).slice(2)})}
-try{window.__lpcDebug=()=>({npcLpc,heroLpc,lpcURL,S})}catch(e){}
+try{window.__lpcDebug=()=>({npcLpc,heroLpc,lpcURL,S,npcDoll})}catch(e){}
 async function showLpcCredits(box){if(box.dataset.loaded)return;box.dataset.loaded="1";let list=[];try{list=await fetch("lpc-credits.json").then(r=>r.json())}catch(e){}
   box.append(h("p",{class:"att",text:"People and gear figures use art from the Liberated Pixel Cup (LPC) and its contributors, combined into one image sheet for this game. Each part keeps its own license (CC-BY-SA, CC-BY, OGA-BY, GPL or CC0); the sheet as a whole is shared under CC-BY-SA 3.0. Map tiles are from Dungeon Crawl Stone Soup (CC0)."}),
     ...list.map(c=>h("div",{class:"att",style:"margin:6px 0"},h("b",{text:c.authors}),` · ${c.licenses} · ${c.parts.slice(0,4).join(", ")}${c.parts.length>4?"…":""} `,...(c.urls||[]).slice(0,2).map(u=>h("a",{href:u,target:"_blank",rel:"noopener",text:"source "})))))}
@@ -1135,7 +1152,7 @@ const NPC_SPECIES=[["Elf","elf|elven|elvish"],["Dwarf","dwarf|dwarven"],["Halfli
 function npcLooks(n){return S.npcmem?.[slug(n?.name||"")]?.looks||n?.looks||""}
 function findNpc(name){const k=slug(name||"");for(const sc of Object.values(S.scenes||{}))for(const n of sc.npcs||[])if(slug(n.name)===k)return n;return null}
 const npcDollCache=new Map();
-function npcDoll(n){if(!n)return null;const k=npcSprite(n).slice(2);if(!PEOPLE_TILES.has(k))return null;if(LPC.ready)return{lpc:npcLpc(n)};const looks=npcLooks(n);const key=n.name+"|"+looks+"|"+(n.about||"")+"|"+k;if(npcDollCache.has(key))return npcDollCache.get(key);
+function npcDoll(n){if(!n)return null;const k=npcSprite(n).slice(2);if(LPC.ready&&LPC_FOLK[k])return{lpc:folkLpc(n,k)};if(!PEOPLE_TILES.has(k))return null;if(LPC.ready)return{lpc:npcLpc(n)};const looks=npcLooks(n);const key=n.name+"|"+looks+"|"+(n.about||"")+"|"+k;if(npcDollCache.has(key))return npcDollCache.get(key);
   const t=` ${n.name||""} ${n.about||""} ${looks} `.toLowerCase();const sp=(NPC_SPECIES.find(([,re])=>new RegExp(`\\b(${re})`).test(t))||["Human"])[0];const cl=(NPC_CLASS.find(([,re])=>new RegExp(`\\b(${re})`).test(t))||[""])[0];
   const fem=/\b(she|her|woman|girl|lady|mother|wife|widow|sister|daughter|maid|crone|nun|matron|landlady|alewife|fishwife|goodwife)\b/.test(t)||/^(lady|noblewoman|sorceress|crone)$/.test(k),male=/\b(he|him|his|man|boy|father|husband|brother|son|lord|sergeant|old man)\b/.test(t);
   let d=null;try{d=autoDoll({name:n.name,species:sp,class:cl||"__none",gender:fem&&!male?"Female":male&&!fem?"Male":fem?"Female":"",appearance:looks+" "+(n.about||""),inventory:[]})}catch(e){d=null}
@@ -1322,7 +1339,7 @@ function uploadPortrait(file){if(!file)return;if(!/^image\//.test(file.type)){to
 
 /* ---- player card ---- */
 function flavorLine(c){let t=String(c.personality||c.backstory||SPECIES[speciesOf(c)]?.blurb||"").replace(/^\s*(trait|ideal|bond|flaw)s?\s*:\s*/i,"");t=t.split(/(?<=[.!?])\s/)[0];if(t.length>120)t=t.slice(0,118).replace(/\s+\S*$/,"")+"…";return t}
-function cardArt(id,c){const p=portraitOf(id);if(p.src)return h("img",{src:p.src,alt:`Portrait of ${c.name||"your hero"}`});return h("img",{class:"pix",src:dollURL(dollOf(id),8),alt:`Pixel portrait of ${c.name||"your hero"}`})}
+function cardArt(id,c){const p=portraitOf(id);if(p.src)return h("img",{src:p.src,alt:`Portrait of ${c.name||"your hero"}`});return h("img",{class:"pix",src:LPC.ready?lpcURL(heroLpc(id),4):dollURL(dollOf(id),8),alt:`Pixel portrait of ${c.name||"your hero"}`})}
 function playerCard(id,c,opts={}){c=c||{};let dv={};try{dv=derive(c)}catch(e){}const fs=dv.fs||{};const col=c.color||"#6b7280";const lvl=c.level||1;
   const flavor=flavorLine(c);
   return h("div",{class:"pcard",style:`--hc:${col}`,role:"img","aria-label":`Player card for ${c.name||"your hero"}`},
@@ -1337,7 +1354,7 @@ async function saveCardImage(id,c){c=c||{};let dv={};try{dv=derive(c)}catch(e){}
   const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,col);g.addColorStop(1,"#1a1410");rr(0,0,W,H,36);x.fillStyle=g;x.fill();rr(22,22,W-44,H-44,24);x.fillStyle="#f3e7cb";x.fill();x.strokeStyle="#c9a24a";x.lineWidth=6;x.stroke();
   x.fillStyle="#2b1d10";x.font="700 54px 'Grenze Gotisch', Georgia, serif";x.textBaseline="middle";x.fillText(c.name||"Your hero",54,82,W-200);
   x.beginPath();x.arc(W-90,82,40,0,7);x.fillStyle=col;x.fill();x.strokeStyle="#c9a24a";x.lineWidth=5;x.stroke();x.fillStyle="#fff";x.textAlign="center";x.font="700 40px 'IBM Plex Mono', monospace";x.fillText(String(c.level||1),W-90,84);x.textAlign="left";
-  const ax=54,ay=134,aw=W-108,ah=500;rr(ax,ay,aw,ah,16);x.save();x.clip();x.fillStyle=col;x.fillRect(ax,ay,aw,ah);const p=portraitOf(id);const src=p.src||dollURL(dollOf(id),8);
+  const ax=54,ay=134,aw=W-108,ah=500;rr(ax,ay,aw,ah,16);x.save();x.clip();x.fillStyle=col;x.fillRect(ax,ay,aw,ah);const p=portraitOf(id);const src=p.src||(LPC.ready?lpcURL(heroLpc(id),4):dollURL(dollOf(id),8));
   await new Promise(res=>{const im=new Image();im.onload=()=>{if(p.pixel){const bg=x.createRadialGradient(W/2,ay+ah*.45,20,W/2,ay+ah/2,aw*.7);bg.addColorStop(0,"#ffffff55");bg.addColorStop(1,"#00000066");x.fillStyle=bg;x.fillRect(ax,ay,aw,ah);x.imageSmoothingEnabled=false;const s=ah*.92;x.drawImage(im,(W-s)/2,ay+ah-s,s,s)}
     else{const s=Math.max(aw/im.width,ah/im.height);x.drawImage(im,ax+(aw-im.width*s)/2,ay+(ah-im.height*s)/3,im.width*s,im.height*s)}res()};im.onerror=res;im.src=src});x.restore();rr(ax,ay,aw,ah,16);x.strokeStyle="#2b1d10";x.lineWidth=4;x.stroke();
   const badge=(bx,label,val)=>{x.beginPath();x.arc(bx,ay+ah-6,46,0,7);x.fillStyle="#2b1d10";x.fill();x.strokeStyle="#c9a24a";x.lineWidth=4;x.stroke();x.fillStyle="#fff";x.textAlign="center";x.font="700 34px 'IBM Plex Mono', monospace";x.fillText(String(val),bx,ay+ah-14);x.font="700 18px 'Alegreya Sans SC', sans-serif";x.fillText(label,bx,ay+ah+18);x.textAlign="left"};
@@ -1351,9 +1368,25 @@ async function saveCardImage(id,c){c=c||{};let dv={};try{dv=derive(c)}catch(e){}
   if(S.downloads){try{await S.downloads.save({filename:`${slug(c.name)||"hero"}-card.png`,data:blob});return}catch(e){if(e?.code==="declined")return}}toast("Saving images isn't available here.")}
 
 /* portrait editor (inside the hero card panel) */
+const LPC_SLOTS=[["head","Head"],["ears","Ears"],["hair","Hair"],["beard","Beard"],["shirt","Shirt"],["dress","Dress"],["over","Armour or coat"],["belt","Belt"],["cape","Cloak"],["legs","Legs"],["feet","Feet"],["hat","Headwear"],["weapon","Weapon"],["shield","Shield"]];
+const LPC_BODIES=[["male","Male"],["female","Female"],["muscular","Big"],["child","Child"]];
+const prettyName=k=>String(k||"").replace(/_/g," ").replace(/^./,m=>m.toUpperCase());
+function lpcColors(it){if(!it)return[];if(it.v){const ks=new Set();for(const l of it.L)Object.keys(l.f).forEach(k=>ks.add(k));return[...ks].filter(Boolean).length>1?[...ks].filter(Boolean):[]}const m=it.rc?.[0]?.material;return m==="cloth"?Object.keys(LPC.data.pal.cloth.ramps):[]}
+let lpcSaveT=null;
+function lpcEditor(){const p=S.portraits?.[S.uid]||{};if(!LPC.ready)return h("div",{class:"att",text:"Loading the figure art…"});const spec=heroLpc(S.uid);const ov=p.lpc||{};
+  const save=patch=>{const next={...ov,...patch,slots:{...(ov.slots||{}),...(patch.slots||{})}};S.portraits={...(S.portraits||{}),[S.uid]:{...p,lpc:next}};renderPortraitBits();clearTimeout(lpcSaveT);lpcSaveT=setTimeout(()=>savePortrait({lpc:next}),600)};
+  const cur={};for(const[n,c]of spec.parts){const sl=LPC.data.items[n]?.slot;if(sl&&sl!=="body")cur[sl]=[n,c]}
+  const sel=(id,label,opts,val,on)=>h("label",{class:"lpcrow",for:id},h("span",{class:"label",text:label}),h("select",{id,onchange:e=>on(e.target.value)},opts.map(([v,t])=>h("option",{value:v,text:t,selected:v===val||null}))));
+  const rows=[sel("lpc-b","Body",LPC_BODIES,spec.b,v=>save({b:v})),sel("lpc-skin","Skin",Object.keys(LPC.data.pal.body.ramps).map(k=>[k,prettyName(k)]),spec.skin,v=>save({skin:v})),sel("lpc-hairc","Hair colour",Object.keys(LPC.data.pal.hair.ramps).map(k=>[k,prettyName(k)]),spec.hair,v=>save({hair:v}))];
+  for(const[sl,label]of LPC_SLOTS){const items=Object.entries(LPC.data.items).filter(([,it])=>it.slot===sl&&it.L.some(l=>l.b===spec.b));if(!items.length)continue;const[n,c]=cur[sl]||["",""];
+    rows.push(sel("lpc-"+sl,label,(sl==="head"?[]:[["","None"]]).concat(items.map(([k,it])=>[k,it.name])),n,v=>{const it=LPC.data.items[v];const cols=lpcColors(it);save({slots:{[sl]:v?[v,cols.includes(c)?c:(cols.includes("brown")?"brown":cols[0]||"")]:null}})}));
+    const cols=lpcColors(LPC.data.items[n]);if(n&&cols.length)rows.push(sel("lpc-"+sl+"-c",label+" colour",cols.map(k=>[k,prettyName(k)]),c||cols[0],v=>save({slots:{[sl]:[n,v]}})))}
+  return h("div",{class:"lpced"},h("img",{class:"lpcprev",src:lpcURL(spec,4),alt:"Your figure"}),h("div",{class:"lpcrows"},...rows),
+    h("div",{class:"actbar",style:"justify-content:flex-start;grid-column:1/-1"},h("button",{type:"button",onclick:()=>{S.portraits={...(S.portraits||{}),[S.uid]:{...p,lpc:null}};savePortrait({lpc:null});renderPortraitBits()}},"Match my description again"),
+      (p.kind||"doll")!=="doll"?h("button",{type:"button",class:"primary",onclick:()=>savePortrait({kind:"doll"}).then(renderPortraitBits)},"Use pixel hero on my card"):h("span",{class:"label",text:"on your card"})))}
 function portraitEditor(){const p=S.portraits?.[S.uid]||{};const kind=p.kind||"doll";const tab=S.ptab||kind;
   const tabs=h("div",{class:"seg",role:"tablist"},...[["doll","Pixel hero"],["svg","Painted"],["upload","Upload"]].map(([k,l])=>h("button",{type:"button",role:"tab","aria-selected":String(tab===k),onclick:()=>{S.ptab=k;renderPortraitBits()}},l)));
-  let body;if(tab==="doll"){const doll=p.doll&&p.doll.b?p.doll:dollOf(S.uid);body=h("div",{class:"dollpick"},...DOLL_SLOTS.map(([k,l])=>{const opts=slotOptions(k);const i=Math.max(0,opts.indexOf(doll[k]||""));const step=d=>setDollPart(k,opts[(i+d+opts.length)%opts.length]);
+  let body;if(tab==="doll"&&LPC.ready)body=lpcEditor();else if(tab==="doll"){const doll=p.doll&&p.doll.b?p.doll:dollOf(S.uid);body=h("div",{class:"dollpick"},...DOLL_SLOTS.map(([k,l])=>{const opts=slotOptions(k);const i=Math.max(0,opts.indexOf(doll[k]||""));const step=d=>setDollPart(k,opts[(i+d+opts.length)%opts.length]);
       return h("div",{class:"dp"},h("span",{class:"label",text:l}),h("button",{type:"button",class:"ghost","aria-label":`Previous ${l}`,onclick:()=>step(-1)},"‹"),h("span",{class:"dpv",text:prettyKey(doll[k]||"")}),h("button",{type:"button",class:"ghost","aria-label":`Next ${l}`,onclick:()=>step(1)},"›"))}),
     h("div",{class:"actbar",style:"justify-content:flex-start"},h("button",{type:"button",onclick:()=>{const d=autoDoll(heroNow());S.portraits={...(S.portraits||{}),[S.uid]:{...p,doll:d}};savePortrait({doll:d,kind:"doll"});renderPortraitBits()}},"Match my hero"),
       kind!=="doll"?h("button",{type:"button",class:"primary",onclick:()=>savePortrait({kind:"doll",doll:doll}).then(renderPortraitBits)},"Use pixel hero on my card"):h("span",{class:"label",text:"on your card"})))}

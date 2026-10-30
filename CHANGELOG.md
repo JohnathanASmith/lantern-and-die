@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.1
+- Character sheet and player card show the new figure when there's no portrait.
+- The Pixel hero tab is now an editor for the new figure: body, skin, hair colour, head, ears, hair, beard, shirt, dress, armour or coat, belt, cloak, legs, feet, headwear, weapon, shield, with colours. Choices sit on top of what your description gives; Match my description again clears them.
+- Humanoid monsters (goblins, hobgoblins, orcs, gnolls, kobolds, lizardfolk, minotaurs, trolls, ogres) use the new figures; beasts keep their tiles.
+- Goliaths and big folk in armour keep a normal body (so armour shows) and are drawn a little taller.
+
 ## 1.13.0
 - Real character sprites: heroes and NPCs are now built from the Liberated Pixel Cup (LPC) layered art: body type, skin, head (human, elderly, orc, lizard for dragonborn, and more), ears, hair style and colour, beard, shirt, armour, coat, apron, robe or dress, trousers or skirt, boots, cloak, hood or helmet, weapon and shield, all read from descriptions, class and inventory. Used on the map, in the chat and in the who's-here list; painted portraits still win where they exist.
 - The art ships as three files next to the page (lpc.png, lpc.json, lpc-credits.json). Art credits are listed at the bottom of the page.
