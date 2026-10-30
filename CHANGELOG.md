@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.7
+- When an NPC answers a hero privately, anyone who could hear the hero's own words (an eavesdropper close by) hears the answer too, instead of only one side of the conversation. Private narration (what a hero alone notices) stays private.
+
 ## 1.7.6
 - Quiet actions (and anything done while hidden) are secret: other heroes don't see them, or the rolls that come with them, just because they're standing close. Only the person the action is aimed at is in on it, and the DM decides if anyone notices.
 
