@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.7.9">
+<meta name="lantern-and-die-version" content="1.7.10">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.7.9"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.7.10"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1420,7 +1420,7 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
       const hid=Object.keys(S.chars).find(id=>slug(heroName(id))===slug(spk)||slug(String(heroName(id)).split(" ")[0])===slug(spk));
       if(hid){if(!away.includes(hid))continue;const v=line?"talk":"open";const e=earshot(sid,{hero:hid},line?"talk":"see");const heard=[...new Set([...e.heard,S.uid])];
         await postTalk({kind:line?"say":"do",hero:hid,auto:true,text:line||act,to:"",vol:v,scene:sid,heard,nh:e.nh,stub:String(rp.othersSee||"").slice(0,200)});continue}
-      let ear={};if(rp.audience==="private")ear=spk==="Narrator"||!tHeard?{heard:[S.uid],nh:spk==="Narrator"?[]:[spk]}:{heard:[...new Set([...tHeard,S.uid])],nh:[...new Set([...(tNh||[]),spk])]};/* an NPC answering low reaches whoever could hear the hero's own words, eavesdroppers included */else if(rp.audience==="room"){const e=earshot(sid,spk!=="Narrator"&&posOf(sid).npcs[spk]?{npc:spk}:{hero:S.uid},"room");ear={heard:e.heard,nh:e.nh}}else if(tHeard){const e=spk!=="Narrator"&&posOf(sid).npcs[spk]?earshot(sid,{npc:spk},"talk"):{heard:[],nh:[]};ear={heard:[...new Set([...tHeard,...e.heard])],nh:[...new Set([...(tNh||[]),...e.nh,...(spk==="Narrator"?[]:[spk])])]}}
+      let ear={};if(rp.audience==="private")ear=spk==="Narrator"||!tHeard?{heard:[S.uid],nh:spk==="Narrator"?[]:[spk]}:{heard:[...new Set([...tHeard,S.uid])],nh:[...new Set([...(tNh||[]),spk])]};/* an NPC answering low reaches whoever could hear the hero's own words, eavesdroppers included */else if(rp.audience==="room"){const e=earshot(sid,spk!=="Narrator"&&posOf(sid).npcs[spk]?{npc:spk}:{hero:S.uid},"room");ear={heard:e.heard,nh:e.nh}}else if(tHeard){/* an NPC answers at the hero's own level: a whisper or a quiet action gets a whispered reply */const lv=trigger.line&&(trigger.line.vol==="whisper"||trigger.line.vol==="quiet")?"whisper":"talk";const e=spk!=="Narrator"&&posOf(sid).npcs[spk]?earshot(sid,{npc:spk},lv):{heard:[],nh:[]};ear={heard:[...new Set([...tHeard,...e.heard])],nh:[...new Set([...(tNh||[]),...e.nh,...(spk==="Narrator"?[]:[spk])])]}}
       if(ear.heard&&!ear.heard.includes(S.uid))ear.heard=[...ear.heard,S.uid];
       if(ear.heard)ear.stub=String(rp.othersSee||"").slice(0,200)||(spk==="Narrator"?"":`${spk} talks with ${heroName(S.uid)} out of earshot.`);
       await postTalk({kind:"npc",speaker:spk,text:line,action:act,scene:sid,...ear})}

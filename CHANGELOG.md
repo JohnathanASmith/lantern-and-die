@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.10
+- NPCs answer at the hero's own volume: a reply to a whisper or a quiet action is whispered back, so people nearby (and other heroes) no longer overhear one side of a sneaky exchange.
+
 ## 1.7.9
 - Walls and shut doors stop voices: people inside a building on the map can't hear (or see) what's said and done outside it, and the reverse. Shouts still carry.
 - The DM is reminded to move heroes on the map when they go into a building, up a stair or onto a landing.
