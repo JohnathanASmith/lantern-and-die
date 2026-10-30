@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.2
+- A progress bar above Say/Do counts down to the next DM-played turn (who and how many seconds), shows when the DM is answering, and says when DM play is waiting on a roll or paused.
+- Pictures and system notes no longer reset the quiet timer; DM-play checks every 5 seconds.
+
 ## 1.14.1
 - DM-played heroes now take their own turns: when a scene has been quiet for 40 seconds and someone in it is at the table, the DM plays the next move for a DM-played hero (round robin), and the world answers. It pauses after 8 such turns in a row until a player acts or presses Keep going. Runs on the page keeping the world, never when nobody in the scene is at the table.
 - The DM's reply logic can act for a hero other than the page's own (coins, private lines and rests go to the right hero).
