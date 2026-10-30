@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.3">
+<meta name="lantern-and-die-version" content="1.14.4">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.4"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1575,19 +1575,25 @@ async function autoTurnTick(){if(autoTurnBusy||S.busy||npcBusy||!S.sample||!S.db
     if(autoStreak(sid)>=AUTO_STREAK)continue;
     const lastBy=id=>S.talk.filter(m=>msgScene(m)===sid&&m.hero===id).reduce((t,m)=>Math.max(t,m.at||0),0);const actor=cands.sort((a,b)=>lastBy(a)-lastBy(b))[0];
     autoTurnBusy=true;try{await autoTurn(sid,actor)}catch(e){}finally{autoTurnBusy=false}return}}
-async function autoTurn(sid,actor){const sc=S.scenes[sid]||{},c=S.chars[actor]||{};const P=posOf(sid);
+async function autoTurn(sid,actor){const sc=S.scenes[sid]||{},c=S.chars[actor]||{};const P=posOf(sid);const allDm=heroesIn(sid).every(id=>dmPlays(id));
   const seen=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&(!Array.isArray(m.heard)||m.heard.includes(actor)||m.hero===actor)).sort((a,b)=>a.at-b.at).slice(-16).map(m=>fmtLine(m,false,sceneTime(sid))).join("\n");
   const people=[...heroesIn(sid).filter(id=>id!==actor).map(id=>`${heroName(id)} (hero${dmPlays(id)?"":", played live"})`),...npcsHere(sid).filter(n=>!P.npcs[n.name]?.hidden).map(n=>`${n.name}${aliasOf(n.name,actor)?" (known as "+aliasOf(n.name,actor)+")":""}: ${n.about||""}`)].join("; ");
   const prompt=`You are playing ${c.name}, a ${speciesOf(c)} ${c.class} in a live D&D game, because their player asked the DM to play them for a while. Decide their next move right now, true to their personality and to how their player plays them, and move the story forward: talk to someone here, ask a useful question, investigate something, act on the party's plan, or follow the other heroes. Keep it to one short line or action. Never make big choices for them (spending much coin, romance going further, risky or irreversible deeds, leaving the party, decisions about their own past). If nothing sensible is left to do (everyone resting, waiting on something), set kind to "wait".${toneRule()}
 Personality: ${c.personality||""}. Appearance: ${String(c.appearance||"").slice(0,300)}. Backstory: ${String(c.backstory||"").slice(0,300)}.
 How their player plays them: ${JSON.stringify(playedAs(actor))}
 Quests they know: ${JSON.stringify(notesFor(actor,"quest").map(q=>q.title+": "+String(q.text||"").slice(0,160)))}
-Place: ${sc.name}. ${String(sc.scene||sc.description||"").slice(0,500)}${isJourney(sc)?"\nON THE ROAD: the party is travelling. Talk, look around, react to what the road shows or help the others, but never decide to push on, make camp or turn back; the other heroes or their players choose that.":""}
+Place: ${sc.name}. ${String(sc.scene||sc.description||"").slice(0,500)}${isJourney(sc)?(allDm?`\nON THE ROAD to ${sc.travel?.to||"the destination"}: every hero here is being played by the DM, so the party moves only if you move it. When the talk has run its course, set kind "continue" to push on toward ${sc.travel?.to||"the destination"} (text: a short line from them about moving on). Set kind "camp" only if it is night, someone is exhausted, or the weather turns dangerous. Never turn back or change where the party is going.`:"\nON THE ROAD: the party is travelling. Talk, look around, react to what the road shows or help the others. You may suggest moving on in words, but never push on, make camp or turn back yourself; the players playing live decide that."):""}
 People here: ${people||"nobody else"}
 What they've seen and heard lately:
 ${seen}
-Reply with ONLY JSON: {"kind":"say|do|wait","to":"exact name of who they address, or empty","vol":"talk|whisper|shout","text":"their spoken words, or for do an action in first person starting with I"}`;
-  const r=await S.sample.json(prompt,{...aiOpts("talk","default"),cache:false});if(!r||r.kind==="wait"||!r.text)return;
+Reply with ONLY JSON: {"kind":"say|do|wait${isJourney(sc)&&allDm?"|continue|camp":""}","to":"exact name of who they address, or empty","vol":"talk|whisper|shout","text":"their spoken words, or for do an action in first person starting with I"}`;
+  const r=await S.sample.json(prompt,{...aiOpts("talk","default"),cache:false});if(!r||r.kind==="wait")return;
+  /* the whole party is DM-played on the road: the DM may move them one leg on, toward where they already chose to go */
+  if(isJourney(sc)&&allDm&&(r.kind==="continue"||r.kind==="camp")){if(pendingFor(sid,"leg"))return;const hrs=todOf(sceneTime(sid));const tired=heroesIn(sid).some(id=>(S.chars[id]?.exhaustion||0)>0);
+    const intent=r.kind==="camp"&&(hrs==="night"||hrs==="dusk"||tired)?"camp":"continue";const P0=posOf(sid);const ear=earshot(sid,{hero:actor},"talk");
+    await postTalk({kind:"say",hero:actor,text:String(r.text||(intent==="camp"?"Let's make camp here.":"Let's keep moving.")).slice(0,300),scene:sid,vol:"talk",heard:ear.heard,nh:ear.nh,stub:"",auto:true,autoturn:true});
+    try{await S.db.collection("updates").add({scene:sid,kind:"leg",intent,reason:intent+" (the DM is playing the whole party)",by:S.uid||"",status:"pending",at:Date.now()})}catch(e){}return}
+  if(!r.text||r.kind==="continue"||r.kind==="camp")return;
   const kind=r.kind==="do"?"do":"say",vol=["talk","whisper","shout"].includes(r.vol)?r.vol:"talk";let to=String(r.to||"").slice(0,60);
   if(to&&!P.npcs[to]&&!heroesIn(sid).some(id=>heroName(id)===to)){const hit=npcsHere(sid).find(n=>slug(aliasOf(n.name,actor)||"")===slug(to));to=hit?hit.name:""}
   const e=earshot(sid,{hero:actor},kind==="do"?(vol==="whisper"?"whisper":"see"):vol);

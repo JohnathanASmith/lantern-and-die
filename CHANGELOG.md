@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.4
+- On the road, when every hero in the scene is DM-played, the DM may push the journey on one leg at a time toward the chosen destination, or make camp at night, when someone is exhausted or in bad weather. It never turns back or changes the destination, and these turns count toward the 8-turn pause.
+- When anyone in the scene is playing live, DM-played heroes only suggest moving on in words.
+
 ## 1.14.3
 - DM-played heroes now take turns on the road too (journeys were skipped before, so the countdown bar never showed there). On the road they talk, look around and help, but never push on, camp or turn back.
 - The countdown bar explains when DM play is held for combat or while the party is moving.
