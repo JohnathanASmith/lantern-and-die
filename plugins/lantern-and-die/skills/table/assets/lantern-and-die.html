@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.8.3">
+<meta name="lantern-and-die-version" content="1.8.4">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -333,7 +333,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.8.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.8.4"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1515,7 +1515,7 @@ function stubFor(sid,kind,vol,to){const me=posOf(sid).heroes[S.uid],nm=heroName(
   return vol==="whisper"?`${nm} whispers${to?" to "+to:""}.`:`${nm} talks${to?" with "+to:""} ${whereText(me)}.`}
 async function sayLine(sid,kind,to,text,vol){if(to&&posOf(sid).npcs[to])await approach(sid,to);const r=kind==="do"?(vol==="whisper"?"whisper":"see"):(vol||"talk");let e=earshot(sid,{hero:S.uid},r);
   /* a quiet action or anything done while hidden is secret: nobody notices it unless the DM says they do (only the person it's aimed at is in on it) */
-  const meP=posOf(sid).heroes[S.uid];if(kind==="do"&&(vol==="whisper"||meP?.hidden)){const mate=heroesIn(sid).find(id=>id!==S.uid&&heroName(id)===to);e={heard:[S.uid,...(mate?[mate]:[])],nh:to&&!mate&&posOf(sid).npcs[to]?[to]:[]}}
+  const meP=posOf(sid).heroes[S.uid];if(kind==="do"&&(vol==="whisper"||meP?.hidden)){const low=String(text).toLowerCase();const mates=heroesIn(sid).filter(id=>id!==S.uid&&(heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase())));e={heard:[S.uid,...mates],nh:to&&!mates.length&&posOf(sid).npcs[to]?[to]:[]}}
   const line={kind,hero:S.uid,to,text:text.slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):(vol||"talk"),heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to)};await postTalk(line);return line}
 function heardLabel(m){if(!Array.isArray(m.heard))return"";const names=[...m.heard.map(heroName),...(m.nh||[])];return names.length?` [heard by: ${names.join(", ")}]`:""}
 

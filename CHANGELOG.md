@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.4
+- A quiet action that names another hero ("I quietly tell Elara…") now includes that hero, so they see what you told them and the DM's reply.
+
 ## 1.8.3
 - If the DM voices an NPC by the name a hero learned (Tamsin) instead of the listed name, the line is filed under the same person, so one NPC never splits into two.
 
