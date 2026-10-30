@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.1
+- An old "on the way" status can no longer lock someone's Talk box: it only counts when the destination is actually expecting them.
+- Undo never brings back an old travel status.
+
 ## 1.9.0
 - Host "Undo last turn": rewinds the scene you're viewing to just before the last thing a player said, did, rolled or set off on. It removes the lines, rolls and notes since then, and restores the scene, positions, clock, errands, the heroes' sheets (HP, coins, items), quests and the chronicle. One step back per scene.
 
