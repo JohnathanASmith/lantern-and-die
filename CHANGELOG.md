@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.5
+- Fix: on journeys heroes had no place on the road map and were put at the map's edge, far from the companions walking with them, so earshot said NPCs couldn't hear. Heroes without a spot on the road now walk with the party, next to the companions.
+- DM-played heroes walk over to the NPC they address, like live players do.
+
 ## 1.14.4
 - On the road, when every hero in the scene is DM-played, the DM may push the journey on one leg at a time toward the chosen destination, or make camp at night, when someone is exhausted or in bad weather. It never turns back or changes the destination, and these turns count toward the 8-turn pause.
 - When anyone in the scene is playing live, DM-played heroes only suggest moving on in words.

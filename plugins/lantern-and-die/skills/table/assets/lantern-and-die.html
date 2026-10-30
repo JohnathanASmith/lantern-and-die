@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.4">
+<meta name="lantern-and-die-version" content="1.14.5">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.4"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.5"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1596,6 +1596,7 @@ Reply with ONLY JSON: {"kind":"say|do|wait${isJourney(sc)&&allDm?"|continue|camp
   if(!r.text||r.kind==="continue"||r.kind==="camp")return;
   const kind=r.kind==="do"?"do":"say",vol=["talk","whisper","shout"].includes(r.vol)?r.vol:"talk";let to=String(r.to||"").slice(0,60);
   if(to&&!P.npcs[to]&&!heroesIn(sid).some(id=>heroName(id)===to)){const hit=npcsHere(sid).find(n=>slug(aliasOf(n.name,actor)||"")===slug(to));to=hit?hit.name:""}
+  if(to&&P.npcs[to])await approach(sid,to,actor);
   const e=earshot(sid,{hero:actor},kind==="do"?(vol==="whisper"?"whisper":"see"):vol);
   const line={kind,hero:actor,to,text:String(r.text).slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):vol,heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to),auto:true,autoturn:true};
   await postTalk(line);const mate=heroesIn(sid).find(id=>id!==actor&&heroName(id)===to);
@@ -1779,7 +1780,8 @@ S.pos={};S.notes=[];S.ideas=null;S.ideasBusy=false;S.recap=null;S.lastSeenAt=nul
 const posKey=(sid,kind,id)=>`${sid}~${kind}~${slug(id).slice(0,60)}`;
 function posOf(sid){const sc=S.scenes[sid]||{},base=sc.posAt||0;const rows=parseMap(sc.map),W=rows[0].length,H=rows.length;const ov=S.pos[sid]||{h:{},n:{}};
   const norm=(x,y,spot,perch,hidden)=>{const sp=perch!=null&&perch!==""?{spot:roomKey(sid,spot),perch:String(perch)}:splitSpot(sid,spot);return{x:+x||0,y:+y||0,spot:sp.spot,perch:sp.perch,hidden:!!hidden}};
-  const heroes={};heroesIn(sid).forEach((id,i)=>{const t=(sc.tokens||{})[id];let o=Array.isArray(t)?norm(t[0],t[1],t[2],t[3]):{x:1+(i%Math.max(1,W-2)),y:Math.max(1,H-2),spot:"",perch:"",hidden:false};const q=ov.h[slug(id)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);heroes[id]=o});
+  const anchor=(()=>{if(!isJourney(sc))return null;const c=(sc.npcs||[]).find(n=>n.companion&&!n.spot);if(c)return[+c.x||0,+c.y||0];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(rows[y][x]==="="||rows[y][x]===",")return[x,y];return null})();const OFF=[[1,0],[0,1],[1,1],[-1,0],[0,-1],[-1,1],[2,0],[1,-1]];
+  const heroes={};heroesIn(sid).forEach((id,i)=>{const t=(sc.tokens||{})[id];let o=Array.isArray(t)?norm(t[0],t[1],t[2],t[3]):anchor?(()=>{const used=new Set([...(sc.npcs||[]).filter(n=>!n.spot).map(n=>(+n.x||0)+","+(+n.y||0)),...Object.values(heroes).map(h=>h.x+","+h.y)]);for(const[dx,dy]of OFF){const x=Math.max(0,Math.min(W-1,anchor[0]+dx)),y=Math.max(0,Math.min(H-1,anchor[1]+dy));if(!used.has(x+","+y))return{x,y,spot:"",perch:"",hidden:false}}return{x:anchor[0],y:anchor[1],spot:"",perch:"",hidden:false}})():{x:1+(i%Math.max(1,W-2)),y:Math.max(1,H-2),spot:"",perch:"",hidden:false};const q=ov.h[slug(id)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);heroes[id]=o});
   const npcs={};npcsHere(sid).forEach(n=>{let o=norm(n.x,n.y,n.spot,n.perch,n.hidden);const q=ov.n[slug(n.name)];if(q&&(q.at||0)>base)o=norm(q.x,q.y,q.spot,q.perch,q.hidden);npcs[n.name]=o});
   return{heroes,npcs}}
 const sameSpot=(a,b)=>slug(a?.spot||"")===slug(b?.spot||"");
@@ -1800,11 +1802,11 @@ function walkableAt(sc,x,y){const rows=parseMap(sc.map);if(y<0||y>=rows.length||
 async function setPos(sid,who,p){if(!S.db||!sid)return;const kind=who.hero?"h":"n",id=who.hero||who.npc,now=Date.now();const d={sid,kind,id:String(id).slice(0,80),x:Math.round(+p.x||0),y:Math.round(+p.y||0),spot:String(p.spot||"").slice(0,40),perch:String(p.perch||"").slice(0,40),hidden:!!p.hidden,at:now};
   const ov=S.pos[sid]||(S.pos[sid]={h:{},n:{}});ov[kind][slug(id)]=d;try{await S.db.doc("pos/"+posKey(sid,kind,id)).set(d)}catch(e){}}
 /* walk the hero over to someone they address when they're out of earshot */
-async function approach(sid,npcName){const P=posOf(sid),me=P.heroes[S.uid],n=P.npcs[npcName];if(!me||!n||near(me,n,1))return;const sc=S.scenes[sid]||{};
-  if(n.spot){await setPos(sid,{hero:S.uid},{x:n.x+1,y:n.y,spot:n.spot});return}
+async function approach(sid,npcName,who=S.uid){const P=posOf(sid),me=P.heroes[who],n=P.npcs[npcName];if(!me||!n||near(me,n,1))return;const sc=S.scenes[sid]||{};
+  if(n.spot){await setPos(sid,{hero:who},{x:n.x+1,y:n.y,spot:n.spot});return}
   const taken=new Set([...Object.values(P.heroes),...Object.values(P.npcs)].filter(p=>!p.spot).map(p=>p.x+","+p.y));let best=null,bd=1e9;
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const x=n.x+dx,y=n.y+dy;if(!walkableAt(sc,x,y)||taken.has(x+","+y))continue;const d=Math.hypot(x-me.x,y-me.y);if(d<bd){bd=d;best={x,y}}}
-  if(best)await setPos(sid,{hero:S.uid},{...best,spot:""})}
+  if(best)await setPos(sid,{hero:who},{...best,spot:""})}
 const whereText=p=>p?.spot?`on the ${p.spot.replace(/^the /i,"")}`:"across the room";
 function stubFor(sid,kind,vol,to){const me=posOf(sid).heroes[S.uid],nm=heroName(S.uid);if(kind==="do")return vol==="whisper"?"":`${nm} is busy ${whereText(me)}.`;
   return vol==="whisper"?`${nm} whispers${to?" to "+to:""}.`:`${nm} talks${to?" with "+to:""} ${whereText(me)}.`}
