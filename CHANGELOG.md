@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.1
+- NPCs can become pregnant too: after an intimate scene with a hero, if the DM judges she could conceive and wouldn't have taken her own precautions, the page rolls a secret d20 (18+). The DM keeps it hidden from players, she learns of it after a few weeks, and decides in character whether and when to tell.
+- NPC memory rewrites keep this.
+
 ## 1.11.0
 - Pregnancy as a player's choice: after an intimate scene with no precautions in the story, the player of a female hero (who isn't already pregnant) privately picks No chance or Chance. Chance rolls a d20, 18+ means pregnant. Only she sees the card and result.
 - The DM knows quietly: signs show gradually after a few weeks of game time, and the telling is left to her player.
