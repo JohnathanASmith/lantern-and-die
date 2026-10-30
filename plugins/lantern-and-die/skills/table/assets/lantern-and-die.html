@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.0">
+<meta name="lantern-and-die-version" content="1.14.1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -357,7 +357,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.1"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1527,7 +1527,8 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=(()=>{const w=S.game?.waiting?.[S.uid];if(!w||w.target===mine)return false;return(S.scenes[w.target]?.incoming||[]).some(x=>x.hero===S.uid)})();const owes=!combat?S.checks.find(c=>c.status==="pending"&&c.hero===S.uid&&c.scene===mine&&c.source==="talk"):null;const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute&&!owes;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
   {const me=S.chars[S.uid];const on=!!me?.autoplay;$("autoPlay").checked=on;$("autoPlay").disabled=!me?.inPlay||watching;const ab=$("autoBar");ab.hidden=!on||watching;
-   if(on&&!watching)ab.replaceChildren(h("span",{},h("b",{text:`The DM is playing ${heroName(S.uid)} for you.`})," You can still say or do things yourself."),h("button",{type:"button",class:"primary",onclick:()=>setAutoplay(false)},"Take over"))}
+   const paused=on&&autoStreak(mine)>=AUTO_STREAK;
+   if(on&&!watching)ab.replaceChildren(h("span",{},h("b",{text:`The DM is playing ${heroName(S.uid)} for you.`}),paused?` It paused after ${AUTO_STREAK} turns in a row.`:" You can still say or do things yourself."),h("span",{style:"display:flex;gap:8px"},paused?h("button",{type:"button",onclick:keepAutoGoing},"Keep going"):null,h("button",{type:"button",class:"primary",onclick:()=>setAutoplay(false)},"Take over")))}
   try{updateEar()}catch(e){}
   $("talkHint").textContent=owes&&!watching?`the DM asked you for a ${owes.label||owes.skill||owes.ability||"check"} roll · roll it below to carry on`:enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
@@ -1554,6 +1555,39 @@ async function waitAWhile(){const sid=myScene();if(!sid||!S.chars[S.uid]?.ready|
   const who=errandsIn(sid).filter(e=>!visitingAt(e.id,sid)&&e.due<=now+mins).map(e=>e.id);
   await guardedSend({sid,kind:"do",to:"",text:`I wait${who.length?" for "+who.join(" and "):""}, about ${mins<60?mins+" minutes":spanLabel(mins)}.`,vol:"open",wait:mins})}
 $("waitBtn").addEventListener("click",waitAWhile);
+/* when the DM plays a hero and things go quiet, that hero takes their own turn; whoever keeps the world runs it, and only while someone in the scene is at the table */
+const AUTO_QUIET=40000,AUTO_STREAK=8;let autoTurnBusy=false;
+function autoStreak(sid){let n=0;for(const m of S.talk.filter(m=>msgScene(m)===sid).sort((a,b)=>b.at-a.at)){if(m.kind==="sys"&&m.autoresume)break;if((m.kind==="say"||m.kind==="do")&&m.hero){if(!m.auto)break;if(m.autoturn)n++}}return n}
+function autoCandidates(sid){return heroesIn(sid).filter(id=>dmPlays(id)&&alive(S.chars[id])&&holdOf(sid,id)?.kind!=="sleep"&&!S.game?.waiting?.[id])}
+async function autoTurnTick(){if(autoTurnBusy||S.busy||npcBusy||!S.sample||!S.db||S.game?.status!=="playing"||!isEngine())return;
+  for(const sid of [...new Set(Object.values(S.game?.heroScene||{}))]){const sc=S.scenes[sid];if(!sc||sc.mode==="combat"||isJourney(sc))continue;
+    const cands=autoCandidates(sid);if(!cands.length||!heroesIn(sid).some(id=>isPresent(id)))continue;
+    const last=S.talk.filter(m=>msgScene(m)===sid).reduce((t,m)=>Math.max(t,m.at||0),0);if(Date.now()-last<AUTO_QUIET)continue;
+    if(S.checks.some(c=>c.status==="pending"&&c.scene===sid)||S.updates.some(u=>u.status==="pending"&&u.scene===sid)||await heldByOther(sid))continue;
+    if(autoStreak(sid)>=AUTO_STREAK)continue;
+    const lastBy=id=>S.talk.filter(m=>msgScene(m)===sid&&m.hero===id).reduce((t,m)=>Math.max(t,m.at||0),0);const actor=cands.sort((a,b)=>lastBy(a)-lastBy(b))[0];
+    autoTurnBusy=true;try{await autoTurn(sid,actor)}catch(e){}finally{autoTurnBusy=false}return}}
+async function autoTurn(sid,actor){const sc=S.scenes[sid]||{},c=S.chars[actor]||{};const P=posOf(sid);
+  const seen=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&(!Array.isArray(m.heard)||m.heard.includes(actor)||m.hero===actor)).sort((a,b)=>a.at-b.at).slice(-16).map(m=>fmtLine(m,false,sceneTime(sid))).join("\n");
+  const people=[...heroesIn(sid).filter(id=>id!==actor).map(id=>`${heroName(id)} (hero${dmPlays(id)?"":", played live"})`),...npcsHere(sid).filter(n=>!P.npcs[n.name]?.hidden).map(n=>`${n.name}${aliasOf(n.name,actor)?" (known as "+aliasOf(n.name,actor)+")":""}: ${n.about||""}`)].join("; ");
+  const prompt=`You are playing ${c.name}, a ${speciesOf(c)} ${c.class} in a live D&D game, because their player asked the DM to play them for a while. Decide their next move right now, true to their personality and to how their player plays them, and move the story forward: talk to someone here, ask a useful question, investigate something, act on the party's plan, or follow the other heroes. Keep it to one short line or action. Never make big choices for them (spending much coin, romance going further, risky or irreversible deeds, leaving the party, decisions about their own past). If nothing sensible is left to do (everyone resting, waiting on something), set kind to "wait".${toneRule()}
+Personality: ${c.personality||""}. Appearance: ${String(c.appearance||"").slice(0,300)}. Backstory: ${String(c.backstory||"").slice(0,300)}.
+How their player plays them: ${JSON.stringify(playedAs(actor))}
+Quests they know: ${JSON.stringify(notesFor(actor,"quest").map(q=>q.title+": "+String(q.text||"").slice(0,160)))}
+Place: ${sc.name}. ${String(sc.scene||sc.description||"").slice(0,500)}
+People here: ${people||"nobody else"}
+What they've seen and heard lately:
+${seen}
+Reply with ONLY JSON: {"kind":"say|do|wait","to":"exact name of who they address, or empty","vol":"talk|whisper|shout","text":"their spoken words, or for do an action in first person starting with I"}`;
+  const r=await S.sample.json(prompt,{...aiOpts("talk","default"),cache:false});if(!r||r.kind==="wait"||!r.text)return;
+  const kind=r.kind==="do"?"do":"say",vol=["talk","whisper","shout"].includes(r.vol)?r.vol:"talk";let to=String(r.to||"").slice(0,60);
+  if(to&&!P.npcs[to]&&!heroesIn(sid).some(id=>heroName(id)===to)){const hit=npcsHere(sid).find(n=>slug(aliasOf(n.name,actor)||"")===slug(to));to=hit?hit.name:""}
+  const e=earshot(sid,{hero:actor},kind==="do"?(vol==="whisper"?"whisper":"see"):vol);
+  const line={kind,hero:actor,to,text:String(r.text).slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):vol,heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to),auto:true,autoturn:true};
+  await postTalk(line);const mate=heroesIn(sid).find(id=>id!==actor&&heroName(id)===to);
+  await npcRespond({line,actor,...(mate&&kind==="say"&&!dmPlays(mate)?{toMate:mate}:{})})}
+setInterval(()=>{try{autoTurnTick()}catch(e){}},10000);
+async function keepAutoGoing(){const sid=myScene();if(sid)await postTalk({kind:"sys",text:"Auto-play continues",autoresume:true,scene:sid})}
 async function setAutoplay(on){if(!S.db||!S.uid)return;try{await S.db.doc("characters/"+S.uid).update({autoplay:!!on});toast(on?"The DM will play your hero until you untick it.":"You're playing your hero again.")}catch(e){toast("Couldn't change that")}}
 $("autoPlay").addEventListener("change",e=>setAutoplay(e.target.checked));
 async function listenIn(m){const sid=myScene(),P=posOf(sid);const who=[...(m.heard||[]).map(heroName),...(m.nh||[])].filter(n=>n!==heroName(S.uid));const sp=(m.heard||[]).map(id=>P.heroes[id]).find(Boolean);
@@ -1605,9 +1639,9 @@ async function sceneLock(sid){if(!S.db||!sid)return null;const ref=S.db.doc("pos
   return null}
 async function releaseLock(sid,nonce){if(!nonce||!S.db)return;const ref=S.db.doc("pos/"+`${sid}~k~dm`);try{const g=await ref.get();if(g.exists&&g.data().nonce===nonce)await ref.set({sid,kind:"k",by:"",nonce:"",at:0})}catch(e){}}
 async function npcRespond(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}if(npcBusy){npcQueued=trigger;return}
-  const lsid=trigger.check?.scene||myScene();const lock=await sceneLock(lsid);try{return await npcRespondCore(trigger)}finally{await releaseLock(lsid,lock)}}
-async function npcRespondCore(trigger){if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}
-  if(npcBusy){npcQueued=trigger;return}npcBusy=true;if(trigger.waitMins)await tickClock(trigger.check?.scene||myScene(),trigger.waitMins);const sid=trigger.check?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=npcsHere(sid);const P=posOf(sid);
+  const lsid=trigger.check?.scene||trigger.line?.scene||myScene();const lock=await sceneLock(lsid);try{return await npcRespondCore(trigger)}finally{await releaseLock(lsid,lock)}}
+async function npcRespondCore(trigger){const ME=trigger.actor||S.uid;if(!S.sample){toast("Allow Claude on this page so the world can answer.");return}
+  if(npcBusy){npcQueued=trigger;return}npcBusy=true;if(trigger.waitMins)await tickClock(trigger.check?.scene||trigger.line?.scene||myScene(),trigger.waitMins);const sid=trigger.check?.scene||trigger.line?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=npcsHere(sid);const P=posOf(sid);
   const tHeard=Array.isArray(trigger.line?.heard)?trigger.line.heard:Array.isArray(trigger.check?.heard)?trigger.check.heard:null,tNh=trigger.line?.nh||null;
   const who=trigger.line?.kind==="do"?"Narrator":(trigger.line?.to||npcs[0]?.name||"Narrator");setBusy(sid,who,true);
   const g=S.game||{};const recent=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&canSee(m)).sort((a,b)=>a.at-b.at).slice(-18).map(m=>fmtLine(m,false,sceneTime(sid))+heardLabel(m)).join("\n");
@@ -1616,11 +1650,11 @@ async function npcRespondCore(trigger){if(!S.sample){toast("Allow Claude on this
   const mem=npcs.map(n=>({name:n.name,...(aliasOf(n.name)?{knownTo_actingHero_as:aliasOf(n.name)}:{}),hostile:!!n.hostile,attitude:S.npcmem[slug(n.name)]?.attitude||n.attitude||"indifferent",about:n.about||"",looks:S.npcmem[slug(n.name)]?.looks||n.looks||"",...(S.npcmem[slug(n.name)]?.pregnant?{pregnant:`yes, by ${S.npcmem[slug(n.name)].pregnant.with||"a hero"}, about ${Math.max(0,Math.floor((gameTime(S.game||{})-(S.npcmem[slug(n.name)].pregnant.since||0))/1440))} day(s) (a secret from the players; she learns of it herself only after a few weeks, then decides, true to who she is, whether and when to tell; let it show gradually)`}:{}),remembers:(S.npcmem[slug(n.name)]?.notes||[]).slice(-8)}));
   const others=activeScenes().filter(s=>s.id!==sid).map(s=>`${s.name} (${heroesIn(s.id).map(heroName).join(", ")})`).join("; ")||"none";
   const trig=trigger.check?`CHECK RESULT: ${heroName(trigger.check.hero)} (${trigger.check.hero}) rolled ${trigger.check.label} = ${trigger.check.result.total} vs DC ${trigger.check.dc}: ${trigger.check.result.success?"SUCCESS":"FAILURE"} (${trigger.check.reason}). Narrate or voice the outcome of exactly that. Do not ask for this check again.`
-    :`NEW: ${heroName(S.uid)} (${S.uid}) ${trigger.line.kind==="do"?(trigger.line.vol==="quiet"?"quietly does":"does"):trigger.line.vol==="whisper"?"whispers":trigger.line.vol==="shout"?"shouts":"says"}${trigger.line.to?" to "+trigger.line.to:""}: ${trigger.line.text}`;
+    :`NEW${trigger.actor&&trigger.actor!==S.uid?" (the DM is playing this hero for their player)":""}: ${heroName(ME)} (${ME}) ${trigger.line.kind==="do"?(trigger.line.vol==="quiet"?"quietly does":"does"):trigger.line.vol==="whisper"?"whispers":trigger.line.vol==="shout"?"shouts":"says"}${trigger.line.to?" to "+trigger.line.to:""}: ${trigger.line.text}`;
   const mateTxt=trigger.toMate?`\nTHIS LINE IS FOR ${heroName(trigger.toMate)} (${trigger.toMate}), another player's hero whose player is here and will answer for themselves: never speak or act for them. Reply only if an NPC within earshot would naturally react, chime in, or is affected by it (someone leaving, a plan that involves them, a remark about them); otherwise return "replies": [].`:"";
   const earTxt=tHeard?`Within earshot of this: heroes ${tHeard.map(id=>heroName(id)+" ("+id+")").join(", ")}; NPCs ${(tNh||[]).join(", ")||"none"}. Only NPCs within earshot may answer or react, unless the hero went to them.`:"Everyone here can hear this.";
   const holdsTxt=heroesIn(sid).filter(id=>holdOf(sid,id)).map(id=>`${heroName(id)} (${id}) is ${holdText(sid,id)}`).join("; ");
-  const listenTxt=trigger.listen?`LISTENING IN: ${heroName(S.uid)} wants to overhear ${[...trigger.listen.heroes.map(heroName),...trigger.listen.npcs].join(", ")}${trigger.listen.spot?" on the "+trigger.listen.spot:""}. If they could be noticed, ask for a Stealth check (DC from the setting, usually 10-15). On success, or if there's nothing to sneak past, move them within earshot with "moves" (same spot, a nearby x,y) and narrate privately (audience "private") what they can now hear. On failure the people there notice them.`:"";
+  const listenTxt=trigger.listen?`LISTENING IN: ${heroName(ME)} wants to overhear ${[...trigger.listen.heroes.map(heroName),...trigger.listen.npcs].join(", ")}${trigger.listen.spot?" on the "+trigger.listen.spot:""}. If they could be noticed, ask for a Stealth check (DC from the setting, usually 10-15). On success, or if there's nothing to sneak past, move them within earshot with "moves" (same spot, a nearby x,y) and narrate privately (audience "private") what they can now hear. On failure the people there notice them.`:"";
   const prompt=`You are the Dungeon Master running a live D&D 5e scene, voicing the NPCs and narrating. Stay in character. Give each NPC a distinct voice, wants and fears. Keep replies short (1-3 sentences per speaker) so play flows.
 WHO ANSWERS: usually exactly ONE NPC replies, the one the hero addressed, or else the one the words or action most concern. Another NPC chimes in only when they would naturally interrupt (at most one extra, and not every time). The others stay quiet, except that someone a hero was just talking with may react when that hero announces they are leaving or splitting off. Never repeat a warning, hint or line already said in the recent conversation; move things forward with something new.
 DO ACTIONS: when the hero DOES something (reads, searches, picks up, examines, sneaks, cooks, casts, leaves, travels), the first reply is from "Narrator" and states the concrete result: what they see, find or achieve. If they read something, give its exact words. If they search, say what is there. If they leave for another place, narrate them going. If the outcome is uncertain, ask for the check instead and narrate only the attempt. An NPC may then react briefly, or not at all.
@@ -1646,9 +1680,9 @@ NPCs present (keep each one's "looks" consistent; NPCs notice each other's looks
 Heroes present (NPCs see their appearance and react to it naturally: scars, size, dress, a holy symbol, a striking look; speak only languages a hero knows unless they're struggling to understand; a hero can only cast spells on their known list with a slot left; let wounds, conditions and exhaustion show in how people treat them): ${JSON.stringify(heroesHere)}${partyNote(sid)}
 Where everyone is (x,y on the scene map; spot = private nook): ${whereAll}
 Things on the maps here (secret "leads" = where a door or stair goes; players only know it once discovered, so never reveal it before they find out): main room ${JSON.stringify(exitFeatures(sid,""))}; rooms ${JSON.stringify(roomsBrief(sid).map(r=>({name:r.name,enteredFrom:r.enteredFrom,features:r.features})))}
-What ${heroName(S.uid)} knows of the quests: ${JSON.stringify(notesFor(S.uid,"quest").map(q=>q.title+" ("+(q.status||"active")+")"))}
+What ${heroName(ME)} knows of the quests: ${JSON.stringify(notesFor(ME,"quest").map(q=>q.title+" ("+(q.status||"active")+")"))}
 If other heroes spoke or acted moments ago and were already answered (see below), stay consistent with those answers: they happened.
-Recent conversation here that ${heroName(S.uid)} saw or heard (other private talk may have happened out of their earshot):
+Recent conversation here that ${heroName(ME)} saw or heard (other private talk may have happened out of their earshot):
 ${recent}
 ${trig}${mateTxt}
 ${earTxt}
@@ -1671,43 +1705,43 @@ Most replies arrays have 1 entry, rarely 2, at most 3 for a Do action (Narrator 
   try{const r=await S.sample.json(prompt,{...aiOpts("talk","default"),cache:false});
     for(const rm of (Array.isArray(r?.rooms)?r.rooms:[]).slice(0,2)){const m=cleanMap(rm);if(!rm?.name||!m||roomsOf(sid)[slug(rm.name)])continue;const fr=rm.from&&Number.isFinite(+rm.from.x)?{x:Math.round(+rm.from.x),y:Math.round(+rm.from.y),name:String(rm.from.name||"Door").slice(0,40),about:String(rm.from.about||"").slice(0,200)}:null;
       try{await S.db.doc("pos/"+`${sid}~r~${slug(rm.name).slice(0,60)}`).set({sid,kind:"r",name:String(rm.name).slice(0,40),rows:m.rows.map(x=>x.slice(0,12)).slice(0,8),theme:m.theme||"",features:cleanFeatures(rm.features),from:fr,at:Date.now()})}catch(e){}}
-    for(const d of (Array.isArray(r?.discovered)?r.discovered:[]).slice(0,4)){if(!d||!Number.isFinite(+d.x))continue;const hs=(Array.isArray(d.heroes)?d.heroes:[S.uid]).filter(id=>S.chars[id]);if(!hs.length)continue;try{await S.db.collection("notes").add({kind:"exit",heroes:hs,scene:sid,room:String(d.room||""),x:Math.round(+d.x),y:Math.round(+d.y),text:"",at:Date.now(),by:S.uid||""})}catch(e){}}
+    for(const d of (Array.isArray(r?.discovered)?r.discovered:[]).slice(0,4)){if(!d||!Number.isFinite(+d.x))continue;const hs=(Array.isArray(d.heroes)?d.heroes:[ME]).filter(id=>S.chars[id]);if(!hs.length)continue;try{await S.db.collection("notes").add({kind:"exit",heroes:hs,scene:sid,room:String(d.room||""),x:Math.round(+d.x),y:Math.round(+d.y),text:"",at:Date.now(),by:ME||""})}catch(e){}}
     for(const mv of (Array.isArray(r?.moves)?r.moves:[]).slice(0,6)){if(!mv)continue;const who=String(mv.who||"");if(S.chars[who]&&posOf(sid).heroes[who])await setPos(sid,{hero:who},mv);else{const nn=npcs.find(n=>slug(n.name)===slug(who));if(nn)await setPos(sid,{npc:nn.name},mv)}}
     const away=awayHeroes(sid);
     for(const rp of (Array.isArray(r?.replies)?r.replies:[]).slice(0,3)){const line=String(rp.line||"").slice(0,700),act=String(rp.action||"").slice(0,200);if(!line&&!act)continue;let spk=String(rp.speaker||"Someone").slice(0,60);
       /* the DM used a learned name ("Tamsin") instead of the listed id ("Young woman in a grey shawl"): map it back so it stays one person */
       if(spk!=="Narrator"&&!npcs.some(n=>slug(n.name)===slug(spk))){const al=S.notes.find(x=>x.kind==="alias"&&slug(x.text||"")===slug(spk)&&npcs.some(n=>slug(n.name)===slug(x.from||"")));if(al)spk=npcs.find(n=>slug(n.name)===slug(al.from)).name}
       const hid=Object.keys(S.chars).find(id=>slug(heroName(id))===slug(spk)||slug(String(heroName(id)).split(" ")[0])===slug(spk));
-      if(hid){if(!away.includes(hid))continue;const v=line?"talk":"open";const e=earshot(sid,{hero:hid},line?"talk":"see");const heard=[...new Set([...e.heard,S.uid])];
+      if(hid){if(!away.includes(hid))continue;const v=line?"talk":"open";const e=earshot(sid,{hero:hid},line?"talk":"see");const heard=[...new Set([...e.heard,ME])];
         await postTalk({kind:line?"say":"do",hero:hid,auto:true,text:line||act,to:"",vol:v,scene:sid,heard,nh:e.nh,stub:String(rp.othersSee||"").slice(0,200)});continue}
-      let ear={};if(rp.audience==="private")ear=spk==="Narrator"||!tHeard?{heard:[S.uid],nh:spk==="Narrator"?[]:[spk]}:{heard:[...new Set([...tHeard,S.uid])],nh:[...new Set([...(tNh||[]),spk])]};/* an NPC answering low reaches whoever could hear the hero's own words, eavesdroppers included */else if(rp.audience==="room"){const e=earshot(sid,spk!=="Narrator"&&posOf(sid).npcs[spk]?{npc:spk}:{hero:S.uid},"room");ear={heard:e.heard,nh:e.nh}}else if(tHeard){/* an NPC answers at the hero's own level: a whisper or a quiet action gets a whispered reply */const lv=trigger.line&&(trigger.line.vol==="whisper"||trigger.line.vol==="quiet")?"whisper":"talk";const e=spk!=="Narrator"&&posOf(sid).npcs[spk]?earshot(sid,{npc:spk},lv):{heard:[],nh:[]};ear={heard:[...new Set([...tHeard,...e.heard])],nh:[...new Set([...(tNh||[]),...e.nh,...(spk==="Narrator"?[]:[spk])])]}}
-      if(ear.heard&&!ear.heard.includes(S.uid))ear.heard=[...ear.heard,S.uid];
-      if(ear.heard)ear.stub=String(rp.othersSee||"").slice(0,200)||(spk==="Narrator"?"":`${spk} talks with ${heroName(S.uid)} out of earshot.`);
+      let ear={};if(rp.audience==="private")ear=spk==="Narrator"||!tHeard?{heard:[ME],nh:spk==="Narrator"?[]:[spk]}:{heard:[...new Set([...tHeard,ME])],nh:[...new Set([...(tNh||[]),spk])]};/* an NPC answering low reaches whoever could hear the hero's own words, eavesdroppers included */else if(rp.audience==="room"){const e=earshot(sid,spk!=="Narrator"&&posOf(sid).npcs[spk]?{npc:spk}:{hero:ME},"room");ear={heard:e.heard,nh:e.nh}}else if(tHeard){/* an NPC answers at the hero's own level: a whisper or a quiet action gets a whispered reply */const lv=trigger.line&&(trigger.line.vol==="whisper"||trigger.line.vol==="quiet")?"whisper":"talk";const e=spk!=="Narrator"&&posOf(sid).npcs[spk]?earshot(sid,{npc:spk},lv):{heard:[],nh:[]};ear={heard:[...new Set([...tHeard,...e.heard])],nh:[...new Set([...(tNh||[]),...e.nh,...(spk==="Narrator"?[]:[spk])])]}}
+      if(ear.heard&&!ear.heard.includes(ME))ear.heard=[...ear.heard,ME];
+      if(ear.heard)ear.stub=String(rp.othersSee||"").slice(0,200)||(spk==="Narrator"?"":`${spk} talks with ${heroName(ME)} out of earshot.`);
       await postTalk({kind:"npc",speaker:spk,text:line,action:act,scene:sid,...ear})}
     const kn=tHeard||heroesIn(sid);
-    for(const x of (Array.isArray(r?.learned)?r.learned:[]).slice(0,4)){if(x?.text)await addNote("clue",(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:kn).filter(id=>kn.includes(id)||id===S.uid),{text:x.text,scene:sid})}
-    for(const x of (Array.isArray(r?.people)?r.people:[]).slice(0,4)){if(x?.name&&x.note)await addNote("person",(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:kn).filter(id=>kn.includes(id)||id===S.uid),{name:x.name,text:x.note,scene:sid})}
+    for(const x of (Array.isArray(r?.learned)?r.learned:[]).slice(0,4)){if(x?.text)await addNote("clue",(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:kn).filter(id=>kn.includes(id)||id===ME),{text:x.text,scene:sid})}
+    for(const x of (Array.isArray(r?.people)?r.people:[]).slice(0,4)){if(x?.name&&x.note)await addNote("person",(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:kn).filter(id=>kn.includes(id)||id===ME),{name:x.name,text:x.note,scene:sid})}
     for(const x of (Array.isArray(r?.reveals)?r.reveals:[]).slice(0,2)){if(x?.fact&&S.chars[x.hero])await addNote("reveal",[x.hero],{hero:x.hero,text:x.fact,scene:sid})}
     for(const w of (Array.isArray(r?.wake)?r.wake:[]).slice(0,4))if(holdOf(sid,w))await clearHold(sid,w,"wakes up");
-    const la=r?.longAction;if(la&&typeof la==="object"&&Number(la.minutes)>=30&&!holdOf(sid,S.uid))await setHold(sid,S.uid,la.minutes,la.label,la.kind==="sleep"?"sleep":"busy");
+    const la=r?.longAction;if(la&&typeof la==="object"&&Number(la.minutes)>=30&&!holdOf(sid,ME))await setHold(sid,ME,la.minutes,la.label,la.kind==="sleep"?"sleep":"busy");
     for(const n of (Array.isArray(r?.returns)?r.returns:[]).slice(0,4))await endErrand(sid,String(n));
     for(const it of (Array.isArray(r?.intimacy)?r.intimacy:[]).slice(0,3))for(const hid of (Array.isArray(it?.heroes)?it.heroes:[]).slice(0,4)){const c=S.chars[hid];if(!c||genderOf(c)!=="Female"||c.pregnant||c.fateAsk)continue;
       const partner=String(it.with||((it.heroes||[]).filter(x=>x!==hid).map(heroName)[0])||"").slice(0,60);try{await S.db.doc("characters/"+hid).update({fateAsk:{at:Date.now(),with:partner,scene:sid,gt:sceneTime(sid)}})}catch(e){}}
     if(r?.picture)maybeMomentPic(sid,r.picture);
     for(const lv of (Array.isArray(r?.leaves)?r.leaves:[]).slice(0,4))if(lv?.name)await npcLeaves(sid,String(lv.name),lv.to);
-    for(const x of (Array.isArray(r?.named)?r.named:[]).slice(0,3)){const nn=npcs.find(n=>slug(n.name)===slug(x?.npc||""));if(!nn||!x.name||slug(x.name)===slug(nn.name))continue;const hs=(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:[S.uid]).filter(id=>S.chars[id]);if(!hs.includes(S.uid))hs.push(S.uid);
+    for(const x of (Array.isArray(r?.named)?r.named:[]).slice(0,3)){const nn=npcs.find(n=>slug(n.name)===slug(x?.npc||""));if(!nn||!x.name||slug(x.name)===slug(nn.name))continue;const hs=(Array.isArray(x.heroes)&&x.heroes.length?x.heroes:[ME]).filter(id=>S.chars[id]);if(!hs.includes(ME))hs.push(ME);
       await addNote("alias",hs,{from:nn.name,text:String(x.name).slice(0,60),scene:sid})}
     if(!(la&&Number(la.minutes)>=30))await tickClock(sid,trigger.waitMins?0:Math.max(1,Math.min(30,Math.round(Number(r?.minutes)||2))));
     for(const a of (Array.isArray(r?.away)?r.away:[]).slice(0,3)){if(a?.name&&!S.chars[a.name])await sendOnErrand(sid,a.name,a.doing,a.minutes)}
-    const co=r?.coins;if(co&&typeof co==="object"&&(co.gp||co.sp||co.cp)){const me=S.chars[S.uid];const np=purseAdd(purseOf(me),co);if(np){await selfUpdate(pursePatch(np));const parts=[["gp",co.gp],["sp",co.sp],["cp",co.cp]].filter(([,v])=>Number(v)).map(([k,v])=>(v>0?"+":"")+Math.round(v)+" "+k);await postTalk({kind:"sys",text:`Purse: ${parts.join(", ")}${co.why?" ("+String(co.why).slice(0,60)+")":""} · now ${purseLabel(np)}`,scene:sid,heard:[S.uid],nh:[],stub:""})}else toast("You don't have enough coin for that.")}
+    const co=r?.coins;if(co&&typeof co==="object"&&(co.gp||co.sp||co.cp)){const me=S.chars[ME];const np=purseAdd(purseOf(me),co);if(np){await selfUpdate(pursePatch(np));const parts=[["gp",co.gp],["sp",co.sp],["cp",co.cp]].filter(([,v])=>Number(v)).map(([k,v])=>(v>0?"+":"")+Math.round(v)+" "+k);await postTalk({kind:"sys",text:`Purse: ${parts.join(", ")}${co.why?" ("+String(co.why).slice(0,60)+")":""} · now ${purseLabel(np)}`,scene:sid,heard:[ME],nh:[],stub:""})}else toast("You don't have enough coin for that.")}
     for(const u of (Array.isArray(r?.npcUpdates)?r.npcUpdates:[]).slice(0,4)){if(!u?.name)continue;const id=slug(u.name),prev=S.npcmem[id]||{name:u.name,notes:[]};const notes=[...(prev.notes||[])];if(u.remember)notes.push(String(u.remember).slice(0,160));
       try{await S.db.doc("npcmem/"+id).set({name:String(u.name).slice(0,60),attitude:["friendly","indifferent","hostile"].includes(u.attitude)?u.attitude:(prev.attitude||"indifferent"),notes:notes.slice(-12),looks:String(u.looks||prev.looks||"").slice(0,250),...(prev.pregnant?{pregnant:prev.pregnant}:{}),at:Date.now()})}catch(e){}}
     for(const it of (Array.isArray(r?.intimacy)?r.intimacy:[]).slice(0,3)){if(!it?.npc||it.npcCanConceive!==true)continue;const nid=slug(String(it.npc));const m=S.npcmem[nid]||{name:String(it.npc).slice(0,60),notes:[]};if(m.pregnant)continue;
       /* nobody plays the NPC, so the dice decide, in secret: d20, 18+ */
       if(rnd(20)>=18){const pg={since:sceneTime(sid),with:(it.heroes||[]).map(heroName).join(" and ").slice(0,80),at:Date.now()};try{await S.db.doc("npcmem/"+nid).update({pregnant:pg})}catch(e){try{await S.db.doc("npcmem/"+nid).set({...m,name:m.name||String(it.npc).slice(0,60),pregnant:pg,at:Date.now()})}catch(_){}}S.npcmem[nid]={...(S.npcmem[nid]||m),pregnant:pg}}}
-    if(r?.check&&r.check.hero&&S.chars[r.check.hero]){const id=await makeCheck(r.check,"talk",sid,0,tHeard||undefined);if(id&&dmPlays(r.check.hero))setTimeout(()=>autoRollAway(id),400);else if(id&&r.check.hero!==S.uid){toast(`${heroName(r.check.hero)} needs to roll ${r.check.skill||r.check.ability||"a check"}.`,3000)}}
-    const jr=r?.journey;if(jr&&jr.to&&!pendingFor(sid,"travel")){const hs=Array.isArray(jr.heroes)&&jr.heroes.length?jr.heroes:[S.uid];await startJourneyRequest(sid,[...new Set([...hs,...(hs.includes(S.uid)?awayHeroes(sid):[])])],String(jr.to),jr.pace)}
-    if(!(jr&&jr.to)&&r?.sceneUpdate&&r.sceneUpdate.reason&&!(la&&Number(la.minutes)>=30&&/sleep|rest|night|hours|dawn|morning|until/i.test(String(r.sceneUpdate.reason))&&!/hp|gold|silver|item|xp|damage|heal|quest/i.test(String(r.sceneUpdate.reason)))){try{await S.db.collection("updates").add({scene:sid,reason:String(r.sceneUpdate.reason).slice(0,240),by:S.uid,status:"pending",at:Date.now()})}catch(e){}}}
+    if(r?.check&&r.check.hero&&S.chars[r.check.hero]){const id=await makeCheck(r.check,"talk",sid,0,tHeard||undefined);if(id&&dmPlays(r.check.hero))setTimeout(()=>autoRollAway(id),400);else if(id&&r.check.hero!==ME){toast(`${heroName(r.check.hero)} needs to roll ${r.check.skill||r.check.ability||"a check"}.`,3000)}}
+    const jr=r?.journey;if(jr&&jr.to&&!pendingFor(sid,"travel")){const hs=Array.isArray(jr.heroes)&&jr.heroes.length?jr.heroes:[ME];await startJourneyRequest(sid,[...new Set([...hs,...(hs.includes(ME)?awayHeroes(sid):[])])],String(jr.to),jr.pace)}
+    if(!(jr&&jr.to)&&r?.sceneUpdate&&r.sceneUpdate.reason&&!(la&&Number(la.minutes)>=30&&/sleep|rest|night|hours|dawn|morning|until/i.test(String(r.sceneUpdate.reason))&&!/hp|gold|silver|item|xp|damage|heal|quest/i.test(String(r.sceneUpdate.reason)))){try{await S.db.collection("updates").add({scene:sid,reason:String(r.sceneUpdate.reason).slice(0,240),by:ME,status:"pending",at:Date.now()})}catch(e){}}}
   catch(e){toast(sampleErr(e))}
   finally{npcBusy=false;setBusy(sid,who,false);if(npcQueued){const q=npcQueued;npcQueued=null;npcRespond(q)}}}
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.1
+- DM-played heroes now take their own turns: when a scene has been quiet for 40 seconds and someone in it is at the table, the DM plays the next move for a DM-played hero (round robin), and the world answers. It pauses after 8 such turns in a row until a player acts or presses Keep going. Runs on the page keeping the world, never when nobody in the scene is at the table.
+- The DM's reply logic can act for a hero other than the page's own (coins, private lines and rests go to the right hero).
+
 ## 1.14.0
 - "DM plays for me" checkbox next to Send. It turns on by itself when a player has been away for 3 minutes and stays on after they return, until they untick it or press Take over. Players can tick it themselves while at the table. While it's on the DM voices that hero between their own lines and rolls for them; they can still say or do things.
 - Earshot preview: the To list shows whether each person hears you (or sees it, for Do), is too far, in another room or asleep, and a line under the input lists who will and won't. It follows Say/Do, Talk/Whisper/Shout, quiet actions and walking over to someone. Hidden listeners are never shown.
