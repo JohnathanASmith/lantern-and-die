@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.12.0">
+<meta name="lantern-and-die-version" content="1.13.0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -304,6 +304,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .face img{width:100%;height:100%;object-fit:cover;object-position:50% 15%}
 .face.npix img{image-rendering:pixelated;object-fit:contain;transform:scale(1.25) translateY(6%)}
 .face.tap{cursor:zoom-in}
+.face.lpcf img{image-rendering:pixelated;object-fit:cover}
+.artcredits{margin:24px 0 8px;max-width:900px}
+.artcredits a{margin-left:4px}
 .scenepic{margin:0;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--raised)}
 .scenepic img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;cursor:zoom-in}
 .scenepic figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;font-size:.85em;color:var(--muted)}
@@ -344,7 +347,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.12.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.13.0"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -459,6 +462,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <form class="talkform" id="chatForm"><textarea id="chatInput" rows="1" maxlength="400" placeholder="brb, grabbing snacks" aria-label="Message the other players" style="min-height:2.6rem"></textarea><div class="actbar"><span class="label">players only · the DM doesn't read this</span><button class="primary" type="submit" id="chatSend">Send</button></div></form>
   </section>
 </main>
+<details class="artcredits" id="artCredits" style="padding-inline:max(16px,env(safe-area-inset-left,0px))"><summary class="label">Art credits</summary></details>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script>
@@ -1040,6 +1044,90 @@ const SPRITE_WORDS=[["guard","guard|watchman|sentry|warden"],["captain","captain
 function npcSprite(n){let s=String(n?.sprite||"").toLowerCase().replace(/\s+/g,"_");if(s==="priest")s="acolyte";if(ATLAS.idx["m."+s]!=null)return "m."+s;const t=`${n?.name||""} ${n?.about||""}`.toLowerCase();
   for(const[k,re]of SPRITE_WORDS)if(new RegExp(`\\b(${re})`).test(t)&&ATLAS.idx["m."+k]!=null)return "m."+k;return "m."+spick(["commoner","commoner2","commoner3","merchant","peasant"],n?.name||"x")}
 
+
+/* ===== LPC characters: layered pixel people from the Liberated Pixel Cup (credits under "Art credits") ===== */
+const LPC={ready:false,data:null,img:null,frames:new Map(),cache:new Map(),url:new Map()};
+async function lpcLoad(){try{const [j,img]=await Promise.all([fetch("lpc.json").then(r=>r.ok?r.json():null),new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src="lpc.png"})]);if(!j||!img)return;
+  LPC.data=j;LPC.img=img;LPC.ready=true;npcDollCache.clear();try{if(onTable())renderTable()}catch(e){}}catch(e){}}
+function lpcFrame(i){if(LPC.frames.has(i))return LPC.frames.get(i);const c=LPC.data.cols;const cv=document.createElement("canvas");cv.width=cv.height=64;const x=cv.getContext("2d",{willReadFrequently:true});x.drawImage(LPC.img,(i%c)*64,Math.floor(i/c)*64,64,64,0,0,64,64);const d=x.getImageData(0,0,64,64);LPC.frames.set(i,d);return d}
+const hexInt=v=>parseInt(String(v).replace("#",""),16);
+function lpcMap(material,base,target){const P=LPC.data.pal[material];if(!P||!target)return null;let b=base||P.base;if(b&&b.includes("."))b=b.split(".").pop();if(b===target)return null;const from=P.ramps[b],to=P.ramps[target];if(!from||!to)return null;const m=new Map();from.forEach((c,i)=>m.set(hexInt(c),hexInt(to[Math.min(i,to.length-1)])));return m}
+function lpcRecolor(img,map){if(!map)return img;const o=new ImageData(new Uint8ClampedArray(img.data),64,64);const a=o.data;for(let p=0;p<a.length;p+=4){if(!a[p+3])continue;const v=map.get((a[p]<<16)|(a[p+1]<<8)|a[p+2]);if(v!=null){a[p]=v>>16;a[p+1]=(v>>8)&255;a[p+2]=v&255}}return o}
+const LPC_NEAR={grey:"gray",navy:"blue",sky:"blue",bluegray:"blue",teal:"green",forest:"green",green:"forest",maroon:"red",rose:"red",pink:"red",orange:"red",charcoal:"black",slate:"gray",gray:"light gray",walnut:"brown",leather:"brown",brown:"dark brown",tan:"brown",yellow:"tan",lavender:"purple",purple:"blue",white:"light gray",black:"charcoal"};
+function lpcVariant(keys,col){let c=col||"";for(let i=0;i<5&&c;i++){if(keys.includes(c))return c;c=LPC_NEAR[c]}return keys[0]}
+function lpcCanvas(spec){const key=JSON.stringify(spec);if(LPC.cache.has(key))return LPC.cache.get(key);const L=[];
+  for(const[n,col]of spec.parts){const it=LPC.data.items[n];if(!it)continue;for(const l of it.L){if(l.b!==spec.b)continue;const keys=Object.keys(l.f);const fi=it.v?l.f[lpcVariant(keys,col)]:l.f[""]??l.f[keys[0]];if(fi==null)continue;L.push({z:l.z,fi,it,col})}}
+  L.sort((a,b)=>a.z-b.z);const cv=document.createElement("canvas");cv.width=cv.height=64;const x=cv.getContext("2d");const tmp=document.createElement("canvas");tmp.width=tmp.height=64;const tx=tmp.getContext("2d");
+  for(const l of L){let img=lpcFrame(l.fi);if(l.it.rc&&l.it.rc[0]){const r0=l.it.rc[0];img=lpcRecolor(img,lpcMap(r0.material,r0.base,r0.material==="body"?spec.skin:r0.material==="hair"?spec.hair:r0.material==="cloth"?l.col:null))}tx.clearRect(0,0,64,64);tx.putImageData(img,0,0);x.drawImage(tmp,0,0)}
+  LPC.cache.set(key,cv);return cv}
+function lpcURL(spec,scale=4,head){const key=JSON.stringify(spec)+scale+(head?"h":"");if(LPC.url.has(key))return LPC.url.get(key);const src=lpcCanvas(spec);const cv=document.createElement("canvas");const x=cv.getContext("2d");x.imageSmoothingEnabled=false;
+  if(head){cv.width=cv.height=24*scale;x.drawImage(src,20,13,24,24,0,0,24*scale,24*scale)}else{cv.width=cv.height=64*scale;x.drawImage(src,0,0,64*scale,64*scale)}const u=cv.toDataURL();LPC.url.set(key,u);return u}
+/* draw on a 32px map cell: feet on the cell's bottom edge, head rising above it */
+function lpcDraw(ctx,spec,px,py){const src=lpcCanvas(spec);const k=(spec.small?0.78:0.98);const w=64*k;ctx.imageSmoothingEnabled=false;ctx.drawImage(src,px+16-w/2,py+31-w*0.97,w,w)}
+const pickBy=(t,list)=>{for(const[re,v]of list)if(re.test(t))return v;return null};
+const LPC_CLOTH_WORDS=[[/\b(black|ebony|sable|jet)\b/,"black"],[/\b(charcoal|soot|dark (grey|gray))\b/,"charcoal"],[/\b(grey|gray|silver|ash)\b/,"gray"],[/\b(white|ivory|bone|undyed linen)\b/,"white"],[/\b(crimson|scarlet|red|blood-red)\b/,"red"],[/\b(maroon|burgundy|wine)\b/,"maroon"],[/\b(pink|rose)\b/,"rose"],[/\b(purple|violet|plum)\b/,"purple"],[/\b(lavender|lilac)\b/,"lavender"],[/\b(navy|indigo|midnight)\b/,"navy"],[/\b(blue|azure|cobalt)\b/,"blue"],[/\b(teal|turquoise)\b/,"teal"],[/\b(green|moss|emerald|olive|sage)\b/,"forest"],[/\b(yellow|gold|golden|mustard|saffron)\b/,"yellow"],[/\b(orange|amber)\b/,"orange"],[/\b(tan|sand|khaki|buff|beige|homespun)\b/,"tan"],[/\b(brown|russet|umber|mud|muddy)\b/,"brown"],[/\b(leather|hide)\b/,"leather"],[/\b(velvet)\b/,"maroon"]];
+function garmentColor(t,nouns){const re=new RegExp(`((?:\\b[\\w-]+\\b[ ,-]+){0,3})\\b(${nouns})s?\\b`,"g");let m;while((m=re.exec(t))){const c=pickBy(m[1],LPC_CLOTH_WORDS);if(c)return c}return null}
+function lpcSpec(o){const t=` ${o.text||""} `.toLowerCase(),seed=o.seed||o.name||"x";const sp=String(o.species||"Human"),sopt=String(o.speciesOpt||"").toLowerCase();
+  const fem=o.gender==="Female"||(o.gender!=="Male"&&/\b(she|her|woman|girl|lady|mother|wife|widow|daughter|maid|crone|nun|matron|landlady|alewife|fishwife|goodwife|lass)\b/.test(t)&&!/\b(he|his|him|man|boy|father|husband|lord)\b/.test(t));
+  const child=/\b(child|kid|little boy|little girl|urchin|toddler|young boy|young girl)\b/.test(t)||o.sprite==="child";
+  const big=sp==="Goliath"||(/orc/i.test(sp)&&!fem)||(!fem&&/\b(huge|hulking|massive|burly|brawny|giant|muscular|seven feet|ox of a)\b/.test(t));
+  const b=child?"child":big&&!fem?"muscular":fem?"female":"male";const small=/^(Gnome|Halfling|Dwarf)$/.test(sp)||/\b(gnome|halfling)\b/.test(t);
+  const old=/\b(old|elderly|aged|wrinkled|crone|grandmother|grandfather|white-haired|stooped|ancient)\b/.test(t);
+  let head=child?"heads_human_child":fem?(old?"heads_human_female_elderly":"heads_human_female"):(old?"heads_human_male_elderly":/\b(gaunt|thin|bony|hollow-cheeked|lean|wiry)\b/.test(t)?"heads_human_male_gaunt":/\b(plump|fat|portly|stout|round|paunch|heavy-set|pot-bellied|jowl)/.test(t)?"heads_human_male_plump":"heads_human_male");
+  if(sp==="Dragonborn"||/\b(lizardfolk|kobold)\b/.test(t))head=fem?"heads_lizard_female":"heads_lizard_male";else if(/orc/i.test(sp)||/\b(orc|half-orc)\b/.test(t))head=fem?"heads_orc_female":"heads_orc_male";else if(/\bgoblin\b/.test(t))head="heads_goblin";else if(/\btroll\b/.test(t))head="heads_troll";
+  let skin=pickBy(t,[[/\b(pale|fair|milk-white|pallid|ashen)\b/,"light"],[/\b(ruddy|red-cheeked|freckled|weathered|sunburnt|wind-burned)\b/,"amber"],[/\bolive\b[^.]{0,8}(skin|complexion)/,"olive"],[/\b(tanned|sun-browned|bronzed|bronze)\b[^.]{0,10}(skin|complexion)?/,"bronze"],[/\b(brown|dark)[- ]skin/,"brown"],[/\b(black|ebony|deep brown)[- ]skin/,"black"],[/\b(gr[ae]y|stony|stone)[- ](brown )?skin|gray-brown skin|grey-brown skin/,"taupe"],[/\bgreen[- ]skin/,"green"],[/\b(blue)[- ]skin/,"blue"]]);
+  if(sp==="Goliath")skin=skin&&skin!=="light"?skin:"taupe";if(/orc/i.test(sp))skin=sp==="Half-Orc"?"pale_green":"green";
+  if(sp==="Dragonborn"){const col=sopt.split(" ")[0];skin=({black:"black",blue:"blue",green:"green",white:"light",silver:"light",bronze:"bronze",brass:"amber",gold:"amber",copper:"bronze",red:"bronze"})[col]||"bronze"}
+  if(sp==="Tiefling"&&!skin)skin=/\b(purple|lavender|violet)\b/.test(t)?"lavender":spick(["bronze","amber","lavender"],seed+"s");
+  if(!skin)skin=spick(["light","amber","olive","taupe","bronze","brown","light","amber"],seed+"s");
+  const parts=[["body",""],[head,""]];if(/elf/i.test(sp)||/\b(elf|elven|elvish|drow)\b/.test(t))parts.push(["head_ears_elven",""]);else if(sp==="Gnome")parts.push(["head_ears_big",""]);
+  const lizard=head.startsWith("heads_lizard"),bald=lizard||/\b(bald|shaved head|shaven head|hairless|shorn)\b/.test(t);
+  const HN="(?:hair|braids?|mane|locks|curls|ponytail|bun|beard|plait)";const hc=(w)=>new RegExp(`\\b(?:${w})\\b(?:[ -][a-z]+){0,2}[ -]${HN}\\b|\\b${HN}\\b[^.,;]{0,14}\\b(?:${w})\\b`);
+  const hair=pickBy(t,[[hc("red|ginger|auburn|copper|fiery|russet"),spick(["ginger","redhead","carrot"],seed)],[hc("blond|blonde|golden|straw|flaxen|yellow|wheat"),spick(["blonde","gold","sandy"],seed)],[hc("white|snowy|silver|silvered"),spick(["white","platinum"],seed)],[hc("grey|gray|greying|graying|grizzled|salt-and-pepper|iron-grey|iron-gray"),spick(["gray","ash"],seed)],[hc("black|raven|jet|ink|inky"),spick(["black","raven"],seed)],[hc("brown|chestnut|mousy|mousey|umber|dark|nut-brown"),spick(["chestnut","dark_brown","light_brown"],seed)]])||(old?"gray":/elf/i.test(sp)?spick(["platinum","blonde","black","chestnut"],seed+"h"):spick(["chestnut","dark_brown","black","light_brown","dark_brown","blonde"],seed+"h"));
+  if(!bald&&b!=="child"){const style=pickBy(t,[[/\bbraid/,"hair_braid"],[/\bhigh ponytail\b/,"hair_high_ponytail"],[/\bponytail|tied back\b/,"hair_ponytail"],[/\btopknot\b/,"hair_topknot_long"],[/\b(bun|pinned up|pinned-up|pinned under|piled|up in a)\b/,"hair_bangs_bun"],[/\b(waist-length|very long|flowing)\b/,"hair_relm_xlong"],[/\b(messy|wild|tangled|unkempt|shaggy|tousled)\b/,fem?"hair_long_messy":"hair_messy1"],[/\b(long hair|long, |long [a-z]+ hair|hair (hangs|falls) (to|past))/,spick(["hair_long","hair_long_straight","hair_wavy","hair_loose"],seed)],[/\b(curly|curls|wavy)\b/,"hair_wavy"],[/\b(short|cropped|close-cropped|bristle)\b/,fem?"hair_pixie":spick(["hair_plain","hair_parted"],seed)]])||(fem?spick(["hair_long","hair_wavy","hair_loose","hair_braid","hair_ponytail","hair_bangs_bun","hair_half_up","hair_long_straight"],seed+"y"):spick(["hair_plain","hair_parted","hair_messy1","hair_bangs","hair_page","hair_unkempt"],seed+"y"));parts.push([style,""])}
+  else if(b==="child"&&!bald)parts.push([fem?"hair_wavy_child":"hair_parted_side_bangs",""]);
+  if(!fem&&b!=="child"&&!lizard&&(/\b(beard|bearded|whiskers|stubble|unshaven)\b/.test(t)||sp==="Dwarf"))parts.push([pickBy(t,[[/\b(stubble|unshaven|shadow)\b/,"beards_5oclock_shadow"],[/\b(long|thick|bushy|great|braided|flowing|forked)\b[^.]{0,12}beard/,"beards_winter"],[/\b(trimmed|neat|short|goatee)\b[^.]{0,8}beard/,"beards_trimmed"]])||(sp==="Dwarf"?"beards_medium":"beards_beard"),""]);
+  /* what they wear: role from class or words, colours from the garments named */
+  const role=o.role||pickBy(t,[[/\b(guard|soldier|sergeant|watchman|watch|warden|militia|captain|knight|sentry)\b/,"guard"],[/\b(priest|cleric|acolyte|nun|monk|abbot|friar|brother|sister of)\b/,"priest"],[/\b(wizard|mage|scholar|sage|scribe|clerk|alchemist)\b/,"scholar"],[/\b(thief|rogue|smuggler|cutpurse|lurker|spy|assassin|cloaked figure)\b/,"rogue"],[/\b(hunter|ranger|trapper|fisher|fisherman|eel|boatman|ferryman|poacher|woodsman)\b/,"outdoors"],[/\b(barkeep|innkeep|innkeeper|cook|baker|alewife|landlady|tavern|serving|barmaid|butcher)\b/,"tavern"],[/\b(merchant|trader|peddler|shopkeep|chandler)\b/,"merchant"],[/\b(noble|lord|lady|baron|countess|duke|duchess)\b/,"noble"],[/\b(farmer|peasant|villager|laborer|labourer|carter|carter's|drover|miller|smith|blacksmith)\b/,"peasant"],[/\b(bard|minstrel|singer|player)\b/,"bard"]])||"common";
+  const cloak=garmentColor(t,"cloak|cape|shawl|mantle|wrap"),robe=garmentColor(t,"robe|cassock|habit|vestment"),dress=garmentColor(t,"dress|gown|frock dress"),coat=garmentColor(t,"coat|surcoat|tabard|jerkin|doublet|frock"),shirtC=garmentColor(t,"shirt|tunic|blouse|chemise"),legsC=garmentColor(t,"skirt|trousers|breeches|pants|leggings|hose"),hoodC=garmentColor(t,"hood|cowl");
+  const dflt=spick(["brown","tan","forest","gray","maroon","navy","walnut","charcoal"],seed+"c"),c1=shirtC||dflt,c2=coat||spick(["brown","leather","walnut","charcoal","forest","maroon"],seed+"o");
+  const inv=String(o.items||"").toLowerCase();const armour=pickBy(inv+" "+t,[[/\b(plate|splint|full plate)\b/,"torso_armour_plate"],[/\b(breastplate|half plate)\b/,"torso_armour_legion"],[/\b(chain mail|chain shirt|ring mail|scale mail|mail shirt|hauberk)\b/,"torso_chainmail"],[/\b(leather|studded|hide armou?r)\b/,"torso_armour_leather"]]);
+  const W=[];const wear=(n,c)=>W.push([n,c]);
+  if(b==="child"){wear("torso_clothes_child_shirt",c1);wear(fem?"legs_childskirts":"legs_childpants",legsC||dflt)}
+  else{
+    if(fem&&(dress||(role==="noble"&&!armour))){wear(spick(["dress_sash","dress_bodice"],seed),dress||"maroon");wear("legs_skirt_belle",dress||"maroon")}
+    else if(fem&&(robe||/^(priest|scholar)$/.test(role)&&!armour)){wear("torso_clothes_robe",robe||(role==="priest"?"white":"blue"))}
+    else{
+      if(b==="muscular"){if(!/\b(bare-chested|shirtless)\b/.test(t)&&armour!=="torso_armour_leather")wear("torso_clothes_longsleeve",c1)}
+      else if(fem)wear(role==="bard"||role==="noble"?"torso_clothes_blouse_longsleeve":role==="outdoors"||role==="rogue"||role==="guard"?"torso_clothes_longsleeve":spick(["torso_clothes_blouse","torso_clothes_tunic","torso_clothes_longsleeve"],seed+"t"),c1);
+      else wear(role==="barbarian"?"torso_clothes_sleeveless":"torso_clothes_longsleeve",c1);
+      if(armour)wear(armour,"");
+      else if(robe&&!fem)wear("torso_jacket_frock",robe);
+      else if(/\b(tabard|surcoat)\b/.test(t)||role==="priest")wear("torso_jacket_tabard",coat||"white");
+      else if(/\b(apron)\b/.test(t)||role==="tavern")wear("torso_aprons_apron",garmentColor(t,"apron")||"white");
+      else if(/\b(vest|waistcoat|jerkin)\b/.test(t)||(role==="bard"&&!fem))wear("torso_clothes_vest",coat||c2);
+      else if(/\b(coat|frock)\b/.test(t)||role==="merchant"||role==="noble"||(role==="scholar"&&!fem))wear(fem?"torso_clothes_corset":"torso_jacket_frock",coat||c2);
+      else if(fem&&role==="bard")wear("torso_clothes_corset",c2);
+      if(fem&&(legsC&&/skirt/.test(t)||(!/\b(trousers|breeches|pants|leggings)\b/.test(t)&&/^(tavern|common|peasant|merchant|bard|noble)$/.test(role))))wear(spick(["legs_skirts_plain","legs_skirt_belle"],seed+"k"),legsC||spick(["brown","navy","forest","maroon","charcoal"],seed+"k"));
+      else wear(b==="muscular"?"legs_widepants":"legs_pants",legsC||spick(["brown","charcoal","walnut","tan","black"],seed+"p"))}
+    if(!/\b(barefoot|bare feet|bare-footed)\b/.test(t))wear(/\b(shoes|slippers|sandals|rag-wrapped|rags on (his|her) (boots|feet))\b/.test(t)?"feet_shoes_basic":"feet_boots_basic",/\b(rag-wrapped|rags)\b/.test(t)?"tan":spick(["brown","leather","walnut","black"],seed+"f"));
+    if(cloak||/\b(cloak|cape|shawl|mantle)\b/.test(t))wear(/\b(tattered|ragged|patched|torn)\b[^.]{0,12}(cloak|cape|shawl)/.test(t)?"cape_tattered":"cape_solid",cloak||"charcoal");
+    if(/\b(helm|helmet)\b/.test(t)||(role==="guard"&&o.npc&&hsh(seed)%2))wear(spick(["hat_helmet_kettle","hat_helmet_nasal"],seed+"m"),"");
+    else if(hoodC||/\b(hood|hooded|cowl)\b/.test(t))wear("hat_hood_cloth",hoodC||cloak||"charcoal");
+    else if(/\b(pointed hat|wizard'?s hat|wide-brimmed hat)\b/.test(t))wear("hat_magic_wizard",garmentColor(t,"hat")||"blue");
+    const weap=pickBy(` ${o.weapons||""} ${o.npc?t:""} `.toLowerCase(),[[/\b(longsword|greatsword|great sword|broadsword)\b/,"weapon_sword_longsword"],[/\b(rapier)\b/,"weapon_sword_rapier"],[/\b(scimitar|sabre|saber|cutlass)\b/,"weapon_sword_saber"],[/\b(shortsword|short sword|sword)\b/,"weapon_sword_arming"],[/\b(dagger|knife|dirk|stiletto)\b/,"weapon_sword_dagger"],[/\b(battleaxe|greataxe|handaxe|axe|hatchet)\b/,"weapon_blunt_waraxe"],[/\b(mace|morningstar|flail|warhammer)\b/,"weapon_blunt_mace"],[/\b(club|cudgel|greatclub)\b/,"weapon_blunt_club"],[/\b(halberd|glaive|pike|poleaxe)\b/,"weapon_polearm_halberd"],[/\b(spear|javelin|trident|eel-hook|boathook|gaff)\b/,"weapon_polearm_spear"],[/\b(crossbow)\b/,"weapon_ranged_crossbow"],[/\b(longbow|shortbow|bow)\b/,"weapon_ranged_bow_normal"],[/\b(sling)\b/,"weapon_ranged_slingshot"],[/\b(quarterstaff|staff)\b/,o.npc&&/\b(gnarled|twisted|druid)\b/.test(t)?"weapon_magic_gnarled":"weapon_magic_simple"]]);
+    if(weap)wear(weap,weap==="weapon_sword_arming"?"iron":"");
+    if(/\bshield\b/.test(inv+(o.npc?t:"")))wear(/\b(round)\b[^.]{0,8}shield/.test(t)?"shield_round":"shield_kite",spick(["kite blue blue","kite gray gray","kite gray blue"],seed+"sh"))}
+  return{b,skin,hair,small,parts:[...parts,...W]}}
+function heroLpc(id){const c=(id===S.uid&&S.draft&&!S.chars[id]?.inPlay?S.draft:S.chars[id])||{};let atk=[];try{atk=(derive(c).attacks||[]).map(a=>a.name)}catch(e){}
+  const role=({Fighter:"guard",Paladin:"guard",Barbarian:"barbarian",Rogue:"rogue",Ranger:"outdoors",Wizard:"scholar",Sorcerer:"scholar",Warlock:"scholar",Cleric:"priest",Druid:"outdoors",Bard:"bard",Monk:"peasant"})[c.class]||"common";
+  return lpcSpec({name:c.name,seed:(c.name||"")+(c.species||"")+(c.class||""),gender:genderOf(c),species:speciesOf(c),speciesOpt:c.speciesOpt,text:c.appearance||"",role,items:JSON.stringify((c.inventory||[]).map(i=>i.name)),weapons:atk.join(" ")})}
+function npcLpc(n){const looks=npcLooks(n);return lpcSpec({name:n.name,seed:n.name,text:`${n.name||""}. ${n.about||""}. ${looks}`,npc:true,sprite:npcSprite(n).slice(2)})}
+try{window.__lpcDebug=()=>({npcLpc,heroLpc,lpcURL,S})}catch(e){}
+async function showLpcCredits(box){if(box.dataset.loaded)return;box.dataset.loaded="1";let list=[];try{list=await fetch("lpc-credits.json").then(r=>r.json())}catch(e){}
+  box.append(h("p",{class:"att",text:"People and gear figures use art from the Liberated Pixel Cup (LPC) and its contributors, combined into one image sheet for this game. Each part keeps its own license (CC-BY-SA, CC-BY, OGA-BY, GPL or CC0); the sheet as a whole is shared under CC-BY-SA 3.0. Map tiles are from Dungeon Crawl Stone Soup (CC0)."}),
+    ...list.map(c=>h("div",{class:"att",style:"margin:6px 0"},h("b",{text:c.authors}),` · ${c.licenses} · ${c.parts.slice(0,4).join(", ")}${c.parts.length>4?"…":""} `,...(c.urls||[]).slice(0,2).map(u=>h("a",{href:u,target:"_blank",rel:"noopener",text:"source "})))))}
+
 /* ===== painted art: NPC portraits, NPC figures, scene pictures ===== */
 const PEOPLE_TILES=new Set(["acolyte","bandit","barbarian","bard","blackguard","captain","child","commoner","commoner2","commoner3","crone","cultist","drow","drow_mage","druid","dwarf","dwarf_lord","elf","elf_archer","elf_priest","guard","halfling","hunter","knight","lady","mage","merchant","monk","necromancer","noble","noblewoman","peasant","pirate","priest","rogue","sage","scholar","soldier","sorceress"]);
 const NPC_CLASS=[["Fighter","guard|watch|sergeant|soldier|captain|knight|militia|mercenar|warden|sellsword|blackguard"],["Cleric","priest|cleric|acolyte|nun|abbot|monk|brother "],["Wizard","mage|wizard|scholar|sage|sorcer|necromancer|scribe"],["Rogue","thief|rogue|smuggler|bandit|cutpurse|spy|pirate|lurker"],["Ranger","hunter|ranger|trapper|archer"],["Bard","bard|minstrel|singer"],["Druid","druid|herbal|hedge-witch"],["Barbarian","barbarian|brute"]];
@@ -1047,7 +1135,7 @@ const NPC_SPECIES=[["Elf","elf|elven|elvish"],["Dwarf","dwarf|dwarven"],["Halfli
 function npcLooks(n){return S.npcmem?.[slug(n?.name||"")]?.looks||n?.looks||""}
 function findNpc(name){const k=slug(name||"");for(const sc of Object.values(S.scenes||{}))for(const n of sc.npcs||[])if(slug(n.name)===k)return n;return null}
 const npcDollCache=new Map();
-function npcDoll(n){if(!n)return null;const k=npcSprite(n).slice(2);if(!PEOPLE_TILES.has(k))return null;const looks=npcLooks(n);const key=n.name+"|"+looks+"|"+(n.about||"")+"|"+k;if(npcDollCache.has(key))return npcDollCache.get(key);
+function npcDoll(n){if(!n)return null;const k=npcSprite(n).slice(2);if(!PEOPLE_TILES.has(k))return null;if(LPC.ready)return{lpc:npcLpc(n)};const looks=npcLooks(n);const key=n.name+"|"+looks+"|"+(n.about||"")+"|"+k;if(npcDollCache.has(key))return npcDollCache.get(key);
   const t=` ${n.name||""} ${n.about||""} ${looks} `.toLowerCase();const sp=(NPC_SPECIES.find(([,re])=>new RegExp(`\\b(${re})`).test(t))||["Human"])[0];const cl=(NPC_CLASS.find(([,re])=>new RegExp(`\\b(${re})`).test(t))||[""])[0];
   const fem=/\b(she|her|woman|girl|lady|mother|wife|widow|sister|daughter|maid|crone|nun|matron|landlady|alewife|fishwife|goodwife)\b/.test(t)||/^(lady|noblewoman|sorceress|crone)$/.test(k),male=/\b(he|him|his|man|boy|father|husband|brother|son|lord|sergeant|old man)\b/.test(t);
   let d=null;try{d=autoDoll({name:n.name,species:sp,class:cl||"__none",gender:fem&&!male?"Female":male&&!fem?"Male":fem?"Female":"",appearance:looks+" "+(n.about||""),inventory:[]})}catch(e){d=null}
@@ -1057,9 +1145,9 @@ const svgURL=svg=>"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
 function npcArt(name){const a=S.art?.["npc~"+slug(name||"")];return a?.svg?svgURL(a.svg):""}
 function npcFace(name,cls="face sm"){const n=findNpc(name)||{name};const src=npcArt(name);const big=()=>showArt(src||null,npcLabel(name),name);
   if(src)return h("span",{class:cls+" tap",style:"--hc:var(--gold)",title:"See "+npcLabel(name),onclick:big},h("img",{src,alt:"",loading:"lazy"}));
-  const d=npcDoll(n);return h("span",{class:cls+" npix tap",style:"--hc:var(--gold)",title:"See "+npcLabel(name),onclick:big},h("img",{src:d?dollURL(d,2):tileURL(npcSprite(n)),alt:""}))}
+  const d=npcDoll(n);return h("span",{class:cls+(d?.lpc?" lpcf":" npix")+" tap",style:"--hc:var(--gold)",title:"See "+npcLabel(name),onclick:big},h("img",{src:d?.lpc?lpcURL(d.lpc,2,true):d?dollURL(d,2):tileURL(npcSprite(n)),alt:""}))}
 function showArt(src,caption,npcName){const close=()=>box.remove();const kids=[];
-  if(src)kids.push(h("img",{src,alt:caption||""}));else if(npcName){const n=findNpc(npcName)||{name:npcName};const d=npcDoll(n);kids.push(h("img",{src:d?dollURL(d,8):tileURL(npcSprite(n),8),alt:"",style:"image-rendering:pixelated;width:256px;max-width:70vw"}));
+  if(src)kids.push(h("img",{src,alt:caption||""}));else if(npcName){const n=findNpc(npcName)||{name:npcName};const d=npcDoll(n);kids.push(h("img",{src:d?.lpc?lpcURL(d.lpc,4):d?dollURL(d,8):tileURL(npcSprite(n),8),alt:"",style:"image-rendering:pixelated;width:256px;max-width:70vw"}));
     kids.push(h("div",{style:"color:#ccc",text:npcLooks(n)?"Not painted yet. The DM paints people once it knows how they look.":"The DM hasn't described how they look yet."}))}
   if(npcName&&npcLooks(findNpc(npcName)||{name:npcName}))kids.push(h("div",{style:"color:#ccc;max-width:520px;text-align:center",text:npcLooks(findNpc(npcName)||{name:npcName})}));
   if(npcName&&S.sample&&npcLooks(findNpc(npcName)||{name:npcName}))kids.push(h("button",{type:"button",onclick:async e=>{e.stopPropagation();e.target.disabled=true;e.target.textContent="Painting…";await paintNpc(npcName,true);close()}},src?"Repaint":"Paint now"));
@@ -1149,9 +1237,9 @@ function drawScene(cv,sc,vid,opt={}){if(opt.map)sc={...sc,map:opt.map,name:(sc.n
   toks.sort((a,b)=>a.y-b.y);for(const t of toks){const px=t.x*C,gy=t.y*C,py=gy-(t.perch?11:0);ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(px+16,gy+28,10,3.5,0,0,7);ctx.fill();
     if(t.perch){ctx.save();ctx.setLineDash([2,2]);ctx.strokeStyle="rgba(242,193,78,.8)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+16,gy+27);ctx.lineTo(px+16,py+27);ctx.stroke();ctx.restore();ctx.fillStyle="#f2c14e";ctx.beginPath();ctx.moveTo(px+27,py+1);ctx.lineTo(px+32,py+9);ctx.lineTo(px+22,py+9);ctx.closePath();ctx.fill()}
     if(t.hidden){ctx.globalAlpha=.55}
-    if(t.kind==="npc"){ctx.strokeStyle=t.n.hostile?"#ff4d3d":"#f2c14e";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();{const dl=npcDoll(t.n);if(dl)drawDoll(ctx,dl,px,py);else tile(ctx,npcSprite(t.n),px,py)}ctx.globalAlpha=1}
+    if(t.kind==="npc"){ctx.strokeStyle=t.n.hostile?"#ff4d3d":"#f2c14e";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();{const dl=npcDoll(t.n);if(dl?.lpc)lpcDraw(ctx,dl.lpc,px,py);else if(dl)drawDoll(ctx,dl,px,py);else tile(ctx,npcSprite(t.n),px,py)}ctx.globalAlpha=1}
     else{const c=S.chars[t.id]||{};ctx.strokeStyle=c.color||"#888";ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(px+16,py+28,12,4.5,0,0,7);ctx.stroke();if(t.id===S.uid){ctx.setLineDash([3,3]);ctx.strokeStyle="#fff";ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(px+16,py+28,14.5,6,0,0,7);ctx.stroke();ctx.setLineDash([])}
-      ctx.globalAlpha=c.hp<=0||t.hidden?.5:1;drawDoll(ctx,dollOf(t.id),px,py,32);ctx.globalAlpha=1;if(dark||todOf(sceneTime(vid))==="night")lights.push([px+16,py+16,2.6,"#ffe2a8"])}}
+      ctx.globalAlpha=c.hp<=0||t.hidden?.5:1;if(LPC.ready)lpcDraw(ctx,heroLpc(t.id),px,py);else drawDoll(ctx,dollOf(t.id),px,py,32);ctx.globalAlpha=1;if(dark||todOf(sceneTime(vid))==="night")lights.push([px+16,py+16,2.6,"#ffe2a8"])}}
   /* light */
   const tod=todOf(sceneTime(vid));let amb=dark===2?.62:outdoor?({night:.62,dusk:.34,dawn:.28}[tod]||0):({night:.48,dusk:.3,dawn:.25}[tod]||.14);
   if(amb>0){const lc=document.createElement("canvas");lc.width=cv.width;lc.height=cv.height;const l=lc.getContext("2d");l.setTransform(K,0,0,K,0,0);l.fillStyle=dark===2?`rgba(4,4,10,${amb})`:`rgba(8,12,40,${amb})`;l.fillRect(0,0,W*C,H*C);
@@ -1205,7 +1293,7 @@ function dollURL(doll,scale=4,bg){const key=JSON.stringify(doll)+scale+(bg||"");
 
 /* ---- portraits ---- */
 function portraitOf(id){const p=S.portraits?.[id];if(p?.kind==="svg"&&p.svg)return{src:"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(p.svg),pixel:false};if(p?.kind==="upload"&&p.img)return{src:p.img,pixel:false};return{src:"",pixel:true}}
-function face(id,cls="face"){const c=(id===S.uid&&S.draft&&!S.chars[id]?.inPlay?S.draft:S.chars[id])||{};const p=portraitOf(id);const src=p.src||dollURL(dollOf(id),2);
+function face(id,cls="face"){const c=(id===S.uid&&S.draft&&!S.chars[id]?.inPlay?S.draft:S.chars[id])||{};const p=portraitOf(id);const src=p.src||(LPC.ready?lpcURL(heroLpc(id),2,true):dollURL(dollOf(id),2));
   if(!src)return sigil(c.color,c.name);return h("span",{class:cls+(p.pixel?" pix":""),style:`--hc:${c.color||"#888"}`},h("img",{src,alt:"",loading:"lazy"}))}
 function sanitizeSVG(t){t=String(t||"");const m=t.match(/<svg[\s\S]*<\/svg>/i);if(!m)return "";let doc;try{doc=new DOMParser().parseFromString(m[0],"image/svg+xml")}catch(e){return ""}const root=doc.documentElement;if(!root||root.nodeName.toLowerCase()!=="svg"||doc.querySelector("parsererror"))return "";
   const bad=new Set(["script","foreignobject","iframe","image","use","style","a","animate","set","animatemotion","animatetransform","feimage"]);
@@ -2042,7 +2130,7 @@ function renderWorld(){const box=$("worldBox");const w=world(),ns="http://www.w3
   /* places */
   const clip=(id,x,y,rr)=>{const cp=add("clipPath",{id},defs);add("circle",{cx:x,cy:y,r:rr},cp);return`url(#${id})`};
   const heroMark=(g,id,hx,hy,rr)=>{const c=S.chars[id]||{};if(id===S.uid)add("circle",{cx:hx,cy:hy,r:rr+5,fill:"none",stroke:"#a3241b","stroke-width":3,class:"mering"},g);
-    add("circle",{cx:hx,cy:hy,r:rr+1.5,fill:"var(--parch2)",stroke:c.color||INK,"stroke-width":3},g);const pp=portraitOf(id);const src=pp.src||dollURL(dollOf(id),2);
+    add("circle",{cx:hx,cy:hy,r:rr+1.5,fill:"var(--parch2)",stroke:c.color||INK,"stroke-width":3},g);const pp=portraitOf(id);const src=pp.src||(LPC.ready?lpcURL(heroLpc(id),2,true):dollURL(dollOf(id),2));
     if(src){const im=add("image",{href:src,x:hx-rr,y:hy-rr*(pp.pixel?1.05:1),width:rr*2,height:rr*2*(pp.pixel?1:1.33),preserveAspectRatio:pp.pixel?"xMidYMid meet":"xMidYMin slice","clip-path":clip("hc"+hsh(id+hx+hy+g0.title),hx,hy,rr)},g);if(pp.pixel)im.setAttribute("style","image-rendering:pixelated")}
     else{const t=add("text",{x:hx,y:hy+5,"text-anchor":"middle","font-size":15,"font-family":"Grenze Gotisch, Georgia, serif",fill:INK},g);t.textContent=(c.name||"?")[0].toUpperCase()}};
   for(const p of w.places){const s=placeStatus(p);const[x,y]=P(p);const g=add("g",{transform:`translate(${x} ${y})`,class:"wplace"+(sel===p.id?" sel":""),tabindex:0,role:"button","aria-label":`${p.name}, ${s}`});
@@ -2538,6 +2626,7 @@ S.draft=blank();loadForm();renderCoach();partyRows("partyMini",false);route();
     if(S.checks.some(c=>c.status==="pending"&&c.hero===S.uid&&!before.has(c.id)))toast("The DM asks you for a roll. See your hero panel.",3500);
     if(onTable()){renderMyChecks();renderWaiting();renderHost();renderTalk()}autoCheck()},()=>{});
   db.collection("updates").orderBy("at","desc").limit(40).onSnapshot(snap=>{S.updates=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));if(onTable())renderTable();autoCheck()},()=>{});
+  lpcLoad();$("artCredits").addEventListener("toggle",e=>{if(e.target.open)showLpcCredits(e.target)});
   db.collection("art").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.art=o;S.artLoaded=true;if(onTable())renderTable()},()=>{});
   setInterval(()=>{try{if(S.db&&isEngine())artTick()}catch(e){}},20000);
   db.collection("portraits").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data()});S.portraits=o;dollCache.clear();artRefresh()},()=>{});

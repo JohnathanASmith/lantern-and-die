@@ -14,18 +14,19 @@ The page ships inside this skill:
 - `assets/lantern-and-die.html`: the game page, with `<meta name="lantern-and-die-version" content="X">`
 - `assets/capabilities.json`: the artifact capabilities and database rules it needs
 - `assets/VERSION`: the bundled version
+- `assets/lpc.png`, `assets/lpc.json`, `assets/lpc-credits.json`: the character art sheet, its index and its credits, published next to the page
 
 The newest version is also published in the public GitHub repo `https://github.com/JohnathanASmith/lantern-and-die` (changelog in `CHANGELOG.md` at its root).
 
 Get the newest page like this:
 
-1. Copy the three bundled files into a fresh folder in the working directory.
+1. Copy the bundled files into a fresh folder in the working directory.
 2. Fetch the repo with git, which works where plain web downloads are blocked:
    ```bash
    git clone -q --depth 1 https://github.com/JohnathanASmith/lantern-and-die lad-latest
    ```
-   If that fails, try `curl -fsSL -o <file> https://raw.githubusercontent.com/JohnathanASmith/lantern-and-die/main/plugins/lantern-and-die/skills/table/assets/<file>` for `VERSION`, `lantern-and-die.html` and `capabilities.json`.
-3. If GitHub's `plugins/lantern-and-die/skills/table/assets/VERSION` is newer than the bundled `VERSION`, use GitHub's `lantern-and-die.html` and `capabilities.json` instead of the bundled ones. If GitHub can't be reached, use the bundled files and say so in one line.
+   If that fails, try `curl -fsSL -o <file> https://raw.githubusercontent.com/JohnathanASmith/lantern-and-die/main/plugins/lantern-and-die/skills/table/assets/<file>` for `VERSION`, `lantern-and-die.html`, `capabilities.json`, `lpc.png`, `lpc.json` and `lpc-credits.json`.
+3. If GitHub's `plugins/lantern-and-die/skills/table/assets/VERSION` is newer than the bundled `VERSION`, use GitHub's page, `capabilities.json` and `lpc.*` files instead of the bundled ones. If GitHub can't be reached, use the bundled files and say so in one line.
 4. Check the HTML's `lantern-and-die-version` meta matches the version you're publishing. Never rebuild or edit the page by hand.
 
 ## Every time: check the user's tables
@@ -37,7 +38,7 @@ Get the newest page like this:
 ## Start a new table
 
 1. Get the newest page.
-2. Publish a NEW artifact (no `url`): `file_path` = the page, `capabilities` = the parsed `capabilities.json`, `icon: "dice"`, description "A shared D&D 2024 table where Claude is the Dungeon Master."
+2. Publish a NEW artifact (no `url`): `file_path` = the page, `files` = {"lpc.png", "lpc.json", "lpc-credits.json"} from the same folder, `capabilities` = the parsed `capabilities.json`, `icon: "dice"`, description "A shared D&D 2024 table where Claude is the Dungeon Master."
 3. Tell the user briefly:
    - Build a hero on the Character tab, then start the campaign from the Table tab. Only the table's owner can host.
    - Share the table from its Share menu with each player as **Contributor** (Viewers can't play).
@@ -47,7 +48,7 @@ Get the newest page like this:
 ## Update a table
 
 1. Get the newest page.
-2. Read the table (Artifact `action: "read"` with its `url`), then publish the page to that same `url` with `capabilities` from `capabilities.json`.
+2. Read the table (Artifact `action: "read"` with its `url`), then publish the page to that same `url` with `capabilities` from `capabilities.json` and `files` = the three `lpc.*` files.
 3. Confirm in one line: "Updated your table from X to Y," plus the top changes.
 
 Never delete a table, its data or its sharing while updating.

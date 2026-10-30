@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.13.0
+- Real character sprites: heroes and NPCs are now built from the Liberated Pixel Cup (LPC) layered art: body type, skin, head (human, elderly, orc, lizard for dragonborn, and more), ears, hair style and colour, beard, shirt, armour, coat, apron, robe or dress, trousers or skirt, boots, cloak, hood or helmet, weapon and shield, all read from descriptions, class and inventory. Used on the map, in the chat and in the who's-here list; painted portraits still win where they exist.
+- The art ships as three files next to the page (lpc.png, lpc.json, lpc-credits.json). Art credits are listed at the bottom of the page.
+- tools/lpc has the scripts that build the art sheet from the LPC repository.
+
 ## 1.12.0
 - Painted NPC portraits: once an NPC has a description, the page keeping the world paints them (one at a time) and keeps it. Tap any NPC face to see it large, with Repaint.
 - NPC figures on the map are now built from the same parts as hero figures, using their description (species, gender, hair, beard, role clothing); monsters keep their tiles.
