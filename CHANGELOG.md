@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.0
+- Dice overhaul: a host Dice setting (Light, Standard, Crunchy; Standard by default). On Standard the DM calls for checks whenever there is resistance or risk, not just big moments.
+- Contested rolls: when an NPC opposes a hero, the page rolls for the NPC and that total is the number to beat (shown as "vs Ring-man's 14").
+- Passive Perception is sent to the DM so noticing things can happen without a roll.
+- Heroes whose player is away still roll: the page rolls for them and the story carries on.
+
 ## 1.9.1
 - An old "on the way" status can no longer lock someone's Talk box: it only counts when the destination is actually expecting them.
 - Undo never brings back an old travel status.
