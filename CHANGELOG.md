@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.1
+- The DM's bookkeeping (moving heroes to new places, HP, items, quests) no longer waits for the host's screen: when the host is away, a player at the table runs it. Requires game, scenes, characters and actions to be writable by players (interact).
+- Sending a new line while you still owe a roll now asks you to roll it first or skip it, so the story can't leave rolls behind.
+
 ## 1.10.0
 - Dice overhaul: a host Dice setting (Light, Standard, Crunchy; Standard by default). On Standard the DM calls for checks whenever there is resistance or risk, not just big moments.
 - Contested rolls: when an NPC opposes a hero, the page rolls for the NPC and that total is the number to beat (shown as "vs Ring-man's 14").
