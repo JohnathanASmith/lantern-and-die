@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.16.0
+- Every NPC now has one lasting record, like a hero: their looks, memories, every name they've gone by, and where they are right now.
+- Learning someone's real name adds it to their record instead of starting a blank new person, so they keep their memories (no more "young woman in a grey shawl" and "Tamsin" as two people).
+- People stay where they are until they leave: if a DM update forgets to list someone, they're put back. The DM now reports departures in "leaves", and someone who walks off to a known place is waiting there when the party arrives.
+- The DM is told who is elsewhere and where ("PEOPLE ELSEWHERE"), so known people turn up under their own name instead of as a new stranger.
+
 ## 1.15.6
 - Walls block sound: who hears you is measured by the walking path around walls and through doorways, not straight through them. A closed door blocks talk entirely; shouting still carries.
 
