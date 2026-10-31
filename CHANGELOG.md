@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.12
+- Tap any hero's face (chat, party list, map caption) to see their portrait large. On your own hero there's Paint my portrait / Paint again, so you can repaint whenever you like without leaving the table.
+
 ## 1.14.11
 - Fix: people the DM brought in through narration (a ferryman on a skiff, a face in the water) never joined the scene, so they weren't on the map, in who's here or in the To list. The DM now lists every newcomer in "arrivals" and the page adds them to the scene right away; anyone who speaks under a new name is added too.
 

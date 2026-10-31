@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.11">
+<meta name="lantern-and-die-version" content="1.14.12">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.11"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.12"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1324,7 +1324,13 @@ function dollURL(doll,scale=4,bg){const key=JSON.stringify(doll)+scale+(bg||"");
 /* ---- portraits ---- */
 function portraitOf(id){const p=S.portraits?.[id];if(p?.kind==="svg"&&p.svg)return{src:"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(p.svg),pixel:false};if(p?.kind==="upload"&&p.img)return{src:p.img,pixel:false};return{src:"",pixel:true}}
 function face(id,cls="face"){const c=(id===S.uid&&S.draft&&!S.chars[id]?.inPlay?S.draft:S.chars[id])||{};const p=portraitOf(id);const src=p.src||(LPC.ready?lpcURL(heroLpc(id),2,true):dollURL(dollOf(id),2));
-  if(!src)return sigil(c.color,c.name);return h("span",{class:cls+(p.pixel?" pix":""),style:`--hc:${c.color||"#888"}`},h("img",{src,alt:"",loading:"lazy"}))}
+  if(!src)return sigil(c.color,c.name);return h("span",{class:cls+(p.pixel?" pix":"")+" tap",style:`--hc:${c.color||"#888"}`,title:"See "+(c.name||"this hero"),onclick:e=>{e.stopPropagation();showHeroArt(id)}},h("img",{src,alt:"",loading:"lazy"}))}
+/* a hero's portrait, large; your own can be painted (or painted again) from here at any time */
+function showHeroArt(id){const c=S.chars[id]||{};const p=portraitOf(id);const src=p.src||(LPC.ready?lpcURL(heroLpc(id),4):dollURL(dollOf(id),8));const close=()=>box.remove();
+  const kids=[h("img",{src,alt:c.name||"",style:p.src?"":"image-rendering:pixelated;width:256px;max-width:70vw"})];
+  if(c.appearance)kids.push(h("div",{style:"color:#ccc;max-width:520px;text-align:center",text:String(c.appearance).slice(0,300)}));
+  if(id===S.uid&&S.sample)kids.push(h("button",{type:"button",onclick:async e=>{e.stopPropagation();e.target.disabled=true;e.target.textContent="Painting… (about a minute)";await paintPortrait();close();showHeroArt(id)}},S.portraits?.[id]?.svg?"Paint again":"Paint my portrait"));
+  const box=h("div",{class:"lightbox",onclick:e=>{if(e.target.tagName!=="BUTTON")close()}},h("figure",{},...kids,h("figcaption",{text:c.name||""})));document.body.append(box)}
 function sanitizeSVG(t){t=String(t||"");const m=t.match(/<svg[\s\S]*<\/svg>/i);if(!m)return "";let doc;try{doc=new DOMParser().parseFromString(m[0],"image/svg+xml")}catch(e){return ""}const root=doc.documentElement;if(!root||root.nodeName.toLowerCase()!=="svg"||doc.querySelector("parsererror"))return "";
   const bad=new Set(["script","foreignobject","iframe","image","use","style","a","animate","set","animatemotion","animatetransform","feimage"]);
   const walk=el=>{for(const ch of[...el.children]){if(bad.has(ch.nodeName.toLowerCase())){ch.remove();continue}for(const at of[...ch.attributes]){const n=at.name.toLowerCase(),v=at.value;if(n.startsWith("on")||(n==="href"||n==="xlink:href")&&!v.startsWith("#")||/url\(\s*['"]?(?!#)/i.test(v)||/javascript:/i.test(v))ch.removeAttribute(at.name)}walk(ch)}};
