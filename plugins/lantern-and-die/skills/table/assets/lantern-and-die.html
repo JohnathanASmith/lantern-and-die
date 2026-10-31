@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.12">
+<meta name="lantern-and-die-version" content="1.14.13">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.12"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.13"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1604,7 +1604,7 @@ Reply with ONLY JSON: {"kind":"say|do|wait${isJourney(sc)&&allDm?"|continue|camp
   if(!r.text||r.kind==="continue"||r.kind==="camp")return;
   const kind=r.kind==="do"?"do":"say",vol=["talk","whisper","shout"].includes(r.vol)?r.vol:"talk";let to=String(r.to||"").slice(0,60);
   if(to&&!P.npcs[to]&&!heroesIn(sid).some(id=>heroName(id)===to)){const hit=npcsHere(sid).find(n=>slug(aliasOf(n.name,actor)||"")===slug(to));to=hit?hit.name:""}
-  if(to&&P.npcs[to])await approach(sid,to,actor);
+  if(to&&P.npcs[to])await approach(sid,to,actor,kind==="do"?1:(RANGE[vol]??4));
   let e=earshot(sid,{hero:actor},kind==="do"?(vol==="whisper"?"whisper":"see"):vol);
   if(kind==="do"&&(vol==="whisper"||posOf(sid).heroes[actor]?.hidden)){const low=String(r.text).toLowerCase();const mates=heroesIn(sid).filter(id=>id!==actor&&(heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase())));e={heard:[actor,...mates],nh:to&&!mates.length&&posOf(sid).npcs[to]?[to]:[]}}
   const line={kind,hero:actor,to,text:String(r.text).slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):vol,heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to,actor),auto:true,autoturn:true};
@@ -1838,7 +1838,7 @@ async function companionsFollow(sid,prev,hid){const sc=S.scenes[sid]||{};const P
 async function setPosRaw(sid,who,p){if(!S.db||!sid)return;const kind=who.hero?"h":"n",id=who.hero||who.npc,now=Date.now();const d={sid,kind,id:String(id).slice(0,80),x:Math.round(+p.x||0),y:Math.round(+p.y||0),spot:String(p.spot||"").slice(0,40),perch:String(p.perch||"").slice(0,40),hidden:!!p.hidden,at:now};
   const ov=S.pos[sid]||(S.pos[sid]={h:{},n:{}});ov[kind][slug(id)]=d;try{await S.db.doc("pos/"+posKey(sid,kind,id)).set(d)}catch(e){}}
 /* walk the hero over to someone they address when they're out of earshot */
-async function approach(sid,npcName,who=S.uid){const P=posOf(sid),me=P.heroes[who],n=P.npcs[npcName];if(!me||!n||near(me,n,1))return;const sc=S.scenes[sid]||{};
+async function approach(sid,npcName,who=S.uid,reach=1){const P=posOf(sid),me=P.heroes[who],n=P.npcs[npcName];if(!me||!n||near(me,n,1)||(reach>1&&near(me,n,reach)&&sameArea(sid,me,n)))return;const sc=S.scenes[sid]||{};
   if(n.spot){await setPos(sid,{hero:who},{x:n.x+1,y:n.y,spot:n.spot});return}
   const taken=new Set([...Object.values(P.heroes),...Object.values(P.npcs)].filter(p=>!p.spot).map(p=>p.x+","+p.y));let best=null,bd=1e9;
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const x=n.x+dx,y=n.y+dy;if(!walkableAt(sc,x,y)||taken.has(x+","+y))continue;const d=Math.hypot(x-me.x,y-me.y);if(d<bd){bd=d;best={x,y}}}
@@ -1879,7 +1879,7 @@ let undoConfirm=false;
 function earPreview(sid,kind,to,vol,text){if(kind==="ask")return{note:"Only the DM sees this"+($("askShare")?.checked?", and the answer is shared with the table":""),tags:{}};
   const P=posOf(sid),me=P.heroes[S.uid];if(!me)return null;const tags={};
   const visibleNpcs=Object.entries(P.npcs).filter(([,p])=>!p.hidden).map(([n])=>n);const mates=heroesIn(sid).filter(id=>id!==S.uid);
-  let from=me,walk=false;if(to&&P.npcs[to]&&!P.npcs[to].hidden){const t=P.npcs[to];const r0=kind==="do"?(vol==="whisper"?1:RANGE.see):RANGE[vol]??4;if(!(near(me,t,r0)&&sameArea(sid,me,t))){from={x:t.x,y:t.y,spot:t.spot,perch:t.perch};walk=true}}
+  let from=me,walk=false;if(to&&P.npcs[to]&&!P.npcs[to].hidden){const t=P.npcs[to];const r0=kind==="do"?1:RANGE[vol]??4;if(!(near(me,t,r0)&&sameArea(sid,me,t))){from={x:t.x,y:t.y,spot:t.spot,perch:t.perch};walk=true}}
   if(kind==="do"&&(vol==="whisper"||me.hidden)){const low=String(text||"").toLowerCase();const named=mates.filter(id=>heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase()));
     const yes=[...named.map(heroName),...(to&&!named.length&&P.npcs[to]&&!P.npcs[to].hidden?[to]:[])];for(const id of mates)tags[heroName(id)]=named.includes(id)?"in on it":"won't notice";for(const n of visibleNpcs)tags[n]=yes.includes(n)?"in on it":"won't notice";
     return{yes,no:[],note:me.hidden?"You're hidden: only who you name or aim it at knows":"A quiet action: only who you name or aim it at knows",tags,walk}}
@@ -1896,7 +1896,7 @@ function updateEar(){let el=document.getElementById("talkEar");if(!el){el=h("div
   el.replaceChildren(...[pv.note?h("div",{text:pv.note}):null,pv.yes&&(pv.yes.length||pv.no?.length)?h("div",{},h("span",{text:kind==="do"?"Seen by: ":"Heard by: "}),h("b",{text:pv.yes.length?pv.yes.join(", "):"nobody but you"}),pv.no?.length?` · Not: ${pv.no.join(", ")}`:"",pv.walk?" · you'll walk over first":""):null].filter(Boolean))}
 for(const id of ["talkKind","talkTo","talkVol","askShare"])$(id)?.addEventListener("change",()=>{try{updateEar()}catch(e){}});
 $("talkInput").addEventListener("input",()=>{if($("talkKind").value==="do")try{updateEar()}catch(e){}});
-async function sayLine(sid,kind,to,text,vol){await takeUndoSnapshot(sid);if(to&&posOf(sid).npcs[to])await approach(sid,to);const r=kind==="do"?(vol==="whisper"?"whisper":"see"):(vol||"talk");let e=earshot(sid,{hero:S.uid},r);
+async function sayLine(sid,kind,to,text,vol){await takeUndoSnapshot(sid);if(to&&posOf(sid).npcs[to])await approach(sid,to,S.uid,kind==="do"?1:(RANGE[vol]??4));const r=kind==="do"?(vol==="whisper"?"whisper":"see"):(vol||"talk");let e=earshot(sid,{hero:S.uid},r);
   /* a quiet action or anything done while hidden is secret: nobody notices it unless the DM says they do (only the person it's aimed at is in on it) */
   const meP=posOf(sid).heroes[S.uid];if(kind==="do"&&(vol==="whisper"||meP?.hidden)){const low=String(text).toLowerCase();const mates=heroesIn(sid).filter(id=>id!==S.uid&&(heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase())));e={heard:[S.uid,...mates],nh:to&&!mates.length&&posOf(sid).npcs[to]?[to]:[]}}
   const line={kind,hero:S.uid,to,text:text.slice(0,500),scene:sid,vol:kind==="do"?(vol==="whisper"?"quiet":"open"):(vol||"talk"),heard:e.heard,nh:e.nh,stub:stubFor(sid,kind,vol,to)};await postTalk(line);return line}

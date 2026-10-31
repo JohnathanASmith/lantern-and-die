@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.13
+- Fix: addressing someone made your hero walk right up to them even when they were already within earshot (a word over the shoulder to Ansel pulled Legrey back off the stones). You now only walk over when they couldn't hear you at that volume; actions aimed at someone still need you beside them.
+
 ## 1.14.12
 - Tap any hero's face (chat, party list, map caption) to see their portrait large. On your own hero there's Paint my portrait / Paint again, so you can repaint whenever you like without leaving the table.
 
