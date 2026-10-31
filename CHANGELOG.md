@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.9
+- "Play my move" button in the DM-plays-for-me banner: the DM takes one turn for your hero right away, whenever you press it (useful while another player is playing live and timed turns are off).
+
 ## 1.14.8
 - Fix: when the DM described where someone stood ("her cockle beds", "following Legrey's bootprints") the game treated that as a separate room, so people standing side by side couldn't hear each other. Only real rooms behind a door count as separate now; anything else is the open area. The movement check also tells the DM this.
 

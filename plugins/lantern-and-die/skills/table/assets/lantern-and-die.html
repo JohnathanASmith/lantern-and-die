@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.8">
+<meta name="lantern-and-die-version" content="1.14.9">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.8"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.9"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1536,7 +1536,7 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
   {const me=S.chars[S.uid];const on=!!me?.autoplay;$("autoPlay").checked=on;$("autoPlay").disabled=!me?.inPlay||watching;const ab=$("autoBar");ab.hidden=!on||watching;
    const paused=on&&autoStreak(mine)>=AUTO_STREAK;
-   if(on&&!watching)ab.replaceChildren(h("span",{},h("b",{text:`The DM is playing ${heroName(S.uid)} for you.`}),paused?` It paused after ${AUTO_STREAK} turns in a row.`:" You can still say or do things yourself."),h("span",{style:"display:flex;gap:8px"},paused?h("button",{type:"button",onclick:keepAutoGoing},"Keep going"):null,h("button",{type:"button",class:"primary",onclick:()=>setAutoplay(false)},"Take over")))}
+   if(on&&!watching)ab.replaceChildren(h("span",{},h("b",{text:`The DM is playing ${heroName(S.uid)} for you.`}),paused?` It paused after ${AUTO_STREAK} turns in a row.`:" You can still say or do things yourself."),h("span",{style:"display:flex;gap:8px;flex-wrap:wrap"},h("button",{type:"button",disabled:myTurnBusy||null,title:"The DM plays one move for your hero right now",onclick:playMyMove},myTurnBusy?"Playing…":"Play my move"),paused?h("button",{type:"button",onclick:keepAutoGoing},"Keep going"):null,h("button",{type:"button",class:"primary",onclick:()=>setAutoplay(false)},"Take over")))}
   try{updateEar()}catch(e){}
   $("talkHint").textContent=owes&&!watching?`the DM asked you for a ${owes.label||owes.skill||owes.ability||"check"} roll · roll it below to carry on`:enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
@@ -1617,6 +1617,11 @@ function renderAutoClock(){const el=document.getElementById("autoClock");if(!el)
   const left=Math.max(0,e.at-Date.now()),pct=Math.min(100,100*(Date.now()-e.from)/AUTO_QUIET);el.dataset.state=left>0?"wait":"due";bar.style.width=pct+"%";
   txt.textContent=left>0?`${heroName(e.who)} (played by the DM) takes a turn in ${Math.ceil(left/1000)}s unless someone acts`:`${heroName(e.who)} (played by the DM) is deciding what to do…`}
 setInterval(()=>{try{renderAutoClock()}catch(e){}},1000);
+/* "Play my move": the player asks the DM to take one turn for their hero right now */
+let myTurnBusy=false;
+async function playMyMove(){const sid=myScene();if(!sid||myTurnBusy||npcBusy||!S.sample)return;const sc=S.scenes[sid];if(!sc||sc.mode==="combat"){toast("In combat, act on your turn.");return}
+  if(S.checks.some(c=>c.status==="pending"&&c.hero===S.uid&&c.scene===sid)){toast("Roll your check first.");return}
+  myTurnBusy=true;renderTalk();try{await autoTurn(sid,S.uid)}catch(e){toast("The DM couldn't take that turn. Try again.")}finally{myTurnBusy=false;renderTalk()}}
 async function keepAutoGoing(){const sid=myScene();if(sid)await postTalk({kind:"sys",text:"Auto-play continues",autoresume:true,scene:sid})}
 async function setAutoplay(on){if(!S.db||!S.uid)return;try{await S.db.doc("characters/"+S.uid).update({autoplay:!!on});toast(on?"The DM will play your hero until you untick it.":"You're playing your hero again.")}catch(e){toast("Couldn't change that")}}
 $("autoPlay").addEventListener("change",e=>setAutoplay(e.target.checked));
