@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.1
+- Fix: when a DM-played hero decided to "wait", nothing was posted, so the bar sat on "deciding" and the page asked again every few seconds. Now the hero visibly waits, a few minutes pass, and the world answers. A scene is never retried faster than the 40-second quiet gap, even if a turn produced nothing.
+
 ## 1.15.0
 - Pacing: NPCs willing to talk give the whole useful answer instead of fragments; information is held back only for a visible reason.
 - Companions and other NPCs chime in only with something new (a fact, a warning, a decision), never to echo or sum up.

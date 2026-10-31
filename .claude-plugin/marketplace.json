@@ -9,7 +9,7 @@
       "name": "lantern-and-die",
       "source": "./plugins/lantern-and-die",
       "description": "A shared D&D 2024 table where Claude is the Dungeon Master: start, update and host Lantern & Die tables, with recaps, backups, session prep and repairs.",
-      "version": "1.15.0"
+      "version": "1.15.1"
     }
   ]
 }
