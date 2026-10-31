@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0
+- People live their lives while you're away. Every NPC has a home and a routine (where they are by day and by night); the DM fills these in for anyone new.
+- Coming back to a place after 3 hours or more, the DM first works out who is really there now: who went home or to work, who left, who turned up, and what happened. Anyone tied up, trapped or hurt stays put unless something plausible freed them.
+- The "people elsewhere" list tells the DM how long ago each person was last seen and their routine, so someone met days later is where they'd really be.
+
 ## 1.16.0
 - Every NPC now has one lasting record, like a hero: their looks, memories, every name they've gone by, and where they are right now.
 - Learning someone's real name adds it to their record instead of starting a blank new person, so they keep their memories (no more "young woman in a grey shawl" and "Tamsin" as two people).
