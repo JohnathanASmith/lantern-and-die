@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.15.4
+- One name, one person: every DM prompt gets the list of names already used in the campaign and must not reuse a first name or surname for someone new.
+- Names stick: the DM must report when someone gives their name (including someone who arrived in the same reply), and the page also catches self-introductions ("my name's…", "Corvin. Corvin Hale", "Wren Pell, lamp-hand of…") from people listed under a description.
+
 ## 1.15.3
 - Pause picker on the countdown bar: DM play pauses after 4, 8 (default), 16 or 30 turns in a row, or never. Shared by the table.
 
