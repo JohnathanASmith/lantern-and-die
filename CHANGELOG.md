@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.3
+- Pause picker on the countdown bar: DM play pauses after 4, 8 (default), 16 or 30 turns in a row, or never. Shared by the table.
+
 ## 1.15.2
 - DM turn pace picker on the countdown bar: Instant, 15 seconds, 40 seconds (default) or 2 minutes of quiet before a DM-played hero takes a turn. Shared by the table. The 8-turn pause still applies.
 

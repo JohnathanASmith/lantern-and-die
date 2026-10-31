@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.15.2">
+<meta name="lantern-and-die-version" content="1.15.3">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -367,7 +367,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.15.2"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.15.3"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -453,7 +453,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div class="label" id="talkBusy"></div>
     <div id="holdTalk"></div>
     <div id="autoBar" class="autobar" hidden></div>
-    <div id="autoClock" class="autoclock" hidden><div class="track"><i></i></div><div class="acrow"><span></span><label class="acpace">DM turns <select id="autoPace" aria-label="How soon DM-played heroes take their turn"></select></label></div></div>
+    <div id="autoClock" class="autoclock" hidden><div class="track"><i></i></div><div class="acrow"><span></span><span class="acpace"><label class="acpace">DM turns <select id="autoPace" aria-label="How soon DM-played heroes take their turn"></select></label><label class="acpace">pause <select id="autoStop" aria-label="Pause DM play after this many turns in a row"></select></label></span></div></div>
     <form class="talkform" id="talkForm">
       <div class="talkctl">
         <select id="talkKind" aria-label="How you speak"><option value="say">Say</option><option value="do">Do</option><option value="ask">Ask the DM</option></select>
@@ -1544,8 +1544,8 @@ function renderTalk(){const live=viewId();const past=pastScenes(live);if(S.pastV
   const combat=ms.mode==="combat";const held=holdOf(mine,S.uid);const enRoute=(()=>{const w=S.game?.waiting?.[S.uid];if(!w||w.target===mine)return false;return(S.scenes[w.target]?.incoming||[]).some(x=>x.hero===S.uid)})();const owes=!combat?S.checks.find(c=>c.status==="pending"&&c.hero===S.uid&&c.scene===mine&&c.source==="talk"):null;const canTalk=!watching&&S.chars[S.uid]?.ready&&S.game?.status==="playing"&&!held&&!enRoute&&!owes;
   for(const id of ["talkKind","talkTo","talkVol","talkInput","talkSend","waitBtn"])$(id).disabled=!canTalk;
   {const me=S.chars[S.uid];const on=!!me?.autoplay;$("autoPlay").checked=on;$("autoPlay").disabled=!me?.inPlay||watching;const ab=$("autoBar");ab.hidden=!on||watching;
-   const paused=on&&autoStreak(mine)>=AUTO_STREAK;
-   if(on&&!watching)ab.replaceChildren(h("span",{},h("b",{text:`The DM is playing ${heroName(S.uid)} for you.`}),paused?` It paused after ${AUTO_STREAK} turns in a row.`:" You can still say or do things yourself."),h("span",{style:"display:flex;gap:8px;flex-wrap:wrap"},h("button",{type:"button",disabled:myTurnBusy||null,title:"The DM plays one move for your hero right now",onclick:playMyMove},myTurnBusy?"Playing…":"Play my move"),paused?h("button",{type:"button",onclick:keepAutoGoing},"Keep going"):null,h("button",{type:"button",class:"primary",onclick:()=>setAutoplay(false)},"Take over")))}
+   const paused=on&&(autoCap()>0&&autoStreak(mine)>=autoCap());
+   if(on&&!watching)ab.replaceChildren(h("span",{},h("b",{text:`The DM is playing ${heroName(S.uid)} for you.`}),paused?` It paused after ${autoCap()} turns in a row.`:" You can still say or do things yourself."),h("span",{style:"display:flex;gap:8px;flex-wrap:wrap"},h("button",{type:"button",disabled:myTurnBusy||null,title:"The DM plays one move for your hero right now",onclick:playMyMove},myTurnBusy?"Playing…":"Play my move"),paused?h("button",{type:"button",onclick:keepAutoGoing},"Keep going"):null,h("button",{type:"button",class:"primary",onclick:()=>setAutoplay(false)},"Take over")))}
   try{updateEar()}catch(e){}
   $("talkHint").textContent=owes&&!watching?`the DM asked you for a ${owes.label||owes.skill||owes.ability||"check"} roll · roll it below to carry on`:enRoute?`you're on your way to ${S.game.waiting[S.uid].name||"the next place"} · join them now or change plans above`:reading?`reading back ${sc.name||"an earlier scene"} · pick Now to return`:held?`you're ${holdText(mine,S.uid)} · wake up to act`:watching?`watching ${sc.name||"another scene"} · switch back to talk`:combat?"in combat, talk is table chat · act on your turn":"say or do anything, including setting off somewhere · the world answers right away";
   const feed=$("feed");if(S.lastVid!==vid){S.stick.feed=true;S.lastVid=vid}const pool=reading?[...new Map([...(S.pastTalk[vid]||[]),...S.talk].map(m=>[m.id,m])).values()]:S.talk;const msgs=[...pool.filter(m=>msgScene(m)===vid&&(canSee(m)||(!reading&&m.stub))),...(vid===mine?S.myQA.filter(q=>!q.shared&&(q.scene||vid)===vid).map(q=>({...q,kind:"dmqp",hero:S.uid,text:q.q})):[])].sort((a,b)=>a.at-b.at).slice(reading?-1000:-80);
@@ -1573,7 +1573,7 @@ async function waitAWhile(){const sid=myScene();if(!sid||!S.chars[S.uid]?.ready|
   await guardedSend({sid,kind:"do",to:"",text:`I wait${who.length?" for "+who.join(" and "):""}, about ${mins<60?mins+" minutes":spanLabel(mins)}.`,vol:"open",wait:mins})}
 $("waitBtn").addEventListener("click",waitAWhile);
 /* when the DM plays a hero and things go quiet, that hero takes their own turn; whoever keeps the world runs it, and only while someone in the scene is at the table */
-const AUTO_PACES={instant:["Instant",0],fast:["15 seconds",15000],normal:["40 seconds",40000],slow:["2 minutes",120000]};const autoQuiet=()=>(AUTO_PACES[S.game?.autoPace]||AUTO_PACES.normal)[1];const AUTO_STREAK=8;let autoTurnBusy=false;const autoTried={};
+const AUTO_PACES={instant:["Instant",0],fast:["15 seconds",15000],normal:["40 seconds",40000],slow:["2 minutes",120000]};const autoQuiet=()=>(AUTO_PACES[S.game?.autoPace]||AUTO_PACES.normal)[1];const AUTO_STOPS={"4":"after 4","8":"after 8","16":"after 16","30":"after 30","0":"never"};const autoCap=()=>{const v=S.game?.autoStop;return v==null||!(String(v) in AUTO_STOPS)?8:+v};let autoTurnBusy=false;const autoTried={};
 function autoStreak(sid){let n=0;for(const m of S.talk.filter(m=>msgScene(m)===sid).sort((a,b)=>b.at-a.at)){if(m.kind==="sys"&&m.autoresume)break;if((m.kind==="say"||m.kind==="do")&&m.hero){if(!m.auto)break;if(m.autoturn)n++}}return n}
 function autoCandidates(sid){return heroesIn(sid).filter(id=>dmPlays(id)&&alive(S.chars[id])&&holdOf(sid,id)?.kind!=="sleep"&&!S.game?.waiting?.[id])}
 async function autoTurnTick(){if(autoTurnBusy||S.busy||npcBusy||!S.sample||!S.db||S.game?.status!=="playing"||!isEngine())return;
@@ -1581,7 +1581,7 @@ async function autoTurnTick(){if(autoTurnBusy||S.busy||npcBusy||!S.sample||!S.db
     const cands=autoCandidates(sid);if(!cands.length||!heroesIn(sid).some(id=>isPresent(id)))continue;if(heroesIn(sid).some(id=>!dmPlays(id)))continue;
     const last=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="pic"&&m.kind!=="sys").reduce((t,m)=>Math.max(t,m.at||0),0);if(Date.now()-last<autoQuiet())continue;
     if(S.checks.some(c=>c.status==="pending"&&c.scene===sid)||S.updates.some(u=>u.status==="pending"&&u.scene===sid)||await heldByOther(sid))continue;
-    if(autoStreak(sid)>=AUTO_STREAK)continue;
+    if((autoCap()>0&&autoStreak(sid)>=autoCap()))continue;
     const lastBy=id=>S.talk.filter(m=>msgScene(m)===sid&&m.hero===id).reduce((t,m)=>Math.max(t,m.at||0),0);const actor=cands.sort((a,b)=>lastBy(a)-lastBy(b))[0];
     if(Date.now()-(autoTried[sid]||0)<Math.max(autoQuiet(),8000))continue;autoTried[sid]=Date.now();
     autoTurnBusy=true;try{await autoTurn(sid,actor)}catch(e){}finally{autoTurnBusy=false}return}}
@@ -1619,13 +1619,14 @@ Reply with ONLY JSON: {"kind":"say|do|wait${isJourney(sc)&&allDm?"|continue|camp
 setInterval(()=>{try{autoTurnTick()}catch(e){}},5000);
 /* what the next DM-played turn looks like from here: who, and when */
 function autoEta(sid){const sc=S.scenes[sid];if(!sc||S.game?.status!=="playing")return null;const cands=autoCandidates(sid);if(!cands.length)return null;if(sc.mode==="combat")return{hold:"it's combat, so heroes act on their turns"};if(isJourney(sc)&&pendingFor(sid,"leg"))return{hold:"the party is on the move"};
-  if(!heroesIn(sid).some(id=>isPresent(id)))return null;if(heroesIn(sid).some(id=>!dmPlays(id)))return null;if(autoStreak(sid)>=AUTO_STREAK)return{paused:true};
+  if(!heroesIn(sid).some(id=>isPresent(id)))return null;if(heroesIn(sid).some(id=>!dmPlays(id)))return null;if((autoCap()>0&&autoStreak(sid)>=autoCap()))return{paused:true};
   if(S.checks.some(c=>c.status==="pending"&&c.scene===sid))return{hold:"waiting on a roll"};if(S.updates.some(u=>u.status==="pending"&&u.scene===sid))return{hold:"the DM is updating the world"};
   const last=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="pic"&&m.kind!=="sys").reduce((t,m)=>Math.max(t,m.at||0),0);const lastBy=id=>S.talk.filter(m=>msgScene(m)===sid&&m.hero===id).reduce((t,m)=>Math.max(t,m.at||0),0);
   return{at:last+autoQuiet(),from:last,who:[...cands].sort((a,b)=>lastBy(a)-lastBy(b))[0]}}
-function renderAutoClock(){const el=document.getElementById("autoClock");if(!el)return;{const ps=$("autoPace");if(ps&&!ps.options.length){for(const[k,[t]]of Object.entries(AUTO_PACES))ps.append(h("option",{value:k,text:t}));ps.addEventListener("change",async e=>{try{await S.db.doc("game/state").update({autoPace:e.target.value});toast("DM turns: "+AUTO_PACES[e.target.value][0])}catch(err){toast("Couldn't change that")}})}if(ps&&document.activeElement!==ps)ps.value=S.game?.autoPace||"normal"}const sid=myScene();const busy=sid&&Object.entries(S.talkBusy||{}).some(([k,t])=>Date.now()-t<60000&&k.startsWith(sid+"|"));
+function renderAutoClock(){const el=document.getElementById("autoClock");if(!el)return;{const ps=$("autoPace");if(ps&&!ps.options.length){for(const[k,[t]]of Object.entries(AUTO_PACES))ps.append(h("option",{value:k,text:t}));ps.addEventListener("change",async e=>{try{await S.db.doc("game/state").update({autoPace:e.target.value});toast("DM turns: "+AUTO_PACES[e.target.value][0])}catch(err){toast("Couldn't change that")}})}if(ps&&document.activeElement!==ps)ps.value=S.game?.autoPace||"normal";
+   const st=$("autoStop");if(st&&!st.options.length){for(const[k,t]of Object.entries(AUTO_STOPS))st.append(h("option",{value:k,text:t}));st.addEventListener("change",async e=>{try{await S.db.doc("game/state").update({autoStop:+e.target.value});toast(+e.target.value?"DM play pauses after "+e.target.value+" turns in a row":"DM play never pauses on its own. Untick DM plays for me to stop it.",3500)}catch(err){toast("Couldn't change that")}})}if(st&&document.activeElement!==st)st.value=String(autoCap())}const sid=myScene();const busy=sid&&Object.entries(S.talkBusy||{}).some(([k,t])=>Date.now()-t<60000&&k.startsWith(sid+"|"));
   const e=!S.pastView&&sid&&viewId()===sid?autoEta(sid):null;if(!e){el.hidden=true;return}el.hidden=false;const bar=el.querySelector("i"),txt=el.querySelector("span");
-  if(e.paused){el.dataset.state="paused";bar.style.width="0%";txt.textContent=`DM play paused after ${AUTO_STREAK} turns in a row · anyone can say something, or press Keep going`;return}
+  if(e.paused){el.dataset.state="paused";bar.style.width="0%";txt.textContent=`DM play paused after ${autoCap()} turns in a row · anyone can say something, or press Keep going`;return}
   if(e.hold){el.dataset.state="hold";bar.style.width="0%";txt.textContent=`DM play waits · ${e.hold}`;return}
   if(busy){el.dataset.state="busy";bar.style.width="100%";txt.textContent="The DM is answering…";return}
   const left=Math.max(0,e.at-Date.now()),pct=autoQuiet()?Math.min(100,100*(Date.now()-e.from)/autoQuiet()):100;el.dataset.state=left>0?"wait":"due";bar.style.width=pct+"%";
