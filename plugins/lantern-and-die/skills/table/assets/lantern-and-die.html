@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.15.5">
+<meta name="lantern-and-die-version" content="1.15.6">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -367,7 +367,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.15.5"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.15.6"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1835,10 +1835,12 @@ function regionsOf(sid){const sc=S.scenes[sid]||{};const rows=parseMap(sc.map);c
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(solid(x,y)||id[y][x]>=0)continue;const q=[[x,y]];id[y][x]=n;while(q.length){const[a,b]=q.pop();for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const u=a+dx,v=b+dy;if(u<0||v<0||u>=W||v>=H||solid(u,v)||id[v][u]>=0)continue;id[v][u]=n;q.push([u,v])}}n++}
   const at=(x,y)=>{if(y<0||y>=H||x<0||x>=W)return null;if(id[y][x]>=0)return new Set([id[y][x]]);const s=new Set();for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const v=id[y+dy]?.[x+dx];if(v!=null&&v>=0)s.add(v)}return s.size?s:null};
   const out={at};regionCache.set(key,out);if(regionCache.size>40)regionCache.delete(regionCache.keys().next().value);return out}
+function pathDist(sid,a,b,r){const rows=parseMap(S.scenes[sid]?.map),H=rows.length,W=rows[0].length,solid=(x,y)=>{const c=rows[y]?.[x];return c==null||c==="#"||c==="D"};const ax=Math.round(a.x),ay=Math.round(a.y),bx=Math.round(b.x),by=Math.round(b.y);if(ax===bx&&ay===by)return 0;const d=new Map([[ax+","+ay,0]]);let q=[[ax,ay]],k=0;while(q.length&&k<r){k++;const nq=[];for(const[x,y]of q)for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const u=x+dx,v=y+dy,key=u+","+v;if(u<0||v<0||u>=W||v>=H||d.has(key))continue;if(dx&&dy&&(solid(x+dx,y)||solid(x,y+dy)))continue;if(u===bx&&v===by)return k;if(solid(u,v))continue;d.set(key,k);nq.push([u,v])}q=nq}return Infinity}
+function inEar(sid,a,b,r){if(!a||!b)return false;if(r>=999)return true;if(!near(a,b,r))return false;if((a.spot||"")!==""||(b.spot||"")!=="")return true;return pathDist(sid,a,b,r)<=r}
 function sameArea(sid,a,b){if(!a||!b||(a.spot||"")!==""||(b.spot||"")!=="")return true;const R=regionsOf(sid);const A=R.at(a.x,a.y),B=R.at(b.x,b.y);if(!A||!B)return true;for(const v of A)if(B.has(v))return true;return false}
 function earshot(sid,from,vol){const P0=posOf(sid);const o0=from.hero?P0.heroes[from.hero]:from.npc?P0.npcs[from.npc]:from;const P=(RANGE[vol]??4)>=999?P0:{heroes:Object.fromEntries(Object.entries(P0.heroes).filter(([,p])=>sameArea(sid,o0,p))),npcs:Object.fromEntries(Object.entries(P0.npcs).filter(([,p])=>sameArea(sid,o0,p)))};const o=o0;const r=RANGE[vol]??4;
-  const heard=Object.entries(P.heroes).filter(([id,p])=>near(o,p,r)&&(r>=999||id===from.hero||holdOf(sid,id)?.kind!=="sleep")).map(([id])=>id);if(from.hero&&!heard.includes(from.hero))heard.push(from.hero);
-  const nh=Object.entries(P.npcs).filter(([,p])=>near(o,p,r)).map(([n])=>n);if(from.npc&&!nh.includes(from.npc))nh.push(from.npc);return{heard,nh}}
+  const heard=Object.entries(P.heroes).filter(([id,p])=>inEar(sid,o,p,r)&&(r>=999||id===from.hero||holdOf(sid,id)?.kind!=="sleep")).map(([id])=>id);if(from.hero&&!heard.includes(from.hero))heard.push(from.hero);
+  const nh=Object.entries(P.npcs).filter(([,p])=>inEar(sid,o,p,r)).map(([n])=>n);if(from.npc&&!nh.includes(from.npc))nh.push(from.npc);return{heard,nh}}
 const canSee=m=>!Array.isArray(m.heard)||m.heard.includes(S.uid)||m.hero===S.uid;
 function walkableAt(sc,x,y){const rows=parseMap(sc.map);if(y<0||y>=rows.length||x<0||x>=rows[0].length)return false;return!!WALKGROUND[GLYPH[rows[y][x]]||"floor"]}
 /* companions who were walking with a hero keep up when that hero moves; someone told to hang back (farther than 3 steps) stays put */
@@ -1850,7 +1852,7 @@ async function companionsFollow(sid,prev,hid){const sc=S.scenes[sid]||{};const P
 async function setPosRaw(sid,who,p){if(!S.db||!sid)return;const kind=who.hero?"h":"n",id=who.hero||who.npc,now=Date.now();const d={sid,kind,id:String(id).slice(0,80),x:Math.round(+p.x||0),y:Math.round(+p.y||0),spot:String(p.spot||"").slice(0,40),perch:String(p.perch||"").slice(0,40),hidden:!!p.hidden,at:now};
   const ov=S.pos[sid]||(S.pos[sid]={h:{},n:{}});ov[kind][slug(id)]=d;try{await S.db.doc("pos/"+posKey(sid,kind,id)).set(d)}catch(e){}}
 /* walk the hero over to someone they address when they're out of earshot */
-async function approach(sid,npcName,who=S.uid,reach=1){const P=posOf(sid),me=P.heroes[who],n=P.npcs[npcName];if(!me||!n||near(me,n,1)||(reach>1&&near(me,n,reach)&&sameArea(sid,me,n)))return;const sc=S.scenes[sid]||{};
+async function approach(sid,npcName,who=S.uid,reach=1){const P=posOf(sid),me=P.heroes[who],n=P.npcs[npcName];if(!me||!n||near(me,n,1)||(reach>1&&inEar(sid,me,n,reach)))return;const sc=S.scenes[sid]||{};
   if(n.spot){await setPos(sid,{hero:who},{x:n.x+1,y:n.y,spot:n.spot});return}
   const taken=new Set([...Object.values(P.heroes),...Object.values(P.npcs)].filter(p=>!p.spot).map(p=>p.x+","+p.y));let best=null,bd=1e9;
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const x=n.x+dx,y=n.y+dy;if(!walkableAt(sc,x,y)||taken.has(x+","+y))continue;const d=Math.hypot(x-me.x,y-me.y);if(d<bd){bd=d;best={x,y}}}
@@ -1891,7 +1893,7 @@ let undoConfirm=false;
 function earPreview(sid,kind,to,vol,text){if(kind==="ask")return{note:"Only the DM sees this"+($("askShare")?.checked?", and the answer is shared with the table":""),tags:{}};
   const P=posOf(sid),me=P.heroes[S.uid];if(!me)return null;const tags={};
   const visibleNpcs=Object.entries(P.npcs).filter(([,p])=>!p.hidden).map(([n])=>n);const mates=heroesIn(sid).filter(id=>id!==S.uid);
-  let from=me,walk=false;if(to&&P.npcs[to]&&!P.npcs[to].hidden){const t=P.npcs[to];const r0=kind==="do"?1:RANGE[vol]??4;if(!(near(me,t,r0)&&sameArea(sid,me,t))){from={x:t.x,y:t.y,spot:t.spot,perch:t.perch};walk=true}}
+  let from=me,walk=false;if(to&&P.npcs[to]&&!P.npcs[to].hidden){const t=P.npcs[to];const r0=kind==="do"?1:RANGE[vol]??4;if(!inEar(sid,me,t,r0)){from={x:t.x,y:t.y,spot:t.spot,perch:t.perch};walk=true}}
   if(kind==="do"&&(vol==="whisper"||me.hidden)){const low=String(text||"").toLowerCase();const named=mates.filter(id=>heroName(id)===to||low.includes(String(heroName(id)).split(" ")[0].toLowerCase()));
     const yes=[...named.map(heroName),...(to&&!named.length&&P.npcs[to]&&!P.npcs[to].hidden?[to]:[])];for(const id of mates)tags[heroName(id)]=named.includes(id)?"in on it":"won't notice";for(const n of visibleNpcs)tags[n]=yes.includes(n)?"in on it":"won't notice";
     return{yes,no:[],note:me.hidden?"You're hidden: only who you name or aim it at knows":"A quiet action: only who you name or aim it at knows",tags,walk}}

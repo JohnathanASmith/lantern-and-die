@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.6
+- Walls block sound: who hears you is measured by the walking path around walls and through doorways, not straight through them. A closed door blocks talk entirely; shouting still carries.
+
 ## 1.15.5
 - Fix: a world update left half-done when the page doing it closed stayed stuck forever (heroes stranded in the wrong place). Stuck updates now go back in the queue after a few minutes.
 - The names rule also forbids near-identical names (Corwin/Corvin).
