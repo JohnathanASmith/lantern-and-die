@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.15.0
+- Pacing: NPCs willing to talk give the whole useful answer instead of fragments; information is held back only for a visible reason.
+- Companions and other NPCs chime in only with something new (a fact, a warning, a decision), never to echo or sum up.
+- The DM moves stalled scenes on: once a conversation or place has given what it can, or talk goes in circles, something happens or a clear next step appears, using pressures already in the story.
+- DM-played heroes lean toward action; after two questions in a row they act.
+
 ## 1.14.13
 - Fix: addressing someone made your hero walk right up to them even when they were already within earshot (a word over the shoulder to Ansel pulled Legrey back off the stones). You now only walk over when they couldn't hear you at that volume; actions aimed at someone still need you beside them.
 
