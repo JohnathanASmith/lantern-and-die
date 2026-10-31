@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.11
+- Fix: people the DM brought in through narration (a ferryman on a skiff, a face in the water) never joined the scene, so they weren't on the map, in who's here or in the To list. The DM now lists every newcomer in "arrivals" and the page adds them to the scene right away; anyone who speaks under a new name is added too.
+
 ## 1.14.10
 - Fix: right after arriving somewhere new, the DM (and DM-played heroes) only saw the new place's few lines, so a hero could greet a long-time companion like a stranger. They now also see the last of what the hero saw before arriving, and the list of people the hero already knows (plus companions travelling with the party), with an instruction never to re-introduce or ask their names again.
 
