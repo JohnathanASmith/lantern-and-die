@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.10
+- Fix: right after arriving somewhere new, the DM (and DM-played heroes) only saw the new place's few lines, so a hero could greet a long-time companion like a stranger. They now also see the last of what the hero saw before arriving, and the list of people the hero already knows (plus companions travelling with the party), with an instruction never to re-introduce or ask their names again.
+
 ## 1.14.9
 - "Play my move" button in the DM-plays-for-me banner: the DM takes one turn for your hero right away, whenever you press it (useful while another player is playing live and timed turns are off).
 

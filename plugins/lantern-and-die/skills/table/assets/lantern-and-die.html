@@ -1,5 +1,5 @@
 <title>Lantern &amp; Die</title>
-<meta name="lantern-and-die-version" content="1.14.9">
+<meta name="lantern-and-die-version" content="1.14.10">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=IBM+Plex+Mono:wght@500&family=IM+Fell+English+SC&display=swap">
@@ -364,7 +364,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="top">
-  <div class="brand" title="Lantern &amp; Die v1.14.9"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
+  <div class="brand" title="Lantern &amp; Die v1.14.10"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5" fill="none" stroke="var(--gold)" stroke-width="2"/><polygon points="16,7 24,21 8,21" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="16" y="19" text-anchor="middle" font-size="7" font-family="IBM Plex Mono,monospace" fill="var(--fg)">20</text></svg>Lantern &amp; Die</div>
   <div class="presence" id="presence"></div>
   <nav class="nav"><a href="#create" id="navCreate">Character</a><a href="#table" id="navTable">Table</a></nav>
 </header>
@@ -1576,14 +1576,16 @@ async function autoTurnTick(){if(autoTurnBusy||S.busy||npcBusy||!S.sample||!S.db
     const lastBy=id=>S.talk.filter(m=>msgScene(m)===sid&&m.hero===id).reduce((t,m)=>Math.max(t,m.at||0),0);const actor=cands.sort((a,b)=>lastBy(a)-lastBy(b))[0];
     autoTurnBusy=true;try{await autoTurn(sid,actor)}catch(e){}finally{autoTurnBusy=false}return}}
 async function autoTurn(sid,actor){const sc=S.scenes[sid]||{},c=S.chars[actor]||{};const P=posOf(sid);const allDm=heroesIn(sid).every(id=>dmPlays(id));
-  const seen=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&(!Array.isArray(m.heard)||m.heard.includes(actor)||m.hero===actor)).sort((a,b)=>a.at-b.at).slice(-16).map(m=>fmtLine(m,false,sceneTime(sid))).join("\n");
+  const seen=S.talk.filter(m=>m.kind!=="dmq"&&m.kind!=="pic"&&(m.hero===actor||(Array.isArray(m.heard)?m.heard.includes(actor):heroesIn(msgScene(m)).includes(actor)||msgScene(m)===sid))).sort((a,b)=>a.at-b.at).slice(-18).map(m=>(msgScene(m)!==sid?"[earlier, at "+(S.scenes[msgScene(m)]?.name||"another place")+"] ":"")+fmtLine(m,false,sceneTime(sid))).join("\n");
+  const known=notesFor(actor,"person").slice(-20).map(n=>`${n.title||n.name||""}: ${String(n.text||"").slice(0,120)}`).filter(x=>x.length>3);
   const people=[...heroesIn(sid).filter(id=>id!==actor).map(id=>`${heroName(id)} (hero${dmPlays(id)?"":", played live"})`),...npcsHere(sid).filter(n=>!P.npcs[n.name]?.hidden).map(n=>`${n.name}${aliasOf(n.name,actor)?" (known as "+aliasOf(n.name,actor)+")":""}: ${n.about||""}`)].join("; ");
   const prompt=`You are playing ${c.name}, a ${speciesOf(c)} ${c.class} in a live D&D game, because their player asked the DM to play them for a while. Decide their next move right now, true to their personality and to how their player plays them, and move the story forward: talk to someone here, ask a useful question, investigate something, act on the party's plan, or follow the other heroes. Keep it to one short line or action. Never make big choices for them (spending much coin, romance going further, risky or irreversible deeds, leaving the party, decisions about their own past). If nothing sensible is left to do (everyone resting, waiting on something), set kind to "wait".${toneRule()}
 Personality: ${c.personality||""}. Appearance: ${String(c.appearance||"").slice(0,300)}. Backstory: ${String(c.backstory||"").slice(0,300)}.
 How their player plays them: ${JSON.stringify(playedAs(actor))}
 Quests they know: ${JSON.stringify(notesFor(actor,"quest").map(q=>q.title+": "+String(q.text||"").slice(0,160)))}
 Place: ${sc.name}. ${String(sc.scene||sc.description||"").slice(0,500)}${isJourney(sc)?(allDm?`\nON THE ROAD to ${sc.travel?.to||"the destination"}: every hero here is being played by the DM, so the party moves only if you move it. When the talk has run its course, set kind "continue" to push on toward ${sc.travel?.to||"the destination"} (text: a short line from them about moving on). Set kind "camp" only if it is night, someone is exhausted, or the weather turns dangerous. Never turn back or change where the party is going.`:"\nON THE ROAD: the party is travelling. Talk, look around, react to what the road shows or help the others. You may suggest moving on in words, but never push on, make camp or turn back yourself; the players playing live decide that."):""}
-People here: ${people||"nobody else"}
+People here: ${people||"nobody else"}${npcsHere(sid).some(n=>n.companion)?"\nTravelling with the party (they have been together for a while, so they already know each other): "+npcsHere(sid).filter(n=>n.companion).map(n=>n.name).join(", "):""}
+People ${c.name} already knows (never act as if meeting them for the first time, never ask their name again): ${JSON.stringify(known)}
 What they've seen and heard lately:
 ${seen}
 Reply with ONLY JSON: {"kind":"say|do|wait${isJourney(sc)&&allDm?"|continue|camp":""}","to":"exact name of who they address, or empty","vol":"talk|whisper|shout","text":"their spoken words, or for do an action in first person starting with I"}`;
@@ -1680,7 +1682,9 @@ async function npcRespondCore(trigger){const ME=trigger.actor||S.uid;if(!S.sampl
   if(npcBusy){npcQueued=trigger;return}npcBusy=true;if(trigger.waitMins)await tickClock(trigger.check?.scene||trigger.line?.scene||myScene(),trigger.waitMins);const sid=trigger.check?.scene||trigger.line?.scene||myScene(),sc=S.scenes[sid]||{};const npcs=npcsHere(sid);const P=posOf(sid);
   const tHeard=Array.isArray(trigger.line?.heard)?trigger.line.heard:Array.isArray(trigger.check?.heard)?trigger.check.heard:null,tNh=trigger.line?.nh||null;
   const who=trigger.line?.kind==="do"?"Narrator":(trigger.line?.to||npcs[0]?.name||"Narrator");setBusy(sid,who,true);
-  const g=S.game||{};const recent=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&canSee(m)).sort((a,b)=>a.at-b.at).slice(-18).map(m=>fmtLine(m,false,sceneTime(sid))+heardLabel(m)).join("\n");
+  const g=S.game||{};const here=S.talk.filter(m=>msgScene(m)===sid&&m.kind!=="dmq"&&canSee(m)).sort((a,b)=>a.at-b.at).slice(-18);
+  const before=here.filter(m=>m.kind!=="sys"&&m.kind!=="pic").length<8?S.talk.filter(m=>msgScene(m)!==sid&&(m.hero===ME||(Array.isArray(m.heard)?m.heard.includes(ME):heroesIn(msgScene(m)).includes(ME)))&&m.kind!=="dmq"&&m.kind!=="pic"&&m.at<(here[0]?.at||Date.now())).sort((a,b)=>a.at-b.at).slice(-10):[];
+  const recent=(before.length?"(just before arriving here, elsewhere)\n"+before.map(m=>fmtLine(m,false,sceneTime(sid))).join("\n")+"\n(here)\n":"")+here.map(m=>fmtLine(m,false,sceneTime(sid))+heardLabel(m)).join("\n");
   const whereAll=[...Object.entries(P.heroes).map(([id,p])=>`${heroName(id)} (${id}) at ${p.x},${p.y}${p.spot?" on the "+p.spot:""}`),...Object.entries(P.npcs).map(([n,p])=>`${n} at ${p.x},${p.y}${p.spot?" on the "+p.spot:""}`)].join("; ");
   const heroesHere=heroesIn(sid).map(id=>{const c=S.chars[id];const dv=derive(c);return{id,name:c.name,gender:genderNote(c)||"not stated: use their name or they/them",species:speciesOf(c),class:c.class,level:c.level||1,background:c.background,alignment:c.alignment||"",appearance:String(c.appearance||"").slice(0,500),...(c.pregnant?{pregnant:`yes, about ${Math.max(0,Math.floor((gameTime(S.game||{})-(c.pregnant.since||0))/1440))} day(s) (her player knows; the character may not yet). Let signs show only gradually from a few weeks on, never announce it, and leave the telling to her player`}:{}),hp:`${c.hp??"?"}/${c.hpMax??"?"}`,conditions:c.conditions||[],exhaustion:c.exhaustion||0,heroicInspiration:!!c.inspiration,languages:dv.languages,spells:dv.spellAb?{known:c.spells||"",slotsLeft:(dv.slots||[]).map((n,i)=>Math.max(0,n-((c.slotsUsed||[])[i]||0)))}:null,features:dv.features.map(f=>f[0]).slice(0,14),skills:heroSkills(c),expertise:c.expertise||[],tools:heroTools(c),personality:c.personality,backstory:String(c.backstory||"").slice(0,300),inventory:(c.inventory||[]).map(i=>i.name),purse:purseLabel(purseOf(c)),passivePerception:10+checkMod(c,{kind:"skill",skill:"Perception",ability:"WIS"}).mod,revealedAboutThem:notesFor(id,"reveal").filter(n=>n.status!=="new").map(n=>n.text)}});
   const mem=npcs.map(n=>({name:n.name,...(aliasOf(n.name)?{knownTo_actingHero_as:aliasOf(n.name)}:{}),hostile:!!n.hostile,attitude:S.npcmem[slug(n.name)]?.attitude||n.attitude||"indifferent",about:n.about||"",looks:S.npcmem[slug(n.name)]?.looks||n.looks||"",...(S.npcmem[slug(n.name)]?.pregnant?{pregnant:`yes, by ${S.npcmem[slug(n.name)].pregnant.with||"a hero"}, about ${Math.max(0,Math.floor((gameTime(S.game||{})-(S.npcmem[slug(n.name)].pregnant.since||0))/1440))} day(s) (a secret from the players; she learns of it herself only after a few weeks, then decides, true to who she is, whether and when to tell; let it show gradually)`}:{}),remembers:(S.npcmem[slug(n.name)]?.notes||[]).slice(-8)}));
@@ -1717,6 +1721,7 @@ Heroes present (NPCs see their appearance and react to it naturally: scars, size
 Where everyone is (x,y on the scene map; spot = private nook): ${whereAll}
 Things on the maps here (secret "leads" = where a door or stair goes; players only know it once discovered, so never reveal it before they find out): main room ${JSON.stringify(exitFeatures(sid,""))}; rooms ${JSON.stringify(roomsBrief(sid).map(r=>({name:r.name,enteredFrom:r.enteredFrom,features:r.features})))}
 What ${heroName(ME)} knows of the quests: ${JSON.stringify(notesFor(ME,"quest").map(q=>q.title+" ("+(q.status||"active")+")"))}
+People ${heroName(ME)} already knows (they never act as if meeting these people for the first time or ask their names again): ${JSON.stringify([...new Set([...notesFor(ME,"person").map(n=>n.name),...npcsHere(sid).filter(n=>n.companion).map(n=>n.name)])].slice(-30))}
 If other heroes spoke or acted moments ago and were already answered (see below), stay consistent with those answers: they happened.
 Recent conversation here that ${heroName(ME)} saw or heard (other private talk may have happened out of their earshot):
 ${recent}
